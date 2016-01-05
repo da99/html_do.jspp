@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+#
+#
+THE_ARGS="$@"
+if [[ -z "$@" ]]; then
+  action="watch"
+else
+  action=$1
+  shift
+fi
+
+set -u -e -o pipefail
+
+Color_Off='\e[0m'
+Reset='\e[0m'
+BRed='\e[1;31m'
+Red='\e[0;31m'
+Green='\e[0;32m'
+Orange='\e[0;33m'
+
+case $action in
+  help|--help)
+    bash_setup print_help $0
+    ;;
+
+  watch)
+    echo -e "\n=== Watching: "
+    while read -r CHANGE; do
+      dir=$(echo "$CHANGE" | cut -d' ' -f 1)
+      op=$(echo "$CHANGE" | cut -d' ' -f 2)
+      path="${dir}$(echo "$CHANGE" | cut -d' ' -f 3)"
+      file="$(basename $path)"
+
+      echo -e "\n=== $CHANGE ($path)"
+
+      if [[ "$path" =~ "$0" ]]; then
+        echo "=== Reloading..."
+        break
+      fi
+
+      if [[ "$file" =~ ".js" ]]; then
+        { \
+          jshint $path && \
+          # echo -e "=== ${Green}Passed${Reset}" && \
+          # sjs --sourcemap -o "$output" "$path" && \
+          # jshint "$output" && \
+          echo -e "=== ${Green}Passed${Reset}" \
+        ; } || echo -e "${Red}Failed${Reset}"
+
+        content="$(cat "$path")"
+        output="tmp/$(basename $path)"
+        stamp="$(date '+%r')"
+        echo "${content/THE_FILE_DATE/$stamp}" > "$output"
+      fi
+    done < <(inotifywait --quiet --monitor --event close_write  "./main.js" "$0")
+    stat="$?"
+
+    if [[ ! "$stat" -eq "0" ]]; then
+      echo "!!! Status: $stat" 1>&2
+      exit $stat
+    fi
+    $0 watch $THE_ARGS
+    ;;
+
+  *)
+    echo "Unknown option: $action" 1>&2
+    exit 1
+    ;;
+
+esac

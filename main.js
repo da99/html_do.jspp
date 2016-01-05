@@ -1,16 +1,17 @@
+"use strict";
 
 
-  var log = function (_args) {
-    var addr = window.location.href;
-    if (
-      addr.indexOf("localhost") == -1 &&
-      addr.indexOf("file:///") == -1 &&
-      addr.indexOf("127.0.0.1") == -1
-     )
-      return me;
+var log = function (_args) {
+  var addr = window.location.href;
+  if (
+    addr.indexOf("localhost") === -1 &&
+    addr.indexOf("file:///") === -1 &&
+    addr.indexOf("127.0.0.1") === -1
+  )
+  return this;
 
-    return console.log.apply(console, arguments);
-  }; // === func
+  return console.log.apply(console, arguments);
+}; // === func
 
 var App = function () {
   var me = this;
@@ -48,7 +49,7 @@ var App = function () {
     }
 
     var l = func.length;
-    if (me.stack.length != l) {
+    if (me.stack.length !== l) {
       log(stack);
       throw new Error("Stack mismatch: " +
                       l.toString() +
@@ -62,10 +63,9 @@ var App = function () {
     return me;
   }; // === func
 
-  me.push =function (validate, func) {
-    var raw = _.isString(func) ? (new Function('return ' + func))() : func(me);
+  me.push =function (validate, raw) {
     if (!validate(raw))
-      throw new Error("Invalid return: " + to_string(raw) + " from:" + func.toString());
+      throw new Error("Invalid return: " + to_string(raw) + " from:" + to_string(raw));
     me.stack.push( raw );
     return me;
   };
@@ -113,17 +113,50 @@ var App = function () {
 
 var length_of = function (num) { return function (v) { return v.length === num;};};
 var length_gt = function (num) { return function (v) { return v.length > num;};};
-var string    = function (v) { return typeof v === "string"; };
-var app       = new App();
-var all       = function (f) { return function (arr) { return _.all(arr, f); }; };
+var string    = function (v)   { return typeof v === "string"; };
+var all       = function (f)    { return function (arr) { return _.all(arr, f); }; };
+var dot       = function (_args) {
+  var args = _.toArray(arguments);
+  var name = args.shift();
+  return function (o) {
+    return o[name].apply(o, args);
+  };
+};
 
-app
-.push(length_of(1), '$("#p2")').log()
+(new App())
+.push(length_of(1), $("#p2")).log()
 .dot(string, 'html').log()
-.push(length_gt(0), '$("p")').log()
-.map(all(string), function (v) { return $(v).html();}).log()
+.push(length_gt(0), $("p")).log()
+.map(all(string), _.flow( $, dot('html') ) ).log()
 ;
 
+function is_dom(v) {
+  return v && typeof v.html === 'function' && typeof v.attr == 'function';
+}
 
+i(string);
+o(is_dom);
+name('$', function (s) { return $(s);});
+
+i(last_of_stack, is_dom);
+o(string);
+name('.html', function (j) { return j.html(); });
+
+run('$', "#p2");
+be( length_of(1) );
+
+run(".html");
+be( non_zero_length );
+
+run('$', "p");
+be( length_gt(0) );
+
+map(f('$', '.html'));
+be( all(string) );
+
+run('$', "form");
+be( length_either(0, 1) );
+
+log("THE_FILE_DATE");
 
 
