@@ -1,119 +1,50 @@
 "use strict";
 
 
-var log = function (_args) {
-  var addr = window.location.href;
-  if (
-    addr.indexOf("localhost") === -1 &&
-    addr.indexOf("file:///") === -1 &&
-    addr.indexOf("127.0.0.1") === -1
-  )
-  return this;
+var is_empty = function (v) {
+  var l = v.length;
+  if (!_.isFinite(l))
+    throw new Error("!!! Invalid .length property.");
 
-  return console.log.apply(console, arguments);
+  return l === 0;
 }; // === func
 
-var App = function () {
-  var me = this;
-  me.stack = [];
+var is_localhost = function () {
+  var addr = window.location.href;
+  return addr.indexOf("localhost") > -1 ||
+    addr.indexOf("file:///") > -1 ||
+    addr.indexOf("127.0.0.1") > -1
+    ;
+}; // === func
 
-  var to_string = function (val) {
-    if (val === null)
-      return "null";
-    if (val === undefined)
-      return "undefined";
-    return val.toString();
-  }; // === func
+var log = function (_args) {
+  if (is_localhost)
+    return console.log.apply(console, arguments);
 
-  me.log = function () {
-    var stack = me.stack;
-    if (stack.length < 1)
-      throw new Error("Nothing on stack to log.");
-    log(stack[stack.length - 1]);
-    return me;
-  };
+  return this;
+}; // === func
 
-  me.do = function (comment, func) {
-    var stack = me.stack;
+var to_string = function (val) {
+  if (val === null)
+    return "null";
 
-    if (typeof window[comment] === 'function') {
-      var args = _.toArray(arguments);
-      var name = args.shift();
-      me.stack.push(window[name].apply(window[name], args));
-      return me;
-    }
+  if (val === undefined)
+    return "undefined";
 
-    if (func.length === 0) {
-      me.stack.push(func());
-      return me;
-    }
+  if (_.isArray(val))
+    return  '['+_.map(val, to_string).join(", ") + ']';
 
-    var l = func.length;
-    if (me.stack.length !== l) {
-      log(stack);
-      throw new Error("Stack mismatch: " +
-                      l.toString() +
-                        " expected, but " +
-                          me.stack.length +
-                            " in stack " +
-                              "for function: " + func.toString()
-                     );
-    }
-    me.stack = [func.apply(null, me.stack)];
-    return me;
-  }; // === func
+  if (_.isString(val))
+    return '"' + val + '"';
 
-  me.push =function (validate, raw) {
-    if (!validate(raw))
-      throw new Error("Invalid return: " + to_string(raw) + " from:" + to_string(raw));
-    me.stack.push( raw );
-    return me;
-  };
+  return val.toString();
+}; // === func
 
-  me.dot =function (validate, func_name, arg) {
-    if (me.stack.length < 1)
-      throw new Error("Stack underflow for: dot " + func_name.toString());
-
-    var target = me.stack[me.stack.length - 1];
-    var raw    = _.toArray(arguments).length > 2 ? target[func_name](arg) : target[func_name]();
-
-    if (!validate(raw)) {
-      throw new Error("Invalid return: dot " +
-                      to_string(raw) +
-                        " for: " + to_string(func_name));
-    }
-    me.stack.push( raw );
-    return me;
-  };
-
-  me.on = function (func) {
-    if (me.stack.length < 1)
-      throw new Error("Stack undereflow.");
-
-    var last = me.stack[me.stack.length - 1];
-    if (!func(last))
-      throw new Error("Failed: " + to_string(last) + " " + func.toString());
-    return me;
-  }; // === func
-
-  me.map = function (validate, func) {
-    if (me.stack.length < 1)
-      throw new Error("Stack underflow for: map " + to_string(me.stack));
-    var target = _.last(me.stack);
-    var raw = _.map(target, func);
-    if (!validate(raw))
-      throw new Error('Invalid return on map: ' + to_string(raw));
-    me.stack.push(raw);
-    return me;
-
-  };
-
-  return me;
-};
+var Dum_Dum_Funcs = [];
 
 var length_of = function (num) { return function (v) { return v.length === num;};};
 var length_gt = function (num) { return function (v) { return v.length > num;};};
-var string    = function (v)   { return typeof v === "string"; };
+var is_string = function (v)   { return typeof v === "string"; };
 var all       = function (f)    { return function (arr) { return _.all(arr, f); }; };
 var dot       = function (_args) {
   var args = _.toArray(arguments);
@@ -123,40 +54,139 @@ var dot       = function (_args) {
   };
 };
 
-(new App())
-.push(length_of(1), $("#p2")).log()
-.dot(string, 'html').log()
-.push(length_gt(0), $("p")).log()
-.map(all(string), _.flow( $, dot('html') ) ).log()
-;
+var anything = function () { return true; };
 
-function is_dom(v) {
-  return v && typeof v.html === 'function' && typeof v.attr == 'function';
+var or = function () {
+  var funcs = arguments;
+  return function (arg) {
+    return _.any(funcs, function (f) { return f(arg); });
+  };
+};
+
+var all_funcs = function (arr) {
+  var l = arr.length;
+  return _.isFinite(l) && l > 0 && _.all(arr, _.isFunction);
+};
+
+function is_$(v) {
+  return v &&
+    typeof v.html === 'function' &&
+      typeof v.attr === 'function';
 }
 
-i(string);
-o(is_dom);
-name('$', function (s) { return $(s);});
+var return_false = _.identity(false);
+var l            = function (v) {
+  if (!_.isFinite(v.length))
+    throw new Error("No valid .length property: " + to_string(v));
+  return v.length;
+};
 
-i(last_of_stack, is_dom);
-o(string);
-name('.html', function (j) { return j.html(); });
+function Dum_Dum_Boom_Boom_Run(args, ins, out, func) {
+  if (ins.length !== func.length)
+    throw new Error("Argument length mismatch: " + ins.length + ' !== ' + func.length);
 
-run('$', "#p2");
-be( length_of(1) );
+  // Validate inputs:
+  var inputs_valid = _.all(args, function (arg, i) {
+    return _.all(ins[i], function (is_valid) { return is_valid(arg); });
+  });
 
-run(".html");
-be( non_zero_length );
+  if (!inputs_valid)
+    throw new Error("Invalid inputs: " + to_string(_.toArray(args)));
 
-run('$', "p");
-be( length_gt(0) );
+  var val = func.apply(null, args);
 
-map(f('$', '.html'));
-be( all(string) );
+  var is_valid = _.all(out, function (f){ return f(val); });
+  if (!is_valid)
+    throw new Error("Invalid output: " + to_string(val));
 
-run('$', "form");
-be( length_either(0, 1) );
+  return val;
+}
 
+function Dum_Dum_Boom_Boom() {
+  var dum   = this;
+  var ins   = [];
+  var out   = [return_false];
+
+  this.exs = [];
+
+  this.example = function () {
+    dum.exs.push(_.toArray(arguments));
+    return dum;
+  }; // === func
+
+  this.in   = function () {
+    ins.push(_.toArray(arguments));
+    return dum;
+  };
+
+  this.out  = function () {
+    if (!all_funcs(arguments))
+      throw new Error("Not all functions: " + _.map(arguments, to_string));
+
+    out = _.toArray(arguments);
+    return dum;
+  };
+
+  this.body = function (func) {
+    if (is_empty(dum.exs))
+      throw new Error('!!! No examples specified.');
+
+    if (!_.isFunction(func))
+      throw new Error('Not a function: ' + to_string(func));
+    var f = function () {
+      return Dum_Dum_Boom_Boom_Run(arguments, ins, out, func);
+    };
+
+    f.design = dum;
+    Dum_Dum_Funcs = [].concat(Dum_Dum_Funcs).concat([f]);
+    return f;
+  };
+
+  return this;
+} // === func Dum_Dum_Boom_Boom
+
+var Dum_Dum_Boom_Boom_Run_Specs = function (_funcs) {
+  var do_it = _.all(arguments, function (v) {
+    return (_.isBoolean(v) && v) || (_.isFunction(v) && v());
+  });
+
+  if (!do_it)
+    return false;
+
+  _.each(Dum_Dum_Funcs, function (f) {
+    var d = f.design;
+    _.each(d.exs, function (args) {
+      log("=== spec: " + to_string(args));
+      f.apply(null, args);
+    });
+  });
+
+  log("=== PASSED");
+  return true;
+}; // === func
+
+var dom = (new Dum_Dum_Boom_Boom())
+.example("p")
+.example("body")
+.example(jQuery("body"))
+.in(or(is_string, is_$))
+.out(is_$)
+.body(function (s) { return jQuery(s); })
+;
+
+var non_empty_$ = (new Dum_Dum_Boom_Boom())
+.example("body")
+.in(anything)
+.out(length_gt(0))
+.body(function (v) {
+  return dom(v);
+})
+;
+
+log(l( dom('p') ));
+log(l( dom($("p")) ));
+
+Dum_Dum_Boom_Boom_Run_Specs(is_localhost);
 log("THE_FILE_DATE");
 
 
