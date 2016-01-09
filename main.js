@@ -129,12 +129,18 @@ var run_specs = function (_funcs) {
   if (!do_it)
     return false;
 
+  var counts = [];
+
   _.each(Dum_Dum_Boom_Boom.Designs, function (d) {
-    _.each(d.exs, function (args) {
+    _.each(d.example, function (args) {
       log("=== spec: " + to_string(args));
       d.f.apply(null, args);
+      counts.push(1);
     });
   });
+
+  if (_.isEmpty(counts))
+    throw new Error("!!! No specs found.");
 
   log("=== PASSED");
   return true;
@@ -185,22 +191,9 @@ var length_gt = f(
   }
 );
 
-var is_string = _.isString;
+var is_string = function (v) { return typeof v === "string"; };
 var is_array  = _.isArray;
 var is_bool   = _.isBoolean;
-
-
-var all = f(
-  e(is_string),
-  i(_.isFunction),
-  o(_.isFunction),
-  function (f) {
-    return f(
-      e([]), i(is_array), o(is_bool),
-      function (arr) { return _.all(arr, f); }
-    );
-  }
-);
 
 
 var is_empty = function (v) {
