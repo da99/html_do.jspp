@@ -1,85 +1,6 @@
 "use strict";
 
-
-var is_empty = function (v) {
-  var l = v.length;
-  if (!_.isFinite(l))
-    throw new Error("!!! Invalid .length property.");
-
-  return l === 0;
-}; // === func
-
-var is_localhost = function () {
-  var addr = window.location.href;
-  return addr.indexOf("localhost") > -1 ||
-    addr.indexOf("file:///") > -1 ||
-    addr.indexOf("127.0.0.1") > -1
-    ;
-}; // === func
-
-var log = function (_args) {
-  if (is_localhost)
-    return console.log.apply(console, arguments);
-
-  return this;
-}; // === func
-
-var to_string = function (val) {
-  if (val === null)
-    return "null";
-
-  if (val === undefined)
-    return "undefined";
-
-  if (_.isArray(val))
-    return  '['+_.map(val, to_string).join(", ") + ']';
-
-  if (_.isString(val))
-    return '"' + val + '"';
-
-  return val.toString();
-}; // === func
-
 var Dum_Dum_Funcs = [];
-
-var length_of = function (num) { return function (v) { return v.length === num;};};
-var length_gt = function (num) { return function (v) { return v.length > num;};};
-var is_string = function (v)   { return typeof v === "string"; };
-var all       = function (f)    { return function (arr) { return _.all(arr, f); }; };
-var dot       = function (_args) {
-  var args = _.toArray(arguments);
-  var name = args.shift();
-  return function (o) {
-    return o[name].apply(o, args);
-  };
-};
-
-var anything = function () { return true; };
-
-var or = function () {
-  var funcs = arguments;
-  return function (arg) {
-    return _.any(funcs, function (f) { return f(arg); });
-  };
-};
-
-var all_funcs = function (arr) {
-  var l = arr.length;
-  return _.isFinite(l) && l > 0 && _.all(arr, _.isFunction);
-};
-
-function is_$(v) {
-  return v &&
-    typeof v.html === 'function' &&
-      typeof v.attr === 'function';
-}
-
-var return_false = _.identity(false);
-var l            = function (v) {
-  if (!_.isFinite(v.length))
-    throw new Error("No valid .length property: " + to_string(v));
-  return v.length;
-};
 
 function Dum_Dum_Boom_Boom_Run(args, ins, out, func) {
   if (ins.length !== func.length)
@@ -105,7 +26,7 @@ function Dum_Dum_Boom_Boom_Run(args, ins, out, func) {
 function Dum_Dum_Boom_Boom() {
   var dum   = this;
   var ins   = [];
-  var out   = [return_false];
+  var out   = [];
 
   this.exs = [];
 
@@ -120,15 +41,15 @@ function Dum_Dum_Boom_Boom() {
   };
 
   this.out  = function () {
-    if (!all_funcs(arguments))
-      throw new Error("Not all functions: " + _.map(arguments, to_string));
+    if (!_.all(arguments, _.isFunction))
+      throw new Error("Not all functions: " + to_string(arguments));
 
     out = _.toArray(arguments);
     return dum;
   };
 
   this.body = function (func) {
-    if (is_empty(dum.exs))
+    if (dum.exs.length === 0)
       throw new Error('!!! No examples specified.');
 
     if (!_.isFunction(func))
@@ -136,6 +57,9 @@ function Dum_Dum_Boom_Boom() {
     var f = function () {
       return Dum_Dum_Boom_Boom_Run(arguments, ins, out, func);
     };
+
+    if (out.length === 0)
+      throw new Error('!!! No :out spec specified.');
 
     f.design = dum;
     Dum_Dum_Funcs = [].concat(Dum_Dum_Funcs).concat([f]);
@@ -164,6 +88,119 @@ var Dum_Dum_Boom_Boom_Run_Specs = function (_funcs) {
   log("=== PASSED");
   return true;
 }; // === func
+
+
+// === Helpers ===================================================================
+
+
+var log = function (_args) {
+  if (is_localhost)
+    return console.log.apply(console, arguments);
+
+  return this;
+}; // === func
+
+
+var length_of = (new Dum_Dum_Boom_Boom())
+.example(4)
+.in(_.isFinite)
+.out(_.isFunction)
+.body(function (num) {
+  return function (v) { return v.length === num; };
+});
+
+var length_gt = (new Dum_Dum_Boom_Boom())
+.base(length_of)
+.body(function (num) {
+  return function (v) { return v.length > num;};
+});
+
+var is_string = (new Dum_Dum_Boom_Boom())
+.example("v")
+.in(_.isString)
+.out(_.isBoolean)
+.body(
+  function (v)   { return typeof v === "string"; }
+);
+
+
+var all = (new Dum_Dum_Boom_Boom())
+.example(_.isString)
+.in(_.isFunction)
+.out(_.isFunction)
+.body(
+  function (f) {
+    return (new Dum_Dum_Boom_Boom())
+    .example([])
+    .in(_.isArray)
+    .out(_.isBoolean)
+    .body(function (arr) {
+      return _.all(arr, f);
+    });
+  }
+);
+
+var to_string = function (val) {
+  if (val === null)
+    return "null";
+
+  if (val === undefined)
+    return "undefined";
+
+  if (_.isArray(val))
+    return  '['+_.map(val, to_string).join(", ") + ']';
+
+  if (_.isString(val))
+    return '"' + val + '"';
+
+  if (_.isFinite(val.length) && val.callee)
+    return to_string(_.toArray(val));
+
+  return val.toString();
+}; // === func
+
+var is_empty = function (v) {
+  var l = v.length;
+  if (!_.isFinite(l))
+    throw new Error("!!! Invalid .length property.");
+
+  return l === 0;
+}; // === func
+
+var is_localhost = function () {
+  var addr = window.location.href;
+  return addr.indexOf("localhost") > -1 ||
+    addr.indexOf("file:///") > -1 ||
+    addr.indexOf("127.0.0.1") > -1
+    ;
+}; // === func
+
+var anything = function () { return true; };
+
+var or = function () {
+  var funcs = arguments;
+  return function (arg) {
+    return _.any(funcs, function (f) { return f(arg); });
+  };
+};
+
+var all_funcs = function (arr) {
+  var l = arr.length;
+  return _.isFinite(l) && l > 0 && _.all(arr, _.isFunction);
+};
+
+var is_$ = function (v) {
+  return v &&
+    typeof v.html === 'function' &&
+      typeof v.attr === 'function';
+};
+
+var l            = function (v) {
+  if (!_.isFinite(v.length))
+    throw new Error("No valid .length property: " + to_string(v));
+  return v.length;
+};
+
 
 var dom = (new Dum_Dum_Boom_Boom())
 .example("p")
