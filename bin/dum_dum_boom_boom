@@ -18,13 +18,34 @@ Red='\e[0;31m'
 Green='\e[0;32m'
 Orange='\e[0;33m'
 
+files="$(find . -maxdepth 1 -type f -name '*.js')"
+main_js="$(echo -e "$files" | head -n 1)"
 case $action in
   help|--help)
     bash_setup print_help $0
     ;;
 
   watch)
-    echo -e "\n=== Watching: "
+    cmd () {
+      if [[ -z "$@" ]]; then
+        path="$main_js"
+      else
+        path="$1"
+        shift
+      fi
+
+      stamp="$(date '+%r')"
+
+      { jshint $path && echo -e "=== ${Green}Passed${Reset}: $path -> $stamp"; } || \
+        echo -e "${Red}Failed${Reset}"
+
+      content="$(cat "$path")"
+      output="tmp/$(basename $path)"
+      echo "${content/THE_FILE_DATE/$stamp}" > "$output"
+    }
+    cmd
+
+    echo -e "\n=== Watching: $files"
     while read -r CHANGE; do
       dir=$(echo "$CHANGE" | cut -d' ' -f 1)
       op=$(echo "$CHANGE" | cut -d' ' -f 2)
@@ -39,26 +60,9 @@ case $action in
       fi
 
       if [[ "$file" =~ ".js" ]]; then
-        { \
-          jshint $path && \
-          # echo -e "=== ${Green}Passed${Reset}" && \
-          # sjs --sourcemap -o "$output" "$path" && \
-          # jshint "$output" && \
-          echo -e "=== ${Green}Passed${Reset}" \
-        ; } || echo -e "${Red}Failed${Reset}"
-
-        content="$(cat "$path")"
-        output="tmp/$(basename $path)"
-        stamp="$(date '+%r')"
-        echo "${content/THE_FILE_DATE/$stamp}" > "$output"
+        cmd $path
       fi
-    done < <(inotifywait --quiet --monitor --event close_write  "./main.js" "$0")
-    stat="$?"
-
-    if [[ ! "$stat" -eq "0" ]]; then
-      echo "!!! Status: $stat" 1>&2
-      exit $stat
-    fi
+    done < <(inotifywait --quiet --monitor --event close_write  $(echo -e "$files" | tr '\n' ' ') "$0") || exit 1
     $0 watch $THE_ARGS
     ;;
 
