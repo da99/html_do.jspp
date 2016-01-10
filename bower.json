@@ -1,0 +1,22 @@
+{
+  "name": "dum_dum_boom_boom",
+  "authors": [
+    "da99 <i-hate-spam-1234567@mailinator.com>"
+  ],
+  "description": "[don't use this]",
+  "main": "main.js",
+  "moduleType": [],
+  "license": "MIT",
+  "homepage": "https://github.com/da99/dum_dum_boom_boom",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "jshint": "~2.9.0"
+  }
+}
