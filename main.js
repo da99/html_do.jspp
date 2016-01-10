@@ -231,6 +231,7 @@ var run_specs = function (_funcs) {
 
 // === Helpers ===================================================================
 
+deadly_f(is_anything);
 function is_anything(v) {
   if (arguments.length !== 1)
     throw new Error("Invalid: arguments.length must === 1");
@@ -241,15 +242,15 @@ function is_anything(v) {
 
   return true;
 }
-deadly_f(is_anything);
 
+deadly_f(is_function);
 function is_function(v) {
   if (arguments.length !== 1)
     throw new Error("Invalid: arguments.length must === 1");
   return typeof v === 'function';
 }
-deadly_f(is_function);
 
+deadly_f(conditional);
 function conditional(name, funcs) {
   if (funcs.length < 2)
     throw new Error("Called 'or' with few arguments: " + arguments.length);
@@ -265,7 +266,6 @@ function conditional(name, funcs) {
     return _[name](funcs, function (f) { return f(v); });
   });
 }
-deadly_f(conditional);
 
 function and(_funcs) {
   return conditional('all', arguments);
@@ -280,7 +280,12 @@ var length_of = f(
   i(or(is_zero, is_pos_int)),
   o(is_function),
   function (num) {
-    return function (v) { return v.length === num; };
+    return f(
+      e([]), e("----"),
+      i(or(is_array, is_string)),
+      o(is_bool),
+      function (v) { return v.length === num; }
+    );
   }
 );
 
