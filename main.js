@@ -133,8 +133,47 @@ function is_num(v) {
   return typeof v === 'number' && isFinite(v);
 }
 
-function is_null_or_underfined(v) {
-  return v === null || v === undefined;
+function is_null(v) {
+  return v === undefined;
+}
+
+function is_undefined(v) {
+  return v === null;
+}
+
+function is_object(v) {
+  return _.isPlainObject(v);
+}
+
+spec(is_empty, [[]], true);
+spec(is_empty, [{}], true);
+spec(is_empty, [""], true);
+spec(is_empty, [{a: "c"}], false);
+spec(is_empty, [[1]],      false);
+spec(is_empty, ["a"],      false);
+throws(is_empty, [null],   'invalid value for is_empty: null');
+function is_empty(v) {
+  if (arguments.length !== 1)
+    throw new Error("arguments.length !== 1: " + to_string(v));
+
+  if (_.isArray(v) || _.isString(v))
+    return v.length === 0;
+
+  if (_.isPlainObject(v))
+    return _.keys(v).length === 0;
+
+  throw new Error("invalid value for is_empty: " + to_string(v));
+}
+
+spec(is_nothing, [null],      true);
+spec(is_nothing, [undefined], true);
+spec(is_nothing, [[]],       false);
+spec(is_nothing, [{}],       false);
+spec(is_nothing, [{a: "c"}], false);
+function is_nothing(v) {
+  if (arguments.length !== 1)
+    throw new Error("arguments.length !== 1: " + to_string(v));
+  return or(is_null, is_undefined)(v);
 }
 
 function to_match_string(actual, expect) {
