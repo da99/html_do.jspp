@@ -49,8 +49,8 @@ function is_array_of_functions(a) {
   return _.isArray(a) && l(a) > 0 && _.all(a, _.isFunction);
 } // === func
 
-spec_func(function () { return is(5)(5); }, true);
-spec_func(function () { return is("a")("b"); }, false);
+returns(true,  function () { return is(5)(5); });
+returns(false, function () { return is("a")("b"); });
 function is(target) { return function (v) { return v === target; }; }
 
 function is_positive(v) { return typeof v === 'number' && isFinite(v) && v > 0; }
@@ -184,7 +184,7 @@ function throws(f, args, expect) {
   throw err;
 }
 
-function spec_func(f, expect) {
+function returns(expect, f) {
   if (!is_localhost())
     return false;
 
