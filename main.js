@@ -295,6 +295,88 @@ function is_anything(v) {
   return true;
 }
 
+// === When actual value is: true
+spec(key_to_bool, ['is_happy', 'is_happy', {is_happy:  true}], true);
+spec(key_to_bool, ['is_happy', '!is_happy', {is_happy: true}], false);
+// === When actual value is: false
+spec(key_to_bool, ['is_happy', 'is_happy', {is_happy:  false}], false);
+spec(key_to_bool, ['is_happy', '!is_happy', {is_happy: false}], true);
+function key_to_bool(name, target_name, data) {
+  if (!data.hasOwnProperty(name))
+    return false;
+  var actual = data[name];
+  if (!is_bool(actual))
+    return false;
+
+  var not_name = '!' + name;
+
+  if (target_name === name)
+    return actual;
+  if (target_name === not_name)
+    return !actual;
+
+  return false;
+}
+
+function state_must_be_valid() {
+  if (!is_state_valid())
+    throw new Error("state is invalid. Most likely stopped by exception.");
+  return true;
+}
+
+function state_funcs() {
+  state_must_be_valid();
+
+  if(!is_array(state_push.funcs || 'none'))
+    state_push.funcs = [];
+  return state_push.funcs.slice(0);
+}
+
+function state_push(name, value, func) {
+  state_must_be_valid();
+
+  var funcs = state_funcs();
+
+  if (!is_string(name))
+    throw new Error("'name' value invalid: " + to_string(name));
+  if (is_nothing(value))
+    throw new Error("'value' value invalid: " + to_string(value));
+  if (!is_function(func))
+    throw new Error("'func' value invalid: " + to_string(func));
+
+  state_push.funcs = funcs.slice(0).concat([{name: name, value: value, func: func}]);
+  return true;
+}
+
+function state_run(data) {
+  state_must_be_valid();
+
+  var used = [];
+  var funcs = state_funcs(), func_i = 0, meta;
+
+  _.each(data, function (orig_val, orig_key) {
+    _.each(funcs, function (meta) {
+      if (!key_to_bool(orig_key, meta.name, data))
+        return false;
+      try {
+        used.push([meta, meta.func(meta, data)]);
+      } catch (e) {
+        state_invalid();
+        throw e;
+      }
+    });
+  });
+
+  return used;
+
+}
+
+function state_invalid() {
+  state_push.is_invalid = true;
+}
+function is_state_valid() {
+  return state_push.is_invalid === true;
+}
 
 // ============================================================================
 
