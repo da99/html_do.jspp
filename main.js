@@ -8,181 +8,27 @@ Dum_Dum_Boom_Boom.push = function (f) {
   return Dum_Dum_Boom_Boom;
 };
 
-var is_localhost = function () {
+spec(is_localhost, [], window.location.href.indexOf('/dum_dum_boom_boom/example.html') > 0);
+function is_localhost() {
   var addr = window.location.href;
-  return addr.indexOf("localhost") > -1 ||
+  return window.console && (addr.indexOf("localhost") > -1 ||
     addr.indexOf("file:///") > -1 ||
-    addr.indexOf("127.0.0.1") > -1
-    ;
-}; // === func
+    addr.indexOf("127.0.0.1") > -1)
+  ;
+} // === func
 
-var log = function (_args) {
+function log(_args) {
   if (is_localhost)
     return console.log.apply(console, arguments);
 
-  return this;
-}; // === func
+  return false;
+} // === func
 
-
-var i = function (_args) {
-  _.each(arguments, function (f) {
-    if (!f.is_dum && !f.is_deadly_dum)
-      throw new Error("Not a dum func: " + f.toString());
-  });
-
-  return {type: "input",   args: arguments};
-};
-
-var args = function (_args) {
-  _.each(arguments, function (f) {
-    if (!is_dum(f))
-      throw new Error("Not a dum func: " + f.toString());
-  });
-  return {type: "arguments", args: arguments};
-};
-
-var o = function (_args) {
-  _.each(arguments, function (f) {
-    if (!is_dum(f))
-      throw new Error("Not a dum func: " + f.toString());
-  });
-
-  return {type: "output",  args: arguments};
-};
-
-var e = function (_args) {
-  if (arguments.length === 0)
-    throw new Error("e() called w/o args.");
-  _.each(arguments, function (v) {
-    if (v === undefined)
-      throw new Error("'undefined' found.");
-    if (v === null)
-      throw new Error("'null' found.");
-  });
-
-  return {type: "example", args: arguments};
-};
-
-
-var is_dum   = function (f) { return typeof f === 'function' && (f.is_dum || f.is_deadly_dum); };
-var deadly_f = function (f) { f.is_deadly_dum = true; return f; };
-
-var f = function () {
-  var  example = [];
-  var  input   = [];
-  var  output  = [];
-  var  f       = null;
-  var  fin     = null;
-
-  var arg_l = arguments.length;
-  var i     = 0;
-  var a     = null;
-  while (i < arg_l) {
-    a = arguments[i];
-
-    switch (typeof a) {
-      case "function":
-        f = a;
-        break;
-
-      default:
-        switch (a.type) {
-          case "example":
-            example = _.clone(example);
-            example.push(_.toArray(a.args));
-            break;
-
-          case "input":
-            input = _.clone(input);
-            input.push(_.toArray(a.args));
-            break;
-
-          case "output":
-            if (output.length !== 0)
-              throw new Error("Output already defined.");
-            output = _.toArray(a.args);
-            break;
-
-          default:
-            throw new Error("Input type: " + a.type);
-        } // === switch a.type
-    } // === switch typeof a
-    i = i + 1;
-  } // === while
-
-
-  // ===============
-  if (example.length === 0)
-    throw new Error('!!! No :example spec specified.');
-
-  if (output.length === 0)
-    throw new Error('!!! No :output spec specified.');
-
-  _.each(input, function (arr) {
-    if (!_.isArray(arr))
-      throw new Error('!!! Not an array: ' + arr);
-
-    _.each(arr, function (func) {
-     if (!_.isFunction(func))
-      throw new Error('!!! Not a function: ' + func);
-    });
-  });
-
-  if (!_.isFunction(f))
-    throw new Error('Not a function: ' + f);
-
-  fin = function () {
-    _.each(arguments, function (v, i) {
-      if (v === null)
-        throw new Error("Argument is 'null'. Position: " + i);
-      if (v === undefined)
-        throw new Error("Argument is 'undefined'. Position: " + i);
-    });
-
-    if (input.length !== f.length)
-      throw new Error("Argument length mismatch: " + input.length + ' !== ' + f.length);
-
-    // Validate inputs:
-    _.all(arguments, function (arg, i) {
-      if (!_.all(input[i], function (f) { return f(arg); }))
-        throw new Error("Invalid inputs: " + arg + " for: " + f);
-    });
-
-    var val = f.apply(null, arguments);
-
-    // Validate output:
-    if (!_.all(output, function (f) { return f(val); }))
-      throw new Error("Invalid output: " + val);
-
-    return val;
-  };
-  fin.is_dum = true;
-
-  Dum_Dum_Boom_Boom.push({input: input, output: output, example: example, f: f, fin: fin});
-
-  return fin;
-}; // === func f
-
-var is_array_of_functions = function (a) {
-  return _.isArray(a) && _.all(a, _.isFunction);
-}; // === func
-
-function is_zero(v) { return v === 0; }
-deadly_f(is_zero);
-
-function is_pos_int(v) { return _.isFinite(v) && v > 0; }
-deadly_f(is_pos_int);
-
-
-function is_$(v) {
-  return v &&
-    typeof v.html === 'function' &&
-      typeof v.attr === 'function';
-}
-
-deadly_f(is_$);
-
-var to_string = function (val) {
+spec(to_string, [null], 'null');
+spec(to_string, [undefined], 'undefined');
+spec(to_string, [[1]], '[1]');
+spec(to_string, ['yo yo'], '"yo yo"');
+function to_string(val) {
   if (val === null)
     return "null";
 
@@ -195,11 +41,29 @@ var to_string = function (val) {
   if (_.isString(val))
     return '"' + val + '"';
 
-  if (or(is_zero, is_pos_int)(val.length) && val.callee)
+  if (or(is(0), is_positive)(val.length) && val.callee)
     return to_string(_.toArray(val));
 
   return val.toString();
-}; // === func
+} // === func
+
+
+spec(is_array_of_functions, [[function () {}]], true);
+spec(is_array_of_functions, [[]], false);
+spec(is_array_of_functions, [[1]], false);
+spec(is_array_of_functions, [1], false);
+function is_array_of_functions(a) {
+  return _.isArray(a) && l(a) > 0 && _.all(a, _.isFunction);
+} // === func
+
+function is(target) { return function (v) { return v === target; }; }
+
+function is_positive(v) { return typeof v === 'number' && isFinite(v) && v > 0; }
+
+
+function is_$(v) {
+  return v && typeof v.html === 'function' && typeof v.attr === 'function';
+}
 
 var to_arg = function (val) { return function (f) { return f(val); }; };
 
@@ -231,7 +95,6 @@ var run_specs = function (_funcs) {
 
 // === Helpers ===================================================================
 
-deadly_f(is_anything);
 function is_anything(v) {
   if (arguments.length !== 1)
     throw new Error("Invalid: arguments.length must === 1");
@@ -243,28 +106,22 @@ function is_anything(v) {
   return true;
 }
 
-deadly_f(is_function);
 function is_function(v) {
   if (arguments.length !== 1)
     throw new Error("Invalid: arguments.length must === 1");
   return typeof v === 'function';
 }
 
-deadly_f(conditional);
 function conditional(name, funcs) {
   if (funcs.length < 2)
     throw new Error("Called 'or' with few arguments: " + arguments.length);
-  _.each(funcs, function (v) {
-    if (!is_dum(v))
-      throw new Error("Not a dum function: " + v.toString());
-  });
 
   if (!_[name])
     throw new Error("_." + name + " does not exist.");
 
-  return deadly_f(function (v) {
+  return function (v) {
     return _[name](funcs, function (f) { return f(v); });
-  });
+  };
 }
 
 function and(_funcs) {
@@ -275,81 +132,123 @@ function or(_funcs) {
   return conditional('any', arguments);
 }
 
-var length_of = f(
-  e(4),
-  i(or(is_zero, is_pos_int)),
-  o(is_function),
-  function (num) {
-    return f(
-      e([]), e("----"),
-      i(or(is_array, is_string)),
-      o(is_bool),
-      function (v) { return v.length === num; }
-    );
-  }
-);
+function length_of(num) {
+  return function (v) { return v.length === num; };
+}
 
-var length_gt = f(
-  e(0),
-  i(or(is_zero, is_pos_int)),
-  o(is_function),
-  function (num) {
-    return f(
-      e(0),
-      i(or(is_zero, is_pos_int)),
-      o(is_bool),
-      function (v) { return v.length > num;}
-    );
-  }
-);
+function length_gt(num) {
+  return function (v) { return v.length > num;};
+}
 
-var is_string = deadly_f(function (v) { return typeof v === "string"; });
-var is_array  = deadly_f(_.isArray);
-var is_bool   = deadly_f(_.isBoolean);
+function is_string(v) { return typeof v === "string"; }
+function is_array(v) { return  _.isArray(v); }
+function is_bool(v) { return _.isBoolean(v); }
 
 
-var is_empty = function (v) {
+function is_empty(v) {
   var l = v.length;
   if (!_.isFinite(l))
     throw new Error("!!! Invalid .length property.");
 
   return l === 0;
-}; // === func
+} // === func
 
 
-var all_funcs = function (arr) {
+function all_funcs(arr) {
   var l = arr.length;
   return _.isFinite(l) && l > 0 && _.all(arr, _.isFunction);
-};
+}
 
+function is_num(v) {
+  return typeof v === 'number' && isFinite(v);
+}
 
-var l            = function (v) {
-  if (!_.isFinite(v.length))
-    throw new Error("No valid .length property: " + to_string(v));
-  return v.length;
-};
+function is_null_or_underfined(v) {
+  return v === null || v === undefined;
+}
 
+function spec(f, args, output, err_msg) {
+  if (!is_localhost())
+    return false;
 
-var dom = f(
-  e("p"), e("body"), e(jQuery("body")),
-  i(or(is_string, is_$)),
-  o(is_$),
-  function (s) { return jQuery(s); }
-);
+  var args_3 = arguments.length === 3;
+  var args_4 = arguments.length === 4;
+  var is_throw = output === 'throws' && args_4;
 
-var non_empty_$ = f(
-  e("body"),
-  i(is_anything),
-  o(length_gt(0)),
-  function (v) {
-    return dom(v);
+  var name = f.toString().split('(')[0].split(' ').pop();
+  if (!(args_3 || args_4))
+    throw new Error("arguments.length !== 3 for spec: " + name);
+
+  if (args_4 && output !== 'throws')
+    throw new Error("Invalid value for output: " + output);
+
+  var sig = name + '(' + _.map(args, to_string).join(', ') + ') -> ' + output + (err_msg ? ' \'' + err_msg + '\'' : '');
+
+  if (!is_throw) {
+    if (f.apply(null, args) !== output)
+      throw new Error("!!! Failed: " + sig );
+    log('=== Passed: ' + sig);
+    return true;
   }
-);
 
-log(l( dom('p') ));
-log(l( dom($("p")) ));
+  var err = null;
+  try {
+    f.apply(null, args);
+  } catch (e) {
+    err = e;
+  }
 
-run_specs(is_localhost);
+  if (!err)
+    throw new Error('!!! Failed to throw error: ' + sig);
+
+  if (err.message === err_msg) {
+    log('=== Passed: ' + sig);
+    return true;
+  }
+
+  log('!!! Unexpected error for: ' + sig);
+  throw err;
+}
+
+spec(name_of_function, ["function my_name() {}"], "my_name");
+function name_of_function(f) {
+  var name = f.toString().split('(')[0].split(' ')[1];
+  return name || f.toString();
+}
+
+spec(l, [[1]], 1);
+spec(l, [{}], 'throws', '.length is [object Object].undefined');
+function l(v) {
+  var num = v.length;
+  if (!or(is(0), is_positive)(num))
+    throw new Error('.length is ' + to_string(v) + '.' + to_string(num));
+  return num;
+}
+
+spec(is_length, [[1,2,3], 3], true);
+function is_length(v, num) {
+  return l(v) === num;
+}
+
+spec(is_anything, [false], true);
+spec(is_anything, [true], true);
+spec(is_anything, [null], 'throws', 'null found');
+spec(is_anything, [undefined], 'throws', 'undefined found');
+function is_anything(v) {
+  if (v === null)
+    throw new Error('null found');
+  if (typeof v === 'undefined')
+    throw new Error('undefined found');
+  return true;
+}
+
+
+// ============================================================================
+
+log(l( $('p') ));
+log(l( $("p")) );
+
+// run_specs(is_localhost);
 log("THE_FILE_DATE");
 
 
