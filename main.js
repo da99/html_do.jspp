@@ -149,7 +149,7 @@ function to_function_string(f, args) {
 }
 
 
-function spec_throws(f, args, expect) {
+function throws(f, args, expect) {
   if (!is_localhost())
     return false;
 
@@ -228,7 +228,7 @@ function name_of_function(f) {
 }
 
 spec(l, [[1]], 1);
-spec_throws(l, [{}], '.length is [object Object].undefined');
+throws(l, [{}], '.length is [object Object].undefined');
 function l(v) {
   if (!v)
     throw new Error('invalid value for l(): ' + to_string(v));
@@ -246,8 +246,8 @@ function is_length(v, num) {
 
 spec(is_anything, [false], true);
 spec(is_anything, [true], true);
-spec_throws(is_anything, [null], 'null found');
-spec_throws(is_anything, [undefined], 'undefined found');
+throws(is_anything, [null], 'null found');
+throws(is_anything, [undefined], 'undefined found');
 function is_anything(v) {
   if (v === null)
     throw new Error('null found');
