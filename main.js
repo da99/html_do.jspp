@@ -56,6 +56,8 @@ function is_array_of_functions(a) {
   return _.isArray(a) && l(a) > 0 && _.all(a, _.isFunction);
 } // === func
 
+spec(function () { return is(5)(5); }, true);
+spec(function () { return is("a")("b"); }, false);
 function is(target) { return function (v) { return v === target; }; }
 
 function is_positive(v) { return typeof v === 'number' && isFinite(v) && v > 0; }
@@ -65,32 +67,7 @@ function is_$(v) {
   return v && typeof v.html === 'function' && typeof v.attr === 'function';
 }
 
-var to_arg = function (val) { return function (f) { return f(val); }; };
-
-var run_specs = function (_funcs) {
-  var do_it = _.all(arguments, function (v) {
-    return (_.isBoolean(v) && v) || (_.isFunction(v) && v());
-  });
-
-  if (!do_it)
-    return false;
-
-  var counts = [];
-
-  _.each(Dum_Dum_Boom_Boom.Designs, function (d) {
-    _.each(d.example, function (args) {
-      log("=== spec: " + to_string(args));
-      d.f.apply(null, args);
-      counts.push(1);
-    });
-  });
-
-  if (_.isEmpty(counts))
-    throw new Error("!!! No specs found.");
-
-  log("=== PASSED");
-  return true;
-}; // === func
+function to_arg(val) { return function (f) { return f(val); }; }
 
 
 // === Helpers ===================================================================
@@ -167,47 +144,85 @@ function is_null_or_underfined(v) {
   return v === null || v === undefined;
 }
 
-function spec(f, args, output, err_msg) {
+function to_match_string(actual, expect) {
+  if (actual === expect)
+    return to_string(actual) + ' === ' + to_string(expect);
+  else
+    return to_string(actual) + ' !== ' + to_string(expect);
+}
+
+function to_function_string(f, args) {
+  return name_of_function(f) + '(' + _.map(args, to_string).join(', ') + ')';
+}
+
+
+function spec(_args) {
   if (!is_localhost())
     return false;
 
-  var args_3 = arguments.length === 3;
-  var args_4 = arguments.length === 4;
-  var is_throw = output === 'throws' && args_4;
+  var f = arguments[0];
 
-  var name = f.toString().split('(')[0].split(' ').pop();
-  if (!(args_3 || args_4))
-    throw new Error("arguments.length !== 3 for spec: " + name);
+  if (!_.isFunction(f))
+    throw new Error('Invalid value for func: ' + to_string(f));
 
-  if (args_4 && output !== 'throws')
-    throw new Error("Invalid value for output: " + output);
+  var expect = arguments[arguments.length - 1];
+  var actual, args, sig, msg;
 
-  var sig = name + '(' + _.map(args, to_string).join(', ') + ') -> ' + output + (err_msg ? ' \'' + err_msg + '\'' : '');
+  switch (arguments.length) {
 
-  if (!is_throw) {
-    if (f.apply(null, args) !== output)
-      throw new Error("!!! Failed: " + sig );
-    log('=== Passed: ' + sig);
-    return true;
-  }
+    case 2: // func, expect
+      actual = f();
+      msg = to_match_string(actual, expect);
+      if (actual!== expect)
+        throw new Error("!!! Failed: " + f.toString() + ' -> ' + msg);
+      log('=== Passed: ' + f.toString() + ' -> ' + msg);
+      return true;
 
-  var err = null;
-  try {
-    f.apply(null, args);
-  } catch (e) {
-    err = e;
-  }
+    case 3: // regular: func, [args], expect
+      args   = arguments[1];
+      actual = f.apply(null, args);
+      msg = to_match_string(actual, expect);
+      sig = to_function_string(f, args);
 
-  if (!err)
-    throw new Error('!!! Failed to throw error: ' + sig);
+      if (actual !== expect)
+        throw new Error("!!! Failed: " + sig + ' -> ' + msg );
+      log('=== Passed: ' + sig + ' -> ' + msg);
+      return true;
 
-  if (err.message === err_msg) {
-    log('=== Passed: ' + sig);
-    return true;
-  }
+    case 4:
+      args = arguments[1];
+      var throws_ = arguments[2];
+      var err;
+      sig = to_function_string(f, args);
 
-  log('!!! Unexpected error for: ' + sig);
-  throw err;
+      if (throws_ !== 'throws')
+        throw new Error("Invalid value for action (f, args, action, err_msg): " + to_string(throws_));
+
+      try {
+        f.apply(null, args);
+      } catch (e) {
+        err = e;
+        actual = e.message;
+      }
+
+      msg = to_match_string(actual, expect);
+
+      if (!actual)
+        throw new Error('!!! Failed to throw error: ' + sig + ' -> ' + expect);
+
+      if (actual === expect) {
+        log('=== Passed: ' + sig + ' -> ' + expect);
+        return true;
+      }
+
+      log('!!! Unexpected error for: ' + sig + ' -> ' + msg);
+      throw err;
+
+    default:
+      throw new Error("arguments.length invalid for spec: " + name);
+
+  } // === switch arguments.length
+
 }
 
 spec(name_of_function, ["function my_name() {}"], "my_name");
@@ -219,6 +234,9 @@ function name_of_function(f) {
 spec(l, [[1]], 1);
 spec(l, [{}], 'throws', '.length is [object Object].undefined');
 function l(v) {
+  if (!v)
+    throw new Error('invalid value for l(): ' + to_string(v));
+
   var num = v.length;
   if (!or(is(0), is_positive)(num))
     throw new Error('.length is ' + to_string(v) + '.' + to_string(num));
@@ -245,10 +263,7 @@ function is_anything(v) {
 
 // ============================================================================
 
-log(l( $('p') ));
-log(l( $("p")) );
-
-// run_specs(is_localhost);
+log('============ Specs Finished ==========');
 log("THE_FILE_DATE");
 
 
