@@ -1,5 +1,7 @@
 "use strict";
 
+function identity() { return _.identity.call(_, arguments); }
+
 spec(is_localhost, [], window.location.href.indexOf('/dum_dum_boom_boom/example.html') > 0);
 function is_localhost() {
   var addr = window.location.href;
@@ -256,7 +258,7 @@ function spec(f, args, expect) {
   var actual = f.apply(null, args);
   var msg    = to_match_string(actual, expect);
 
-  if (actual !== expect)
+  if (actual !== expect && !_.isEqual(actual, expect))
     throw new Error("!!! Failed: " + sig + ' -> ' + msg );
 
   log('=== Passed: ' + sig + ' -> ' + msg);
@@ -321,6 +323,46 @@ function key_to_bool(target, key, data) {
   return false;
 }
 
+spec(reduce_each_x_each_y, [
+  [], [1,2], ["a", "b"], function (v, kx, x, ky, y) { v.push("" + x + y); return v; }
+], ["1a", "1b", "2a", "2b"]);
+function reduce_each_x_each_y(init, xs, ys, f) {
+  if (is_undefined(init))
+    throw new Error("invalid value for init: " + to_string(init));
+  if (arguments.length !== 4)
+    throw new Error("arguments.length !== 4: " + to_string(arguments.length));
+  if (f.length !== 5)
+    throw new Error("function.length has to be 5: " + to_string(f));
+  var v = init;
+  _.each(xs, function (x, kx) {
+    _.each(ys, function (y, ky) {
+      v = f(v, kx, x, ky, y);
+    });
+  });
+  return v;
+}
+function each_x_each_y(xs, ys, f) {
+  _.each(xs, function (x, kx) {
+    _.each(ys, function (y, ky) {
+      f(kx, x, ky, y);
+    });
+  });
+  return true;
+}
+
+function pipe_line() {
+  var val, i = 0, f;
+  var l = arguments.length;
+  while (i < l) {
+    f = arguments[i];
+    if (i === 0)
+      val = f();
+    else
+      val = f(val);
+    i = i + 1;
+  }
+  return val;
+}
 
 function next_id() {
   if (!is_num(next_id.count))
@@ -361,23 +403,20 @@ function state(action, args) {
 
   switch (action) {
     case 'run':
-      var used = [];
       var data = arguments[1];
 
-      _.each(data, function (orig_val, orig_key) {
-        _.each(funcs, function (meta, i) {
-          if (!key_to_bool(meta.name, orig_key, data))
-            return;
-          try {
-            used.push([meta, meta.func(meta, data)]);
-          } catch (e) {
-            state('invalid');
-            throw e;
-          }
-        });
-      });
+      return reduce_each_x_each_y([], data, funcs, function (acc, data_key, x, ky, meta) {
+        if (!key_to_bool(meta.name, data_key, data))
+          return acc;
+        try {
+          acc.push([meta, meta.func(meta, data)]);
+        } catch (e) {
+          state('invalid');
+          throw e;
+        }
 
-      return used;
+        return acc;
+      });
 
     case 'push':
       var name=arguments[1], func= arguments[2];
@@ -402,3 +441,5 @@ log('============ Specs Finished ==========');
 log("THE_FILE_DATE");
 
 
+// === Spec of specs
+// spec - can compare the results when they are two arrays: [1] === [1]
