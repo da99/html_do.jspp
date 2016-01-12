@@ -182,7 +182,7 @@ function is_nothing(v) {
 }
 
 function to_match_string(actual, expect) {
-  if (actual === expect)
+  if (_.isEqual(actual, expect))
     return to_string(actual) + ' === ' + to_string(expect);
   else
     return to_string(actual) + ' !== ' + to_string(expect);
@@ -219,7 +219,7 @@ function throws(f, args, expect) {
   if (!actual)
     throw new Error('!!! Failed to throw error: ' + sig + ' -> ' + expect);
 
-  if (actual === expect) {
+  if (_.isEqual(actual, expect)) {
     log('=== Passed: ' + sig + ' -> ' + expect);
     return true;
   }
