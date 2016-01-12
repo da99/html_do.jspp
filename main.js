@@ -1,6 +1,5 @@
 "use strict";
 
-
 spec(is_localhost, [], window.location.href.indexOf('/dum_dum_boom_boom/example.html') > 0);
 function is_localhost() {
   var addr = window.location.href;
@@ -251,7 +250,7 @@ function spec(f, args, expect) {
     throw new Error('Invalid value for func: ' + to_string(f));
 
   if (arguments.length !== 3)
-    throw new Error("arguments.length invalid for spec: " + name);
+    throw new Error("arguments.length invalid for spec: " + to_string(arguments.length));
 
   var sig    = to_function_string(f, args);
   var actual = f.apply(null, args);
@@ -300,23 +299,23 @@ function is_anything(v) {
 }
 
 // === When actual value is: true
-spec(key_to_bool, ['is_happy', 'is_happy', {is_happy:  true}], true);
-spec(key_to_bool, ['is_happy', '!is_happy', {is_happy: true}], false);
+spec(key_to_bool, ['is_happy',  'is_happy', {is_happy: true}], true);
+spec(key_to_bool, ['!is_happy', 'is_happy', {is_happy: true}], false);
 // === When actual value is: false
-spec(key_to_bool, ['is_happy', 'is_happy', {is_happy:  false}], false);
-spec(key_to_bool, ['is_happy', '!is_happy', {is_happy: false}], true);
-function key_to_bool(name, target_name, data) {
-  if (!data.hasOwnProperty(name))
+spec(key_to_bool, ['is_happy',  'is_happy', {is_happy: false}], false);
+spec(key_to_bool, ['!is_happy', 'is_happy', {is_happy: false}], true);
+function key_to_bool(target, key, data) {
+  if (!data.hasOwnProperty(key))
     return false;
-  var actual = data[name];
+  var actual = data[key];
   if (!is_bool(actual))
     return false;
 
-  var not_name = '!' + name;
-
-  if (target_name === name)
+  if (target === key)
     return actual;
-  if (target_name === not_name)
+
+  var not_key = '!' + key;
+  if (target === not_key)
     return !actual;
 
   return false;
@@ -340,10 +339,10 @@ returns(3, function () {
   return a;
 });
 returns(1, function () {
-  var a = 0, id = next_id('!is_happy');
-  var d_true  = {}; d_true[id]  = true;
+  var a = 0, id = next_id('is_happy');
   var d_false = {}; d_false[id] = false;
-  state('push', id, function () {a=a+1;});
+  var d_true  = {}; d_true[id]  = true;
+  state('push', '!' + id, function () {a=a+1;});
   state('run', d_false);
   state('run', d_true);
   state('run', d_true);
@@ -366,9 +365,9 @@ function state(action, args) {
       var data = arguments[1];
 
       _.each(data, function (orig_val, orig_key) {
-        _.each(funcs, function (meta) {
-          if (!key_to_bool(orig_key, meta.name, data))
-            return false;
+        _.each(funcs, function (meta, i) {
+          if (!key_to_bool(meta.name, orig_key, data))
+            return;
           try {
             used.push([meta, meta.func(meta, data)]);
           } catch (e) {
