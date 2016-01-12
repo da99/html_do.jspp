@@ -34,7 +34,7 @@ function to_string(val) {
   if (_.isString(val))
     return '"' + val + '"';
 
-  if (or(is(0), is_positive)(val.length) && val.callee)
+  if (or(is(0), is_positive)(val.length) && val.hasOwnProperty('callee'))
     return to_string(_.toArray(val));
 
   return val.toString();
@@ -145,18 +145,22 @@ function is_object(v) {
   return _.isPlainObject(v);
 }
 
+function return_arguments() { return arguments; }
+
 spec(is_empty, [[]], true);
 spec(is_empty, [{}], true);
 spec(is_empty, [""], true);
 spec(is_empty, [{a: "c"}], false);
 spec(is_empty, [[1]],      false);
 spec(is_empty, ["a"],      false);
+spec(is_empty, [return_arguments()],      true);
+spec(is_empty, [return_arguments(1,2,3)], false);
 throws(is_empty, [null],   'invalid value for is_empty: null');
 function is_empty(v) {
   if (arguments.length !== 1)
     throw new Error("arguments.length !== 1: " + to_string(v));
 
-  if (_.isArray(v) || _.isString(v))
+  if (!is_nothing(v) && v.hasOwnProperty('length'))
     return v.length === 0;
 
   if (_.isPlainObject(v))
@@ -318,64 +322,79 @@ function key_to_bool(name, target_name, data) {
   return false;
 }
 
-function state_must_be_valid() {
-  if (!is_state_valid())
-    throw new Error("state is invalid. Most likely stopped by exception.");
-  return true;
+
+function next_id() {
+  if (!is_num(next_id.count))
+    next_id.count = -1;
+  next_id.count = next_id.count + 1;
+  if (is_empty(arguments))
+    return next_id.count;
+  return arguments[0] + '_' + next_id.count;
 }
 
-function state_funcs() {
-  state_must_be_valid();
+returns(3, function () {
+  var a = 0, id = next_id('is_happy');
+  var data = {}; data[id] = true;
+  state('push', id, function () {a=a+1;});
+  state('run', data); state('run', data); state('run', data);
+  return a;
+});
+returns(1, function () {
+  var a = 0, id = next_id('!is_happy');
+  var d_true  = {}; d_true[id]  = true;
+  var d_false = {}; d_false[id] = false;
+  state('push', id, function () {a=a+1;});
+  state('run', d_false);
+  state('run', d_true);
+  state('run', d_true);
+  return a;
+});
+function state(action, args) {
+  if (action === 'invalid')
+    state.is_invalid = true;
 
-  if(!is_array(state_push.funcs || 'none'))
-    state_push.funcs = [];
-  return state_push.funcs.slice(0);
-}
+  if (state.is_invalid === true)
+    throw new Error("state is invalid.");
 
-function state_push(name, value, func) {
-  state_must_be_valid();
+  if(!is_array(state.funcs || 'none'))
+    state.funcs = [];
+  var funcs = state.funcs.slice(0);
 
-  var funcs = state_funcs();
+  switch (action) {
+    case 'run':
+      var used = [];
+      var data = arguments[1];
 
-  if (!is_string(name))
-    throw new Error("'name' value invalid: " + to_string(name));
-  if (is_nothing(value))
-    throw new Error("'value' value invalid: " + to_string(value));
-  if (!is_function(func))
-    throw new Error("'func' value invalid: " + to_string(func));
+      _.each(data, function (orig_val, orig_key) {
+        _.each(funcs, function (meta) {
+          if (!key_to_bool(orig_key, meta.name, data))
+            return false;
+          try {
+            used.push([meta, meta.func(meta, data)]);
+          } catch (e) {
+            state('invalid');
+            throw e;
+          }
+        });
+      });
 
-  state_push.funcs = funcs.slice(0).concat([{name: name, value: value, func: func}]);
-  return true;
-}
+      return used;
 
-function state_run(data) {
-  state_must_be_valid();
+    case 'push':
+      var name=arguments[1], func= arguments[2];
 
-  var used = [];
-  var funcs = state_funcs(), func_i = 0, meta;
+      if (!is_string(name))
+        throw new Error("'name' value invalid: " + to_string(name));
+      if (!is_function(func))
+        throw new Error("'func' value invalid: " + to_string(func));
 
-  _.each(data, function (orig_val, orig_key) {
-    _.each(funcs, function (meta) {
-      if (!key_to_bool(orig_key, meta.name, data))
-        return false;
-      try {
-        used.push([meta, meta.func(meta, data)]);
-      } catch (e) {
-        state_invalid();
-        throw e;
-      }
-    });
-  });
+      state.funcs = funcs.slice(0).concat([{name: name, func: func}]);
+      return true;
 
-  return used;
-
-}
-
-function state_invalid() {
-  state_push.is_invalid = true;
-}
-function is_state_valid() {
-  return state_push.is_invalid === true;
+    default:
+      state('invalid');
+      throw new Error("Unknown action for state: " + to_string(action));
+  } // === switch action
 }
 
 // ============================================================================
