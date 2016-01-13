@@ -142,7 +142,7 @@ function is_undefined(v) {
   return v === null;
 }
 
-function is_object(v) {
+function is_plain_object(v) {
   return _.isPlainObject(v);
 }
 
@@ -271,10 +271,14 @@ function name_of_function(f) {
   return name || f.toString();
 }
 
+function is_enumerable(v) {
+  return is_string(v) || is_array(v) || is_plain_object(v);
+}
+
 spec(l, [[1]], 1);
 throws(l, [{}], '.length is [object Object].undefined');
 function l(v) {
-  if (!v)
+  if (!is_enumerable(v))
     throw new Error('invalid value for l(): ' + to_string(v));
 
   var num = v.length;
@@ -321,6 +325,88 @@ function key_to_bool(target, key, data) {
     return !actual;
 
   return false;
+}
+
+function keys_or_indexes(v) {
+  if (is_plain_object(v))
+    return _.keys(v);
+
+  var a = [];
+  for(var i = 0; i < v.length; i++) {
+    a[i] = i;
+  }
+  return a;
+}
+
+spec(reduce_eachs, [
+  [], [1,2], ["a", "b"], function (v, kx, x, ky, y) { v.push("" + x + y); return v; }
+], ["1a", "1b", "2a", "2b"]);
+spec(reduce_eachs, [
+  [], {one: 1, two: 2}, ["a"], function (v, kx, x, ky, y) { v.push("" + kx + y); return v; }
+], ["onea", "twoa"]);
+spec(reduce_eachs, [
+  [], {one: 1, two: 2}, [], ["a"], function (v, kx, x, ky, y) { v.push("" + kx + y); return v; }
+], []);
+// spec: does not modify arr
+function reduce_eachs(_args) {
+  var args = _.toArray(arguments);
+  if (args.length < 3)
+    throw new Error("Not enough args: " + to_string(args));
+  var init = args.shift();
+  var f    = args.pop();
+  var data, bag;
+  var current, val = init, i, j, current_o;
+
+  // === Validate inputs before continuing:
+  for (i = 0; i < args.length; i++) {
+    if (!is_enumerable(args[i]))
+        throw new Error("Invalid value for reduce_eachs: " + to_string(args[i]));
+  }
+
+  if (is_undefined(init))
+    throw new Error("Invalid value for init: " + to_string(init));
+
+  if (f.length !== (1 + (args.length * 2)))
+    throw new Error("f.length does not match to args.length + init: " + f.length + ' ' + args.length + ' 1');
+
+
+  // === [[...], {...}, ...] ->
+  //     [ [indexes], [keys], ... ]
+  var keys    = _.map(args, keys_or_indexes);
+  var lengths = _.map(keys, l);
+  var vals    = args;
+
+  // === Build the first val:
+  var new_args = [];
+  for (var width = 0; width < keys.length; width++) {
+    if (args[width].length === 0)
+      return init;
+    new_args.push(keys[width][0]);
+    new_args.push(args[width][keys[width][0]]);
+  }
+
+
+  var is_done = false;
+  var pos_in_last = 0;
+
+  while (!is_done) {
+    for (width = keys.length; width > -1; width--) {
+      for (var height = 0; height < keys[width].length; height++) {
+        if ( width <= 0 && height <= 0 ) {
+          is_done = true;
+          break;
+        }
+      }
+    }
+
+    if (pos_in_last < keys[keys.length - 1].length) {
+      pos_in_last++;
+    } else {
+      pos_in_last = 0;
+    }
+  }
+
+  return val;
 }
 
 spec(reduce_each_x_each_y, [
