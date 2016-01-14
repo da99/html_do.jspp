@@ -350,27 +350,33 @@ function keys_or_indexes(v) {
   return a;
 }
 
+
+
+// TODO: spec: does not modify arr
+spec(reduce_eachs, [
+  [], [1,2], function (v, kx, x) { v.push("" + kx + x); return v; }
+], ["01", "12"]);
+
 spec(reduce_eachs, [
   [], [1,2], ["a", "b"], function (v, kx, x, ky, y) { v.push("" + x + y); return v; }
 ], ["1a", "1b", "2a", "2b"]);
+
 spec(reduce_eachs, [
   [], {one: 1, two: 2}, ["a"], function (v, kx, x, ky, y) { v.push("" + kx + y); return v; }
 ], ["onea", "twoa"]);
+
 spec(reduce_eachs, [
   [], {one: 1, two: 2}, [], ["a"], function (v, kx, x, ky, y, kz, z) { v.push("" + kx + y); return v; }
 ], []);
-// spec: does not modify arr
-function reduce_eachs(_args) {
+function reduce_eachs() {
   var args = _.toArray(arguments);
   if (args.length < 3)
     throw new Error("Not enough args: " + to_string(args));
   var init = args.shift();
   var f    = args.pop();
-  var data, bag;
-  var current, val = init, i, j, current_o;
 
   // === Validate inputs before continuing:
-  for (i = 0; i < args.length; i++) {
+  for (var i = 0; i < args.length; i++) {
     if (!is_enumerable(args[i]))
         throw new Error("Invalid value for reduce_eachs: " + to_string(args[i]));
   }
@@ -378,22 +384,21 @@ function reduce_eachs(_args) {
   if (is_undefined(init))
     throw new Error("Invalid value for init: " + to_string(init));
 
-  if (f.length !== (1 + (args.length * 2)))
-    throw new Error("f.length (" + f.length + ") does not match to args.length (" + args.length + ") + init (1)");
 
-
-  // === [[...], {...}, ...] ->
-  //     [ [indexes], [keys], ... ]
+  // === Process inputs:
   var cols_length = l(args);
 
   return row_maker([init], 0, _.map(args, keys_or_indexes));
+
   function row_maker(row, col_i, key_cols) {
     if (col_i >= cols_length) {
+      if (row.length !== f.length)
+        throw new Error("f.length (" + f.length + ") should be " + row.length + " (collection count * 2 + 1 (init))");
       row[0] = f.apply(null, [].concat(row)); // set reduced value
       return row[0];
     }
 
-    var keys = key_cols[col_i];
+    var keys = key_cols[col_i].slice(0);
     var vals = args[col_i];
     var reduced = row[0];
     ++col_i;
@@ -410,7 +415,7 @@ function reduce_eachs(_args) {
 
     return reduced;
   }
-}
+} // === function: reduce_eachs
 
 spec(reduce_each_x_each_y, [
   [], [1,2], ["a", "b"], function (v, kx, x, ky, y) { v.push("" + x + y); return v; }
@@ -525,10 +530,9 @@ function state(action, args) {
 }
 
 // ============================================================================
-
 log('============ Specs Finished ==========');
-log("THE_FILE_DATE");
 
+// log("THE_FILE_DATE");
 
 // === Spec of specs
 // spec - can compare the results when they are two arrays: [1] === [1]
