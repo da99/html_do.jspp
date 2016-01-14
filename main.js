@@ -6,8 +6,9 @@ function is_spec_allowed(str_or_func) {
   if (!is_localhost())
     return false;
 
-  var target = _.trim( window.location.href.split('?').pop() || '');
-  if (!target || is_empty(target))
+  var href = window.location.href;
+  var target = _.trim(href.split('?').pop() || '');
+  if (target === href || !target || is_empty(target))
     return true;
 
   var name = name_of_function(str_or_func);
@@ -250,7 +251,7 @@ function returns(expect, f) {
   var sig = f.toString();
   var actual = f();
   var msg = to_match_string(actual, expect);
-  if (actual!== expect)
+  if (!_.isEqual(actual,expect))
     throw new Error("!!! Failed: " + sig + ' -> ' + msg);
   log('=== Passed: ' + sig + ' -> ' + msg);
   return true;
@@ -400,48 +401,100 @@ function reduce_eachs() {
 
     var keys = key_cols[col_i].slice(0);
     var vals = args[col_i];
-    var reduced = row[0];
     ++col_i;
 
     for(var i = 0; i < keys.length; i++) {
       row.push(keys[i]); // key
       row.push(vals[keys[i]]); // actual value
 
-      reduced = row_maker(row, col_i, key_cols);
+      row_maker(row, col_i, key_cols);
 
       row.pop();
       row.pop();
     }
 
-    return reduced;
+    return row[0];
   }
 } // === function: reduce_eachs
 
-spec(reduce_each_x_each_y, [
-  [], [1,2], ["a", "b"], function (v, kx, x, ky, y) { v.push("" + x + y); return v; }
-], ["1a", "1b", "2a", "2b"]);
-function reduce_each_x_each_y(init, xs, ys, f) {
-  if (is_undefined(init))
-    throw new Error("invalid value for init: " + to_string(init));
-  if (arguments.length !== 4)
-    throw new Error("arguments.length !== 4: " + to_string(arguments.length));
-  if (f.length !== 5)
-    throw new Error("function.length has to be 5: " + to_string(f));
-  var v = init;
-  _.each(xs, function (x, kx) {
-    _.each(ys, function (y, ky) {
-      v = f(v, kx, x, ky, y);
-    });
-  });
-  return v;
-}
-function each_x_each_y(xs, ys, f) {
-  _.each(xs, function (x, kx) {
-    _.each(ys, function (y, ky) {
-      f(kx, x, ky, y);
-    });
-  });
-  return true;
+
+// TODO: spec :eachs does not alter inputs
+returns(
+  ["01", "12"],
+  function () {
+    var v = [];
+    eachs( [1,2], function (kx, x) { v.push("" + kx + x); });
+    return v;
+  }
+);
+
+returns(
+  ["1a", "1b", "2a", "2b"],
+  function () {
+    var v = [];
+    eachs( [1,2], ["a", "b"], function (kx, x, ky, y) { v.push("" + x + y); return v; });
+    return v;
+  }
+);
+
+returns(
+  ["onea", "twoa"],
+  function () {
+    var v = [];
+    eachs({one: 1, two: 2}, ["a"], function (kx, x, ky, y) { v.push("" + kx + y); return v; });
+    return v;
+  }
+);
+
+returns(
+  [],
+  function () {
+    var v = [];
+    eachs({one: 1, two: 2}, [], ["a"], function (kx, x, ky, y, kz, z) { v.push("" + kx + y); return v; });
+    return v;
+  }
+);
+function eachs() {
+  var args = _.toArray(arguments);
+  if (args.length < 2)
+    throw new Error("Not enough args: " + to_string(args));
+  var f    = args.pop();
+
+  // === Validate inputs before continuing:
+  for (var i = 0; i < args.length; i++) {
+    if (!is_enumerable(args[i]))
+        throw new Error("Invalid value for eachs: " + to_string(args[i]));
+  }
+
+  // === Process inputs:
+  var cols_length = l(args);
+
+  return row_maker([], 0, _.map(args, keys_or_indexes));
+
+  function row_maker(row, col_i, key_cols) {
+    if (col_i >= cols_length) {
+      if (row.length !== f.length)
+        throw new Error("f.length (" + f.length + ") should be " + row.length + " (collection count * 2 )");
+      f.apply(null, [].concat(row)); // set reduced value
+      return;
+    }
+
+    var keys = key_cols[col_i].slice(0);
+    var vals = args[col_i];
+    ++col_i;
+
+    for(var i = 0; i < keys.length; i++) {
+      row.push(keys[i]); // key
+      row.push(vals[keys[i]]); // actual value
+
+      row_maker(row, col_i, key_cols);
+
+      row.pop();
+      row.pop();
+    }
+
+    return;
+  }
 }
 
 function pipe_line() {
@@ -499,7 +552,7 @@ function state(action, args) {
     case 'run':
       var data = arguments[1];
 
-      return reduce_each_x_each_y([], data, funcs, function (acc, data_key, x, ky, meta) {
+      return reduce_eachs([], data, funcs, function (acc, data_key, x, ky, meta) {
         if (!key_to_bool(meta.name, data_key, data))
           return acc;
         try {
@@ -530,7 +583,8 @@ function state(action, args) {
 }
 
 // ============================================================================
-log('============ Specs Finished ==========');
+if (is_localhost())
+  log('============ Specs Finished ==========');
 
 // log("THE_FILE_DATE");
 
