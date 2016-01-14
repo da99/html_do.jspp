@@ -2,6 +2,18 @@
 
 function identity() { return _.identity.call(_, arguments); }
 
+function is_spec_allowed(str_or_func) {
+  if (!is_localhost())
+    return false;
+
+  var target = _.trim( window.location.href.split('?').pop() || '');
+  if (!target || is_empty(target))
+    return true;
+
+  var name = name_of_function(str_or_func);
+  return target === name;
+}
+
 spec(is_localhost, [], window.location.href.indexOf('/dum_dum_boom_boom/example.html') > 0);
 function is_localhost() {
   var addr = window.location.href;
@@ -194,7 +206,7 @@ function to_function_string(f, args) {
 
 
 function throws(f, args, expect) {
-  if (!is_localhost())
+  if (!is_spec_allowed(f))
     return false;
 
   if (!_.isFunction(f))
@@ -229,7 +241,7 @@ function throws(f, args, expect) {
 }
 
 function returns(expect, f) {
-  if (!is_localhost())
+  if (!is_spec_allowed(f))
     return false;
 
   if (!_.isFunction(f))
@@ -245,7 +257,7 @@ function returns(expect, f) {
 }
 
 function spec(f, args, expect) {
-  if (!is_localhost())
+  if (!is_spec_allowed(f))
     return false;
 
   if (!_.isFunction(f))
@@ -345,7 +357,7 @@ spec(reduce_eachs, [
   [], {one: 1, two: 2}, ["a"], function (v, kx, x, ky, y) { v.push("" + kx + y); return v; }
 ], ["onea", "twoa"]);
 spec(reduce_eachs, [
-  [], {one: 1, two: 2}, [], ["a"], function (v, kx, x, ky, y) { v.push("" + kx + y); return v; }
+  [], {one: 1, two: 2}, [], ["a"], function (v, kx, x, ky, y, kz, z) { v.push("" + kx + y); return v; }
 ], []);
 // spec: does not modify arr
 function reduce_eachs(_args) {
@@ -367,46 +379,37 @@ function reduce_eachs(_args) {
     throw new Error("Invalid value for init: " + to_string(init));
 
   if (f.length !== (1 + (args.length * 2)))
-    throw new Error("f.length does not match to args.length + init: " + f.length + ' ' + args.length + ' 1');
+    throw new Error("f.length (" + f.length + ") does not match to args.length (" + args.length + ") + init (1)");
 
 
   // === [[...], {...}, ...] ->
   //     [ [indexes], [keys], ... ]
-  var keys    = _.map(args, keys_or_indexes);
-  var lengths = _.map(keys, l);
-  var vals    = args;
+  var cols_length = l(args);
 
-  // === Build the first val:
-  var new_args = [];
-  for (var width = 0; width < keys.length; width++) {
-    if (args[width].length === 0)
-      return init;
-    new_args.push(keys[width][0]);
-    new_args.push(args[width][keys[width][0]]);
-  }
-
-
-  var is_done = false;
-  var pos_in_last = 0;
-
-  while (!is_done) {
-    for (width = keys.length; width > -1; width--) {
-      for (var height = 0; height < keys[width].length; height++) {
-        if ( width <= 0 && height <= 0 ) {
-          is_done = true;
-          break;
-        }
-      }
+  return row_maker([init], 0, _.map(args, keys_or_indexes));
+  function row_maker(row, col_i, key_cols) {
+    if (col_i >= cols_length) {
+      row[0] = f.apply(null, [].concat(row)); // set reduced value
+      return row[0];
     }
 
-    if (pos_in_last < keys[keys.length - 1].length) {
-      pos_in_last++;
-    } else {
-      pos_in_last = 0;
-    }
-  }
+    var keys = key_cols[col_i];
+    var vals = args[col_i];
+    var reduced = row[0];
+    ++col_i;
 
-  return val;
+    for(var i = 0; i < keys.length; i++) {
+      row.push(keys[i]); // key
+      row.push(vals[keys[i]]); // actual value
+
+      reduced = row_maker(row, col_i, key_cols);
+
+      row.pop();
+      row.pop();
+    }
+
+    return reduced;
+  }
 }
 
 spec(reduce_each_x_each_y, [
