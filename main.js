@@ -447,6 +447,16 @@ returns(
 );
 
 returns(
+  ["1a", "1b", "2a", "2b"],
+  function () {
+    var v = [];
+    eachs({one: 1, two: 2}, ["a", "b"], function (kx, x, ky, y) { v.push("" + x + y); return v; });
+    return v;
+  }
+);
+
+
+returns(
   [],
   function () {
     var v = [];
