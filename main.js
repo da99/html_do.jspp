@@ -250,13 +250,7 @@ function App() {
     App._state = new Computer();
   }
 
-  if (arguments[0] === 'reset') {
-    App._state = new Computer();
-  }
-  else {
-    App._state.apply(null, arguments);
-  }
-
+  App._state.apply(null, arguments);
   return App;
 }
 
@@ -272,17 +266,33 @@ function new_spec(str_or_func) {
     return false;
 
   // === Reset DOM:
-  if ($('#The_Stage').length === 0)
-    $('body').prepend('<div id="The_Stage"></div>');
-  else
-    $('#The_Stage').empty();
+  spec_dom('reset');
 
   // === Reset App state:
-  App('reset');
+  App._state = new Computer();
 
   return true;
 }
 
+
+function spec_dom(cmd) {
+
+  switch (cmd) {
+    case 'reset':
+      var stage = $('#The_Stage');
+      if (stage.length === 0)
+        $('body').prepend('<div id="The_Stage"></div>');
+      else
+        stage.empty();
+      break;
+
+    default:
+      if (arguments.length !== 0)
+      throw new Error("Unknown value: " + to_string(arguments));
+  } // === switch cmd
+
+  return $('#The_Stage');
+}
 
 function spec(f, args, expect) {
   if (!new_spec(f))
@@ -563,7 +573,7 @@ returns(3, function () {
   var data = {}; data[id] = true;
   var state = new Computer();
   state('push', id, function () {a=a+1;});
-  state('run', data); state('run', data); state('run', data);
+  state('run', 'data', data); state('run', 'data', data); state('run', 'data', data);
   return a;
 });
 returns(1, function () {
@@ -572,13 +582,14 @@ returns(1, function () {
   var d_true  = {}; d_true[id]  = true;
   var state = new Computer();
   state('push', '!' + id, function () {a=a+1;});
-  state('run', d_false);
-  state('run', d_true);
-  state('run', d_true);
+  state('run', 'data', d_false);
+  state('run', 'data', d_true);
+  state('run', 'data', d_true);
   return a;
 });
 
 function Computer() {
+  State.allowed = ['data', 'dom'];
   return State;
 
   function State(action, args) {
@@ -593,8 +604,18 @@ function Computer() {
     var funcs = State.funcs.slice(0);
 
     switch (action) {
+      case 'allow':
+        var new_actions = _.flattenDeep( [_.toArray(arguments)] );
+        State.allowed = [].concat(State.allowed).concat(new_actions);
+        break;
+
       case 'run':
-        var data = arguments[1];
+        var target = arguments[1];
+        var data = (arguments.length === 2) ? {} : arguments[2];
+
+        var allowed = State.allowed;
+        if (!_.detect(allowed, function (x) { return x === target; }))
+          throw new Error(to_string(target) + ' is  not allowed: ' + to_string(allowed));
 
         return reduce_eachs([], data, funcs, function (acc, data_key, x, ky, meta) {
           if (!key_to_bool(meta.name, data_key, data))
@@ -627,6 +648,21 @@ function Computer() {
   } // === return function State;
 
 } // === function Computer
+
+function show(msg) {
+  $(msg.dom).show();
+}
+
+function hide(msg) {
+  $(msg.dom).hide();
+}
+
+returns('display: block;', function () {
+  spec_dom().html('<div data-dum="is_factor show" style="display: none;">Factor</div>');
+  App('run', 'dom');
+  App('run', 'data', {is_factor: true});
+  return spec_dom().find('div').attr('style');
+});
 
 // ============================================================================
 if (is_localhost())
