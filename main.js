@@ -253,40 +253,39 @@ function App() {
   if (arguments[0] === 'reset') {
     App._state = new Computer();
   }
+  else {
+    App._state.apply(null, arguments);
+  }
 
   return App;
 }
 
 
-function is_spec_allowed(str_or_func) {
+function new_spec(str_or_func) {
   if (!is_localhost())
     return false;
 
+  // === Is there a specific spec to run?
   var href = window.location.href;
   var target = _.trim(href.split('?').pop() || '');
-  if (target === href || !target || is_empty(target))
-    return true;
-
-  var name = name_of_function(str_or_func);
-  return target === name;
-}
-
-function new_spec(str_or_func) {
-  if (!is_spec_allowed(str_or_func))
+  if (!is_empty(target) && target !== href  && target !== name_of_function(str_or_func))
     return false;
 
+  // === Reset DOM:
   if ($('#The_Stage').length === 0)
     $('body').prepend('<div id="The_Stage"></div>');
   else
     $('#The_Stage').empty();
 
+  // === Reset App state:
   App('reset');
+
   return true;
 }
 
 
 function spec(f, args, expect) {
-  if (!is_spec_allowed(f))
+  if (!new_spec(f))
     return false;
 
   if (!_.isFunction(f))
