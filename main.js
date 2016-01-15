@@ -2,18 +2,6 @@
 
 function identity() { return _.identity.call(_, arguments); }
 
-function is_spec_allowed(str_or_func) {
-  if (!is_localhost())
-    return false;
-
-  var href = window.location.href;
-  var target = _.trim(href.split('?').pop() || '');
-  if (target === href || !target || is_empty(target))
-    return true;
-
-  var name = name_of_function(str_or_func);
-  return target === name;
-}
 
 spec(is_localhost, [], window.location.href.indexOf('/dum_dum_boom_boom/example.html') > 0);
 function is_localhost() {
@@ -207,7 +195,7 @@ function to_function_string(f, args) {
 
 
 function throws(f, args, expect) {
-  if (!is_spec_allowed(f))
+  if (!new_spec(f))
     return false;
 
   if (!_.isFunction(f))
@@ -242,7 +230,7 @@ function throws(f, args, expect) {
 }
 
 function returns(expect, f) {
-  if (!is_spec_allowed(f))
+  if (!new_spec(f))
     return false;
 
   if (!_.isFunction(f))
@@ -256,6 +244,46 @@ function returns(expect, f) {
   log('=== Passed: ' + sig + ' -> ' + msg);
   return true;
 }
+
+function App() {
+  if (!App.hasOwnProperty('_state')) {
+    App._state = new Computer();
+  }
+
+  if (arguments[0] === 'reset') {
+    App._state = new Computer();
+  }
+
+  return App;
+}
+
+
+function is_spec_allowed(str_or_func) {
+  if (!is_localhost())
+    return false;
+
+  var href = window.location.href;
+  var target = _.trim(href.split('?').pop() || '');
+  if (target === href || !target || is_empty(target))
+    return true;
+
+  var name = name_of_function(str_or_func);
+  return target === name;
+}
+
+function new_spec(str_or_func) {
+  if (!is_spec_allowed(str_or_func))
+    return false;
+
+  if ($('#The_Stage').length === 0)
+    $('body').prepend('<div id="The_Stage"></div>');
+  else
+    $('#The_Stage').empty();
+
+  App('reset');
+  return true;
+}
+
 
 function spec(f, args, expect) {
   if (!is_spec_allowed(f))
@@ -432,7 +460,7 @@ returns(
   ["1a", "1b", "2a", "2b"],
   function () {
     var v = [];
-    eachs( [1,2], ["a", "b"], function (kx, x, ky, y) { v.push("" + x + y); return v; });
+    eachs( [1,2], ["a", "b"], function (kx, x, ky, y) { v.push("" + x + y); });
     return v;
   }
 );
@@ -441,7 +469,7 @@ returns(
   ["onea", "twoa"],
   function () {
     var v = [];
-    eachs({one: 1, two: 2}, ["a"], function (kx, x, ky, y) { v.push("" + kx + y); return v; });
+    eachs({one: 1, two: 2}, ["a"], function (kx, x, ky, y) { v.push("" + kx + y); });
     return v;
   }
 );
@@ -450,7 +478,7 @@ returns(
   ["1a", "1b", "2a", "2b"],
   function () {
     var v = [];
-    eachs({one: 1, two: 2}, ["a", "b"], function (kx, x, ky, y) { v.push("" + x + y); return v; });
+    eachs({one: 1, two: 2}, ["a", "b"], function (kx, x, ky, y) { v.push("" + x + y); });
     return v;
   }
 );
@@ -460,7 +488,7 @@ returns(
   [],
   function () {
     var v = [];
-    eachs({one: 1, two: 2}, [], ["a"], function (kx, x, ky, y, kz, z) { v.push("" + kx + y); return v; });
+    eachs({one: 1, two: 2}, [], ["a"], function (kx, x, ky, y, kz, z) { v.push("" + kx + y); });
     return v;
   }
 );
@@ -530,9 +558,11 @@ function next_id() {
   return arguments[0] + '_' + next_id.count;
 }
 
+// ========================= Computer
 returns(3, function () {
   var a = 0, id = next_id('is_happy');
   var data = {}; data[id] = true;
+  var state = new Computer();
   state('push', id, function () {a=a+1;});
   state('run', data); state('run', data); state('run', data);
   return a;
@@ -541,56 +571,63 @@ returns(1, function () {
   var a = 0, id = next_id('is_happy');
   var d_false = {}; d_false[id] = false;
   var d_true  = {}; d_true[id]  = true;
+  var state = new Computer();
   state('push', '!' + id, function () {a=a+1;});
   state('run', d_false);
   state('run', d_true);
   state('run', d_true);
   return a;
 });
-function state(action, args) {
-  if (action === 'invalid')
-    state.is_invalid = true;
 
-  if (state.is_invalid === true)
-    throw new Error("state is invalid.");
+function Computer() {
+  return State;
 
-  if(!is_array(state.funcs || 'none'))
-    state.funcs = [];
-  var funcs = state.funcs.slice(0);
+  function State(action, args) {
+    if (action === 'invalid')
+      State.is_invalid = true;
 
-  switch (action) {
-    case 'run':
-      var data = arguments[1];
+    if (State.is_invalid === true)
+      throw new Error("state is invalid.");
 
-      return reduce_eachs([], data, funcs, function (acc, data_key, x, ky, meta) {
-        if (!key_to_bool(meta.name, data_key, data))
+    if(!is_array(State.funcs || 'none'))
+      State.funcs = [];
+    var funcs = State.funcs.slice(0);
+
+    switch (action) {
+      case 'run':
+        var data = arguments[1];
+
+        return reduce_eachs([], data, funcs, function (acc, data_key, x, ky, meta) {
+          if (!key_to_bool(meta.name, data_key, data))
+            return acc;
+          try {
+            acc.push([meta, meta.func(meta, data)]);
+          } catch (e) {
+            State('invalid');
+            throw e;
+          }
+
           return acc;
-        try {
-          acc.push([meta, meta.func(meta, data)]);
-        } catch (e) {
-          state('invalid');
-          throw e;
-        }
+        });
 
-        return acc;
-      });
+      case 'push':
+        var name=arguments[1], func= arguments[2];
 
-    case 'push':
-      var name=arguments[1], func= arguments[2];
+        if (!is_string(name))
+          throw new Error("'name' value invalid: " + to_string(name));
+        if (!is_function(func))
+          throw new Error("'func' value invalid: " + to_string(func));
 
-      if (!is_string(name))
-        throw new Error("'name' value invalid: " + to_string(name));
-      if (!is_function(func))
-        throw new Error("'func' value invalid: " + to_string(func));
+        State.funcs = funcs.slice(0).concat([{name: name, func: func}]);
+        return true;
 
-      state.funcs = funcs.slice(0).concat([{name: name, func: func}]);
-      return true;
+      default:
+        State('invalid');
+        throw new Error("Unknown action for state: " + to_string(action));
+    } // === switch action
+  } // === return function State;
 
-    default:
-      state('invalid');
-      throw new Error("Unknown action for state: " + to_string(action));
-  } // === switch action
-}
+} // === function Computer
 
 // ============================================================================
 if (is_localhost())
