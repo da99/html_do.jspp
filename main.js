@@ -50,6 +50,9 @@ function to_string(val) {
     }, []).join(",") + '}';
   }
 
+  if (is_function(val) && val.hasOwnProperty('to_string_name'))
+    return val.to_string_name;
+
   return val.toString();
 } // === func
 
@@ -75,6 +78,10 @@ function is_$(v) {
 
 function to_arg(val) { return function (f) { return f(val); }; }
 
+throws(
+  should_be, [[1], is_num, is_num],
+  'Wrong # of arguments: expected: 2 actual: 1'
+);
 function should_be(args_o, _funcs) {
   var funcs = _.toArray(arguments);
   var args  = funcs.shift();
@@ -85,7 +92,7 @@ function should_be(args_o, _funcs) {
 
   for (var i = 0; i < funcs.length; i++) {
     if (!funcs[i](args[i]))
-      throw new Error('Invalid arguments: ' + to_string(args[i]) + ' !' + name_of_function(funcs[i]));
+      throw new Error('Invalid arguments: ' + to_string(args[i]) + ' !' + to_string(funcs[i]));
   }
 
   return _.toArray(args);
@@ -97,7 +104,16 @@ function standard_name(str) {
   return _.trim(str).replace(/\ +/g, ' ').toLowerCase();
 }
 
+returns(
+  {"class": 'is_happy'},
+  function () {
+    spec_dom().html('<div class="is_happy"></div>');
+    return dom_attrs(spec_dom().find('div')[0]);
+  }
+);
 function dom_attrs(dom) {
+  should_be(arguments, has_property_of('attributes', 'object'));
+
   return _.reduce(
     dom.attributes,
     function (kv, o) {
@@ -159,7 +175,7 @@ function is_function(v) {
 
 function conditional(name, funcs) {
   if (funcs.length < 2)
-    throw new Error("Called 'or' with few arguments: " + arguments.length);
+    throw new Error("Called with too few arguments: " + arguments.length);
 
   if (!_[name])
     throw new Error("_." + name + " does not exist.");
@@ -383,6 +399,33 @@ function spec_dom(cmd) {
   return $('#The_Stage');
 }
 
+function function_sig(f, args) {
+  return name_of_function(f) + '(' + _.map(args, to_string).join(',')  + ')';
+}
+
+function set_function_string_name(f, args) {
+  if (f.to_string_name)
+    throw new Error('.to_string_name alread set: ' + to_string(f.to_string_name));
+  f.to_string_name = function_sig(f, args);
+  return f;
+}
+
+function has_property_of(name, type) {
+  var f = function has_property_of(o) {
+    return typeof o[name] === type;
+  };
+
+  return set_function_string_name(f, arguments);
+}
+
+function has_own_property(name) {
+  var f = function has_own_property(o) {
+    return o.hasOwnProperty(name);
+  };
+
+  return set_function_string_name(f, arguments);
+}
+
 function spec(f, args, expect) {
   if (!new_spec(f))
     return false;
@@ -406,8 +449,7 @@ function spec(f, args, expect) {
 
 spec(name_of_function, ["function my_name() {}"], "my_name");
 function name_of_function(f) {
-  var name = f.toString().split('(')[0].split(' ')[1];
-  return name || f.toString();
+  return f.to_string_name || f.toString().split('(')[0].split(WHITESPACE)[1] || f.toString();
 }
 
 spec(is_enumerable, [$('<p></p>')], true);
