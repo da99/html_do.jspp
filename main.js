@@ -1,4 +1,6 @@
 "use strict";
+/* jshint undef: true */
+/* global Mustache, promise  */
 
 var WHITESPACE = /\s+/g;
 function identity() { return _.identity.call(_, arguments); }
@@ -14,7 +16,7 @@ function is_localhost() {
 } // === func
 
 function log(_args) {
-  if (is_localhost)
+  if (is_localhost && window.console)
     return console.log.apply(console, arguments);
 
   return false;
@@ -73,8 +75,38 @@ function is_$(v) {
 
 function to_arg(val) { return function (f) { return f(val); }; }
 
+function should_be(args_o, _funcs) {
+  var funcs = _.toArray(arguments);
+  var args  = funcs.shift();
+
+  if (args.length !== funcs.length) {
+    throw new Error('Wrong # of arguments: expected: ' + funcs.length + ' actual: ' + args.length);
+  }
+
+  for (var i = 0; i < funcs.length; i++) {
+    if (!funcs[i](args[i]))
+      throw new Error('Invalid arguments: ' + to_string(args[i]) + ' !' + name_of_function(funcs[i]));
+  }
+
+  return _.toArray(args);
+}
 
 // === Helpers ===================================================================
+
+function standard_name(str) {
+  return _.trim(str).replace(/\ +/g, ' ').toLowerCase();
+}
+
+function dom_attrs(dom) {
+  return _.reduce(
+    dom.attributes,
+    function (kv, o) {
+      kv[o.name] = o.value;
+      return kv;
+    },
+    {}
+  );
+} // === attrs
 
 // Returns id.
 // Sets id of element if no id is set.
@@ -706,6 +738,7 @@ function Computer() {
           if (!key_to_bool(meta.name, data_key, data))
             return acc;
           meta.config = {};
+          meta.cache  = {};
           try {
             acc.push([meta, meta.func(meta, data)]);
           } catch (e) {
