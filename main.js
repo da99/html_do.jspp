@@ -739,13 +739,15 @@ function Computer() {
 } // === function Computer
 
 function dum_show(meta, data) {
-  $('#' + find_key('dom_id', meta.config, data)).show();
-  return 'show: ' + data.dom_id;
+  var id = find_key('dom_id', meta.config, data);
+  $('#' + id).show();
+  return 'show: ' + id;
 }
 
 function dum_hide(meta, data, config) {
-  $('#' + find_key('dom_id', meta.config, data)).hide();
-  return 'hide: ' + data.dom_id;
+  var id = find_key('dom_id', meta.config, data);
+  $('#' + id).hide();
+  return 'hide: ' + id;
 }
 
 function dum_dom(meta, data) {
@@ -778,9 +780,10 @@ function dum_dom(meta, data) {
           App('run', 'data', {on_click: true, dom_id: id});
         });
         App('push', bool_name, function (meta, data) {
-          if (data.dom_id === id)
+          if (data.dom_id === id) {
+            meta.config.dom_id = id;
             return func(meta, data);
-          else
+          } else
             return 'does not apply: ' + bool_name + ' #' + data.dom_id;
         });
       } else {
