@@ -24,6 +24,7 @@ spec(to_string, [null], 'null');
 spec(to_string, [undefined], 'undefined');
 spec(to_string, [[1]], '[1]');
 spec(to_string, ['yo yo'], '"yo yo"');
+spec(to_string, [{a:'b', c:'d'}], '{a="b",c="d"}');
 function to_string(val) {
   if (val === null)
     return "null";
@@ -39,6 +40,13 @@ function to_string(val) {
 
   if (or(is(0), is_positive)(val.length) && val.hasOwnProperty('callee'))
     return to_string(_.toArray(val));
+
+  if (is_plain_object(val)) {
+    return '{' + _.reduce(_.keys(val), function (acc, k) {
+      acc.push(k + '=' + to_string(val[k]));
+      return acc;
+    }, []).join(",") + '}';
+  }
 
   return val.toString();
 } // === func
@@ -289,33 +297,6 @@ function name_to_function(raw) {
   return window[str];
 }
 
-function dum_dom(meta, data) {
-  var selector = '*[data-dum]:not(*[data-dum_fin~="yes"])';
-  var elements = $((data && data.target) || $('body')).find(selector).addBack(selector);
-
-  eachs(elements, function (i, raw_e) {
-    eachs($(raw_e).attr('data-dum').split(';'), function (_i, raw_cmd) {
-      raw_cmd = _.trim(raw_cmd);
-      if (is_empty(raw_cmd))
-        return;
-
-      var args = _.trim(raw_cmd).split(WHITESPACE);
-
-      if (l(args) !== 2)
-        throw new Error("Invalid command: " + to_string(args));
-
-      var bool_name = args.shift();
-      var func      = name_to_function(args.shift());
-
-      App('push', bool_name, function (meta, data) {
-        meta.dom_id = dom_id($(raw_e));
-        return func(meta, data);
-      });
-    });
-    $(raw_e).attr('data-dum_fin', 'yes');
-  });
-
-} // === dum_dom
 
 function App() {
   var is_reset = arguments.length === 1 && arguments[0] === 'reset for specs';
@@ -403,7 +384,7 @@ function is_enumerable(v) {
 }
 
 spec(l, [[1]], 1);
-throws(l, [{}], '.length is [object Object].undefined');
+throws(l, [{}], '.length is {}.undefined');
 function l(v) {
   if (!is_enumerable(v))
     throw new Error('invalid value for l(): ' + to_string(v));
@@ -452,6 +433,15 @@ function key_to_bool(target, key, data) {
     return !actual;
 
   return false;
+}
+
+function find_key(k, _args) {
+  var args = _.toArray(arguments);
+  args.shift();
+  var o = _.detect(args, function (x) { return x.hasOwnProperty(k); });
+  if (!o)
+    throw new Error('Key, ' + to_string(k) + ', not found in any: ' + to_string(args));
+  return o[k];
 }
 
 function keys_or_indexes(v) {
@@ -715,6 +705,7 @@ function Computer() {
         return reduce_eachs([], data, funcs, function (acc, data_key, x, _ky, meta) {
           if (!key_to_bool(meta.name, data_key, data))
             return acc;
+          meta.config = {};
           try {
             acc.push([meta, meta.func(meta, data)]);
           } catch (e) {
@@ -747,15 +738,63 @@ function Computer() {
 
 } // === function Computer
 
-function show(meta, data) {
-  $('#' + meta.dom_id).show();
-  return 'show: ' + meta.dom_id;
+function dum_show(meta, data) {
+  $('#' + find_key('dom_id', meta.config, data)).show();
+  return 'show: ' + data.dom_id;
 }
 
-function hide(meta, data) {
-  $('#' + meta.dom_id).hide();
-  return 'hide: ' + meta.dom_id;
+function dum_hide(meta, data, config) {
+  $('#' + find_key('dom_id', meta.config, data)).hide();
+  return 'hide: ' + data.dom_id;
 }
+
+function dum_dom(meta, data) {
+  var selector = '*[data-dum]:not(*[data-dum_fin~="yes"])';
+  var elements = $((data && data.target) || $('body')).find(selector).addBack(selector);
+
+  var events = ['on_click', 'on_mousedown', 'on_mouseup', 'on_keypress'];
+
+  eachs(elements, function (i, raw_e) {
+    eachs($(raw_e).attr('data-dum').split(';'), function (_i, raw_cmd) {
+
+      raw_cmd = _.trim(raw_cmd);
+      if (is_empty(raw_cmd))
+        return;
+
+      var args = _.trim(raw_cmd).split(WHITESPACE);
+
+      if (l(args) !== 2)
+        throw new Error("Invalid command: " + to_string(args));
+
+      var bool_name = args.shift();
+      var func_name = args.shift();
+      if (!window[func_name])
+        func_name = 'dum_' + func_name;
+      var func = name_to_function(func_name);
+      var id   = dom_id($(raw_e));
+
+      if (_.detect(events, function (x) { return x === bool_name; })) {
+        $('#' + id).on(bool_name.replace('on_', ''), function () {
+          App('run', 'data', {on_click: true, dom_id: id});
+        });
+        App('push', bool_name, function (meta, data) {
+          if (data.dom_id === id)
+            return func(meta, data);
+          else
+            return 'does not apply: ' + bool_name + ' #' + data.dom_id;
+        });
+      } else {
+        App('push', bool_name, function (meta, data) {
+          meta.config.dom_id = id;
+          return func(meta, data);
+        });
+      }
+
+    });
+    $(raw_e).attr('data-dum_fin', 'yes');
+  });
+
+} // === dum_dom
 
 returns('', function () {
   spec_dom().html('<div data-dum="is_factor show" style="display: none;">Factor</div>');
