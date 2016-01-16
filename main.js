@@ -1,5 +1,6 @@
 "use strict";
 
+var WHITESPACE = /\s+/g;
 function identity() { return _.identity.call(_, arguments); }
 
 
@@ -66,6 +67,38 @@ function to_arg(val) { return function (f) { return f(val); }; }
 
 
 // === Helpers ===================================================================
+
+// Returns id.
+// Sets id of element if no id is set.
+//
+// .dom_id(raw_or_jquery)
+// .dom_id('prefix', raw_or_jquer)
+//
+function dom_id() {
+  var args   = _.toArray(arguments);
+  var o      = _.find(args, _.negate(_.isString));
+  var prefix = _.find(args, _.isString);
+  var old    = o.attr('id');
+
+  if (old && !is_empty(old))
+    return old;
+
+  var str = new_id(prefix || 'default_id_');
+  o.attr('id', str);
+  return str;
+} // === id
+
+// Examples:
+//
+//   .new_id()           ->  Integer
+//   .new_id('prefix_')  ->  String
+//
+function new_id(prefix) {
+  if (!new_id.hasOwnProperty('_id'))
+    new_id._id = -1;
+  new_id._id = new_id._id + 1;
+  return (prefix) ? prefix + new_id._id : new_id._id;
+} // === func
 
 function is_anything(v) {
   if (arguments.length !== 1)
@@ -245,12 +278,55 @@ function returns(expect, f) {
   return true;
 }
 
-function App() {
-  if (!App.hasOwnProperty('_state')) {
-    App._state = new Computer();
-  }
 
-  App._state.apply(null, arguments);
+spec(name_to_function, ["name_to_function"], name_to_function);
+function name_to_function(raw) {
+  if (!is_string(raw))
+    throw new Error('Not a string: ' + to_string(raw));
+  var str = _.trim(raw);
+  if (!window[str])
+    throw new Error('Function not found: ' + to_string(raw));
+  return window[str];
+}
+
+function dum_dom(meta, data) {
+  var selector = '*[data-dum]:not(*[data-dum_fin~="yes"])';
+  var elements = $((data && data.target) || $('body')).find(selector).addBack(selector);
+
+  eachs(elements, function (i, raw_e) {
+    eachs($(raw_e).attr('data-dum').split(';'), function (_i, raw_cmd) {
+      raw_cmd = _.trim(raw_cmd);
+      if (is_empty(raw_cmd))
+        return;
+
+      var args = _.trim(raw_cmd).split(WHITESPACE);
+
+      if (l(args) !== 2)
+        throw new Error("Invalid command: " + to_string(args));
+
+      var bool_name = args.shift();
+      var func      = name_to_function(args.shift());
+
+      App('push', bool_name, function (meta, data) {
+        meta.dom_id = dom_id($(raw_e));
+        return func(meta, data);
+      });
+    });
+    $(raw_e).attr('data-dum_fin', 'yes');
+  });
+
+} // === dum_dom
+
+function App() {
+  var is_reset = arguments.length === 1 && arguments[0] === 'reset for specs';
+  if (!App.hasOwnProperty('_state') || is_reset) {
+    var c = App._state = new Computer();
+    c('push', 'dom', dum_dom); // push dom func
+  } // === if !_state
+
+  if (!is_reset)
+    App._state.apply(null, arguments);
+
   return App;
 }
 
@@ -269,7 +345,7 @@ function new_spec(str_or_func) {
   spec_dom('reset');
 
   // === Reset App state:
-  App._state = new Computer();
+  App('reset for specs');
 
   return true;
 }
@@ -321,8 +397,9 @@ function name_of_function(f) {
   return name || f.toString();
 }
 
+spec(is_enumerable, [$('<p></p>')], true);
 function is_enumerable(v) {
-  return is_string(v) || is_array(v) || is_plain_object(v);
+  return is_string(v) || is_array(v) || is_plain_object(v) || (v.hasOwnProperty('length') && v.constructor === $);
 }
 
 spec(l, [[1]], 1);
@@ -589,15 +666,28 @@ returns(1, function () {
 });
 
 function Computer() {
-  State.allowed = ['data', 'dom'];
+  State.allowed = ['data'];
   return State;
 
-  function State(action, args) {
-    if (action === 'invalid')
-      State.is_invalid = true;
+  function allow(raw_name) {
+    var name = _.trimLeft(raw_name, '!');
+    State.allowed.push(name);
+    return name;
+  }
 
+  function is_allowed(raw_name) {
+    var name = _.trimLeft(raw_name, '!');
+    return _.detect(State.allowed, function (x) { return x === name; });
+  }
+
+  function State(action, args) {
     if (State.is_invalid === true)
       throw new Error("state is invalid.");
+
+    if (action === 'invalid') {
+      State.is_invalid = true;
+      return;
+    }
 
     if(!is_array(State.funcs || 'none'))
       State.funcs = [];
@@ -611,13 +701,18 @@ function Computer() {
 
       case 'run':
         var target = arguments[1];
-        var data = (arguments.length === 2) ? {} : arguments[2];
+        var data;
+        if (arguments.length === 2) {
+          data = {};
+          data[target] = true;
+        } else
+          data = arguments[2];
 
         var allowed = State.allowed;
-        if (!_.detect(allowed, function (x) { return x === target; }))
+        if (!is_allowed(target))
           throw new Error(to_string(target) + ' is  not allowed: ' + to_string(allowed));
 
-        return reduce_eachs([], data, funcs, function (acc, data_key, x, ky, meta) {
+        return reduce_eachs([], data, funcs, function (acc, data_key, x, _ky, meta) {
           if (!key_to_bool(meta.name, data_key, data))
             return acc;
           try {
@@ -636,7 +731,10 @@ function Computer() {
         if (!is_string(name))
           throw new Error("'name' value invalid: " + to_string(name));
         if (!is_function(func))
-          throw new Error("'func' value invalid: " + to_string(func));
+          throw new Error("invalid value for function: " + to_string(func));
+
+        if (!is_allowed(name))
+          allow(name);
 
         State.funcs = funcs.slice(0).concat([{name: name, func: func}]);
         return true;
@@ -649,15 +747,17 @@ function Computer() {
 
 } // === function Computer
 
-function show(msg) {
-  $(msg.dom).show();
+function show(meta, data) {
+  $('#' + meta.dom_id).show();
+  return 'show: ' + meta.dom_id;
 }
 
-function hide(msg) {
-  $(msg.dom).hide();
+function hide(meta, data) {
+  $('#' + meta.dom_id).hide();
+  return 'hide: ' + meta.dom_id;
 }
 
-returns('display: block;', function () {
+returns('', function () {
   spec_dom().html('<div data-dum="is_factor show" style="display: none;">Factor</div>');
   App('run', 'dom');
   App('run', 'data', {is_factor: true});
