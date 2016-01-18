@@ -874,16 +874,16 @@ function dum_dom(data) {
       var args = _.trim(raw_cmd).split(WHITESPACE);
 
       // === data-dum="on_dom_create_widget"
-      if (l(args) === 1) {
-        var prep_func = window[args[0]];
+      if (args[0] === 'on_dom') {
+        var prep_func = window[args[1]];
         if (!prep_func)
           throw new Error('func not found: ' + func);
-        prep_func(dom_id($(raw_e)));
+        prep_func({on_dom: true}, {dom_id : dom_id($(raw_e)), config : args.slice(2)});
         return;
       }
 
       // === data-dum="is_name my_func"
-      if (l(args) !== 2)
+      if (l(args) < 2)
         throw new Error("Invalid command: " + to_string(args));
 
       var bool_name = args.shift();
@@ -895,28 +895,22 @@ function dum_dom(data) {
 
 
       var is_event = _.detect(events, function (x) { return x === bool_name; });
-      if (is_event) {
-        $('#' + id).on(bool_name.replace('on_', ''), function () {
-          var msg = {
-            dom_id: id,
-            is_event: true,
-            event_name: bool_name
-          };
-          msg['on_' + bool_name] = true;
-          App('run', msg);
+      if (!is_event) {
+        return App('push', bool_name, function (msg) {
+          return func(msg, {dom_id:id, config: args});
         });
       }
 
-      App('push', bool_name, function (msg) {
-        if (msg.is_event) {
-          if (msg.dom_id === id)
-            return func(msg);
-          else
-            return 'does not apply: ' + bool_name + ' #' + msg.dom_id;
-        } else
-          return func(msg, id);
+      // === is event: on_click, etc.
+      $('#' + id).on(bool_name.replace('on_', ''), function () {
+        var msg = {
+          is_event: true,
+          event_name: bool_name
+        };
+        msg['on_' + bool_name] = true;
+        msg[bool_name]         = true;
+        return func(msg, {dom_id: id, config: args});
       });
-
 
     });
     $(raw_e).attr('data-dum_fin', 'yes');
