@@ -105,8 +105,8 @@ function apply_function(f, args) {
   return f.apply(null, args);
 }
 
-returns({a:{b:"c"}}, function () { // Does not alter orig.
-  var orig = {a:{b:"c"}};
+returns({a:{b:"c"}, b:true}, function () { // Does not alter orig.
+  var orig = {a:{b:"c"}, b:true};
   var copy = copy_value(orig);
   copy.a.b = "1";
   return orig;
@@ -114,7 +114,7 @@ returns({a:{b:"c"}}, function () { // Does not alter orig.
 function copy_value(v) {
   should_be(arguments, is_something);
   var type = typeof v;
-  if (type === 'string' || type === 'number')
+  if (type === 'string' || type === 'number' || is_bool(v))
     return v;
 
   if (is_array(v))
@@ -324,7 +324,7 @@ function to_match_string(actual, expect) {
 }
 
 function to_function_string(f, args) {
-  return name_of_function(f) + '(' + _.map(args, to_string).join(', ') + ')';
+  return function_to_name(f) + '(' + _.map(args, to_string).join(', ') + ')';
 }
 
 
@@ -412,7 +412,7 @@ function new_spec(str_or_func) {
   // === Is there a specific spec to run?
   var href = window.location.href;
   var target = _.trim(href.split('?').pop() || '');
-  if (!is_empty(target) && target !== href  && target !== name_of_function(str_or_func))
+  if (!is_empty(target) && target !== href  && target !== function_to_name(str_or_func))
     return false;
 
   // === Reset DOM:
@@ -445,7 +445,7 @@ function spec_dom(cmd) {
 }
 
 function function_sig(f, args) {
-  return name_of_function(f) + '(' + _.map(args, to_string).join(',')  + ')';
+  return function_to_name(f) + '(' + _.map(args, to_string).join(',')  + ')';
 }
 
 function set_function_string_name(f, args) {
@@ -492,8 +492,8 @@ function spec(f, args, expect) {
   return true;
 }
 
-spec(name_of_function, ["function my_name() {}"], "my_name");
-function name_of_function(f) {
+spec(function_to_name, ["function my_name() {}"], "my_name");
+function function_to_name(f) {
   return f.to_string_name || f.toString().split('(')[0].split(WHITESPACE)[1] || f.toString();
 }
 
@@ -758,8 +758,8 @@ returns(3, function () {
   var a = 0, id = next_id('is_happy');
   var data = {}; data[id] = true;
   var state = new Computer();
-  state('push', id, function () {a=a+1;});
-  state('run', 'data', data); state('run', 'data', data); state('run', 'data', data);
+  state('push', id, function (msg) {a=a+1;});
+  state('run', data); state('run', data); state('run', data);
   return a;
 });
 returns(1, function () {
@@ -767,10 +767,10 @@ returns(1, function () {
   var d_false = {}; d_false[id] = false;
   var d_true  = {}; d_true[id]  = true;
   var state = new Computer();
-  state('push', '!' + id, function () {a=a+1;});
-  state('run', 'data', d_false);
-  state('run', 'data', d_true);
-  state('run', 'data', d_true);
+  state('push', '!' + id, function (msg) {a=a+1;});
+  state('run', d_false);
+  state('run', d_true);
+  state('run', d_true);
   return a;
 });
 
@@ -808,36 +808,6 @@ function Computer() {
         State.allowed = [].concat(State.allowed).concat(new_actions);
         break;
 
-      case 'run':
-        var target = arguments[1];
-        var data;
-        if (arguments.length === 2) {
-          data = {};
-          data[target] = true;
-        } else
-          data = arguments[2];
-
-        var allowed = State.allowed;
-        if (!is_allowed(target))
-          throw new Error(to_string(target) + ' is  not allowed: ' + to_string(allowed));
-
-        return reduce_eachs([], data, funcs, function (acc, data_key, x, _ky, meta) {
-          if (!key_to_bool(meta.name, data_key, data))
-            return acc;
-          try {
-            var copy_meta = copy_value(meta);
-            var copy_data = copy_value(data);
-            copy_meta.config = {};
-            copy_meta.cache  = {};
-            acc.push([meta, meta.func(copy_meta, copy_data)]);
-          } catch (e) {
-            State('invalid');
-            throw e;
-          }
-
-          return acc;
-        });
-
       case 'push':
         var name=arguments[1], func= arguments[2];
 
@@ -845,12 +815,30 @@ function Computer() {
           throw new Error("'name' value invalid: " + to_string(name));
         if (!is_function(func))
           throw new Error("invalid value for function: " + to_string(func));
-
+        if (func.length !== 1)
+          throw new Error("function.length needs to === 1: " + function_to_name(func));
         if (!is_allowed(name))
           allow(name);
 
         State.funcs = funcs.slice(0).concat([{name: name, func: func}]);
         return true;
+
+      case 'run':
+        should_be(arguments, is('run'), is_plain_object).shift();
+        var msg = arguments[1];
+
+        return reduce_eachs([], msg, funcs, function (acc, data_key, x, _ky, meta) {
+          if (!key_to_bool(meta.name, data_key, msg))
+            return acc;
+          try {
+            acc.push([meta, meta.func(copy_value(msg))]);
+          } catch (e) {
+            State('invalid');
+            throw e;
+          }
+
+          return acc;
+        });
 
       default:
         State('invalid');
@@ -860,17 +848,17 @@ function Computer() {
 
 } // === function Computer
 
-function dum_show(meta, data, dom_id) {
+function dum_show(data, dom_id) {
   $('#' + dom_id).show();
   return 'show: ' + dom_id;
 }
 
-function dum_hide(meta, data, dom_id) {
+function dum_hide(data, dom_id) {
   $('#' + dom_id).hide();
   return 'hide: ' + dom_id;
 }
 
-function dum_dom(meta, data) {
+function dum_dom(data) {
   var selector = '*[data-dum]:not(*[data-dum_fin~="yes"])';
   var elements = $((data && data.target) || $('body')).find(selector).addBack(selector);
 
@@ -915,18 +903,18 @@ function dum_dom(meta, data) {
             event_name: bool_name
           };
           msg['on_' + bool_name] = true;
-          App('run', 'data', msg);
+          App('run', msg);
         });
       }
 
-      App('push', bool_name, function (meta, msg) {
+      App('push', bool_name, function (msg) {
         if (msg.is_event) {
           if (msg.dom_id === id)
-            return func(meta, msg);
+            return func(msg);
           else
             return 'does not apply: ' + bool_name + ' #' + msg.dom_id;
         } else
-          return func(meta, msg, id);
+          return func(msg, id);
       });
 
 
@@ -944,10 +932,10 @@ returns(3, function () {
       '&lt;p&gt;3&lt;p&gt;' +
     '</script>'
   );
-  App('run', 'data', {is_text: true});
+  App('run', {is_text: true});
   return spec_dom().find('p').length;
 });
-function dum_template(meta, data, dom_id) {
+function dum_template(data, dom_id) {
   var this_name = "applet.template.mustache";
   if (o.name === 'this position')
     return 'top';
@@ -1020,8 +1008,8 @@ function dum_template(meta, data, dom_id) {
 // ==== Integration tests======================================================
 returns('', function () {
   spec_dom().html('<div data-dum="is_factor show" style="display: none;">Factor</div>');
-  App('run', 'dom');
-  App('run', 'data', {is_factor: true});
+  App('run', {dom: true});
+  App('run', {is_factor: true});
   return spec_dom().find('div').attr('style');
 });
 
