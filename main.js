@@ -936,6 +936,85 @@ function dum_dom(meta, data) {
 
 } // === dum_dom
 
+returns(3, function () {
+  spec_dom().html(
+    '<script type="application/dum_template" data-dum="is_text template">'+
+      '&lt;p&gt;1&lt;p&gt;' +
+      '&lt;p&gt;2&lt;p&gt;' +
+      '&lt;p&gt;3&lt;p&gt;' +
+    '</script>'
+  );
+  App('run', 'data', {is_text: true});
+  return spec_dom().find('p').length;
+});
+function dum_template(meta, data, dom_id) {
+  var this_name = "applet.template.mustache";
+  if (o.name === 'this position')
+    return 'top';
+
+  var scripts = Applet.find(this_name, 'script[type^="text/mustache"]', o.target);
+
+  if (scripts.length < 1)
+    return;
+
+  _.each(scripts, function (raw) {
+    var t              = $(raw);
+    var types          = t.attr('type').split('/');
+    var html           = t.html();
+    var placeholder_id = Applet.dom_id(t);
+    var data_key       = types[2];
+    var id             = Applet.dom_id(t, 'mustache_templates_' + (data_key || ''));
+    var pos            = 'replace';
+
+    Applet.mark_as_compiled(this_name, t);
+
+    switch (_.trim(types[1])) {
+      case 'mustache-top':
+        pos = 'top';
+        break;
+
+      case 'mustache-bottom':
+        pos = 'bottom';
+        break;
+    } // === switch type[1]
+
+    var meta = {
+      id             : id,
+      key            : data_key,
+      html           : html,
+      mustache       : html,
+      placeholder_id : placeholder_id,
+      elements       : null,
+      pos            : pos
+    };
+
+    o.applet.new_func(
+      function (o, data) {
+        if (o.name !== 'data' || !_.isPlainObject(data[meta.key]))
+          return;
+
+        // === Remove old nodes:
+        if (meta.elements && meta.pos === 'replace') {
+          meta.elements.remove();
+        }
+
+        var html = $(Mustache.render(meta.mustache, data));
+        if (meta.pos === 'replace' || meta.pos === 'bottom')
+          html.insertBefore($('#' + meta.placeholder_id));
+        else
+          html.insertAfter($('#' + meta.placeholder_id));
+
+        meta.elements = html;
+        o.applet.run({
+          name   : 'dom',
+          target : html
+        });
+      }
+    ); // === new_func
+
+  });
+
+} // ==== funcs: template ==========
 
 
 // ==== Integration tests======================================================
