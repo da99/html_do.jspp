@@ -885,6 +885,16 @@ function dum_dom(meta, data) {
 
       var args = _.trim(raw_cmd).split(WHITESPACE);
 
+      // === data-dum="on_dom_create_widget"
+      if (l(args) === 1) {
+        var prep_func = window[args[0]];
+        if (!prep_func)
+          throw new Error('func not found: ' + func);
+        prep_func(dom_id($(raw_e)));
+        return;
+      }
+
+      // === data-dum="is_name my_func"
       if (l(args) !== 2)
         throw new Error("Invalid command: " + to_string(args));
 
@@ -926,6 +936,9 @@ function dum_dom(meta, data) {
 
 } // === dum_dom
 
+
+
+// ==== Integration tests======================================================
 returns('', function () {
   spec_dom().html('<div data-dum="is_factor show" style="display: none;">Factor</div>');
   App('run', 'dom');
