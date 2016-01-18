@@ -78,11 +78,23 @@ function is_$(v) {
 
 function to_arg(val) { return function (f) { return f(val); }; }
 
+spec(should_be, [1, is_num], 1);
 throws(
-  should_be, [[1], is_num, is_num],
+  should_be, ['1', is_num],
+  'Value: "1" !== is_num'
+);
+function should_be(val, func) {
+  if (func(val))
+    return val;
+  throw new Error('Value: ' + to_string(val) + ' !== ' + function_to_name(func));
+}
+
+
+throws(
+  arguments_are, [[1], is_num, is_num],
   'Wrong # of arguments: expected: 2 actual: 1'
 );
-function should_be(args_o, _funcs) {
+function arguments_are(args_o, _funcs) {
   var funcs = _.toArray(arguments);
   var args  = funcs.shift();
 
@@ -117,7 +129,7 @@ returns({a:{b:"c"}, b:true}, function () { // Does not alter orig.
   return orig;
 });
 function copy_value(v) {
-  should_be(arguments, is_something);
+  arguments_are(arguments, is_something);
   var type = typeof v;
   if (type === 'string' || type === 'number' || is_bool(v))
     return v;
@@ -147,7 +159,7 @@ returns(
   }
 );
 function dom_attrs(dom) {
-  should_be(arguments, has_property_of('attributes', 'object'));
+  arguments_are(arguments, has_property_of('attributes', 'object'));
 
   return _.reduce(
     dom.attributes,
@@ -829,7 +841,7 @@ function Computer() {
         return true;
 
       case 'run':
-        should_be(arguments, is('run'), is_plain_object).shift();
+        arguments_are(arguments, is('run'), is_plain_object).shift();
         var msg = arguments[1];
 
         return reduce_eachs([], msg, funcs, function (acc, data_key, x, _ky, meta) {
