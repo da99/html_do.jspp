@@ -831,7 +831,10 @@ function Computer() {
           if (!key_to_bool(meta.name, data_key, msg))
             return acc;
           try {
-            acc.push([meta, meta.func(copy_value(msg))]);
+            acc.push([
+              meta,
+              apply_function(meta.func, [copy_value(msg)])
+            ]);
           } catch (e) {
             State('invalid');
             throw e;
@@ -878,7 +881,11 @@ function dum_dom(data) {
         var prep_func = window[args[1]];
         if (!prep_func)
           throw new Error('func not found: ' + func);
-        prep_func({on_dom: true}, {dom_id : dom_id($(raw_e)), config : args.slice(2)});
+        apply_function(
+          prep_func, [{
+            on_dom: true, dom_id : dom_id($(raw_e)), config : args.slice(2)
+          }]
+        );
         return;
       }
 
@@ -897,7 +904,7 @@ function dum_dom(data) {
       var is_event = _.detect(events, function (x) { return x === bool_name; });
       if (!is_event) {
         return App('push', bool_name, function (msg) {
-          return func(msg, {dom_id:id, config: args});
+          return func(_.extend({}, msg, {dom_id:id, config: args}));
         });
       }
 
@@ -905,11 +912,13 @@ function dum_dom(data) {
       $('#' + id).on(bool_name.replace('on_', ''), function () {
         var msg = {
           is_event: true,
-          event_name: bool_name
+          event_name: bool_name,
+          dom_id: id,
+          config: args
         };
         msg['on_' + bool_name] = true;
         msg[bool_name]         = true;
-        return func(msg, {dom_id: id, config: args});
+        return apply_function(func, [msg]);
       });
 
     });
