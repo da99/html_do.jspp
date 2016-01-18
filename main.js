@@ -100,8 +100,38 @@ function should_be(args_o, _funcs) {
 
 // === Helpers ===================================================================
 
+function apply_function(f, args) {
+  should_be(arguments, length_of(args.length), is_array);
+  return f.apply(null, args);
+}
+
+returns({a:{b:"c"}}, function () { // Does not alter orig.
+  var orig = {a:{b:"c"}};
+  var copy = copy_value(orig);
+  copy.a.b = "1";
+  return orig;
+});
+function copy_value(v) {
+  should_be(arguments, is_something);
+  var type = typeof v;
+  if (type === 'string' || type === 'number')
+    return v;
+
+  if (is_array(v))
+    return _.map(v, copy_value);
+
+  if (is_plain_object(v))
+    return reduce_eachs({}, v, function (acc, kx, x) {
+      acc[kx] = copy_value(x);
+      return acc;
+    });
+
+  throw new Error('Value can\'t be copied: ' + to_string(v));
+}
+
+spec(standard_name, ['n   aME'], 'n ame');
 function standard_name(str) {
-  return _.trim(str).replace(/\ +/g, ' ').toLowerCase();
+  return _.trim(str).replace(WHITESPACE, ' ').toLowerCase();
 }
 
 returns(
@@ -194,7 +224,11 @@ function or(_funcs) {
 }
 
 function length_of(num) {
-  return function (v) { return v.length === num; };
+  return function (v) {
+    if (!is_something(v) && has_property_of('length', 'number')(v))
+      throw new Error('invalid value for length_of: ' + to_string(num));
+    return v.length === num;
+  };
 }
 
 function length_gt(num) {
@@ -258,6 +292,17 @@ function is_empty(v) {
     return _.keys(v).length === 0;
 
   throw new Error("invalid value for is_empty: " + to_string(v));
+}
+
+spec(is_something, [null],      false);
+spec(is_something, [undefined], false);
+spec(is_something, [[]],       true);
+spec(is_something, [{}],       true);
+spec(is_something, [{a: "c"}], true);
+function is_something(v) {
+  if (arguments.length !== 1)
+    throw new Error("arguments.length !== 1: " + to_string(v));
+  return !is_null(v) && !is_undefined(v);
 }
 
 spec(is_nothing, [null],      true);
@@ -779,10 +824,12 @@ function Computer() {
         return reduce_eachs([], data, funcs, function (acc, data_key, x, _ky, meta) {
           if (!key_to_bool(meta.name, data_key, data))
             return acc;
-          meta.config = {};
-          meta.cache  = {};
           try {
-            acc.push([meta, meta.func(meta, data)]);
+            var copy_meta = copy_value(meta);
+            var copy_data = copy_value(data);
+            copy_meta.config = {};
+            copy_meta.cache  = {};
+            acc.push([meta, meta.func(copy_meta, copy_data)]);
           } catch (e) {
             State('invalid');
             throw e;
@@ -813,16 +860,14 @@ function Computer() {
 
 } // === function Computer
 
-function dum_show(meta, data) {
-  var id = find_key('dom_id', meta.config, data);
-  $('#' + id).show();
-  return 'show: ' + id;
+function dum_show(meta, data, dom_id) {
+  $('#' + dom_id).show();
+  return 'show: ' + dom_id;
 }
 
-function dum_hide(meta, data, config) {
-  var id = find_key('dom_id', meta.config, data);
-  $('#' + id).hide();
-  return 'hide: ' + id;
+function dum_hide(meta, data, dom_id) {
+  $('#' + dom_id).hide();
+  return 'hide: ' + dom_id;
 }
 
 function dum_dom(meta, data) {
@@ -850,23 +895,30 @@ function dum_dom(meta, data) {
       var func = name_to_function(func_name);
       var id   = dom_id($(raw_e));
 
-      if (_.detect(events, function (x) { return x === bool_name; })) {
+
+      var is_event = _.detect(events, function (x) { return x === bool_name; });
+      if (is_event) {
         $('#' + id).on(bool_name.replace('on_', ''), function () {
-          App('run', 'data', {on_click: true, dom_id: id});
-        });
-        App('push', bool_name, function (meta, data) {
-          if (data.dom_id === id) {
-            meta.config.dom_id = id;
-            return func(meta, data);
-          } else
-            return 'does not apply: ' + bool_name + ' #' + data.dom_id;
-        });
-      } else {
-        App('push', bool_name, function (meta, data) {
-          meta.config.dom_id = id;
-          return func(meta, data);
+          var msg = {
+            dom_id: id,
+            is_event: true,
+            event_name: bool_name
+          };
+          msg['on_' + bool_name] = true;
+          App('run', 'data', msg);
         });
       }
+
+      App('push', bool_name, function (meta, msg) {
+        if (msg.is_event) {
+          if (msg.dom_id === id)
+            return func(meta, msg);
+          else
+            return 'does not apply: ' + bool_name + ' #' + msg.dom_id;
+        } else
+          return func(meta, msg, id);
+      });
+
 
     });
     $(raw_e).attr('data-dum_fin', 'yes');
