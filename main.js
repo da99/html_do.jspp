@@ -101,7 +101,12 @@ function should_be(args_o, _funcs) {
 // === Helpers ===================================================================
 
 function apply_function(f, args) {
-  should_be(arguments, length_of(args.length), is_array);
+  if (arguments.length !== 2)
+    throw new Error('Wrong # of argumments: expected: ' + 2 + ' actual: ' + arguments.length);
+  if (!is_array(args))
+    throw new Error('Not an array: ' + to_string(args));
+  if (f.length !== args.length)
+    throw new Error('function.length (' + function_to_name(f) + ' ' + f.length + ') !== ' + args.length);
   return f.apply(null, args);
 }
 
@@ -851,14 +856,26 @@ function Computer() {
 
 } // === function Computer
 
-function dum_show(data, dom_id) {
-  $('#' + dom_id).show();
-  return 'show: ' + dom_id;
+returns('', function () {
+  spec_dom().html('<div data-dum="is_factor show" style="display: none;">Factor</div>');
+  App('run', {dom: true});
+  App('run', {is_factor: true});
+  return spec_dom().find('div').attr('style');
+});
+function dum_show(msg) {
+  $('#' + msg.dom_id).show();
+  return 'show: ' + msg.dom_id;
 }
 
-function dum_hide(data, dom_id) {
-  $('#' + dom_id).hide();
-  return 'hide: ' + dom_id;
+returns('display: none;', function () {
+  spec_dom().html('<div data-dum="is_factor hide">Factor</div>');
+  App('run', {dom: true});
+  App('run', {is_factor: true});
+  return spec_dom().find('div').attr('style');
+});
+function dum_hide(msg) {
+  $('#' + msg.dom_id).hide();
+  return 'hide: ' + msg.dom_id;
 }
 
 function dum_dom(data) {
@@ -904,7 +921,7 @@ function dum_dom(data) {
       var is_event = _.detect(events, function (x) { return x === bool_name; });
       if (!is_event) {
         return App('push', bool_name, function (msg) {
-          return func(_.extend({}, msg, {dom_id:id, config: args}));
+          return apply_function(func, [_.extend({}, msg, {dom_id:id, config: args})]);
         });
       }
 
@@ -938,7 +955,7 @@ returns(3, function () {
   App('run', {is_text: true});
   return spec_dom().find('p').length;
 });
-function dum_template(data, dom_id) {
+function dum_template(msg, dom_id) {
   var this_name = "applet.template.mustache";
   if (o.name === 'this position')
     return 'top';
@@ -1009,13 +1026,8 @@ function dum_template(data, dom_id) {
 
 
 // ==== Integration tests======================================================
-returns('', function () {
-  spec_dom().html('<div data-dum="is_factor show" style="display: none;">Factor</div>');
-  App('run', {dom: true});
-  App('run', {is_factor: true});
-  return spec_dom().find('div').attr('style');
-});
-
+// -- None, so far.
+//
 // ============================================================================
 if (is_localhost())
   log('============ Specs Finished ==========');
