@@ -959,81 +959,51 @@ function dum_dom(data) {
 returns(3, function () {
   spec_dom().html(
     '<script type="application/dum_template" data-dum="is_text template">'+
-      '&lt;p&gt;1&lt;p&gt;' +
-      '&lt;p&gt;2&lt;p&gt;' +
-      '&lt;p&gt;3&lt;p&gt;' +
+      '&lt;p&gt;1&lt;/p&gt;' +
+      '&lt;p&gt;2&lt;/p&gt;' +
+      '&lt;p&gt;3&lt;/p&gt;' +
     '</script>'
   );
+  App('run', {dom: true});
   App('run', {is_text: true});
   return spec_dom().find('p').length;
 });
-function dum_template(msg, dom_id) {
-  var this_name = "applet.template.mustache";
-  if (o.name === 'this position')
-    return 'top';
+function dum_template(msg) {
+  var pos = (msg.config || [])[0] || 'replace';
 
-  var scripts = Applet.find(this_name, 'script[type^="text/mustache"]', o.target);
+  var t        = $('#' + msg.dom_id);
+  var raw_html = t.html();
+  var id       = msg.dom_id;
+  var me       = dum_template;
 
-  if (scripts.length < 1)
-    return;
+  if (!is_array(me.elements))
+    me.elements = [];
 
-  _.each(scripts, function (raw) {
-    var t              = $(raw);
-    var types          = t.attr('type').split('/');
-    var html           = t.html();
-    var placeholder_id = Applet.dom_id(t);
-    var data_key       = types[2];
-    var id             = Applet.dom_id(t, 'mustache_templates_' + (data_key || ''));
-    var pos            = 'replace';
+  // === Remove old nodes:
+  if (pos === 'replace') {
+    eachs(me.elements, function (_index, id) {
+      $('#' + id).remove();
+    });
+  }
 
-    Applet.mark_as_compiled(this_name, t);
+  // From: http://stackoverflow.com/questions/1912501/unescape-html-entities-in-javascript
+  var decoded_html = (new DOMParser().parseFromString(raw_html, "text/html"))
+  .documentElement
+  .textContent;
 
-    switch (_.trim(types[1])) {
-      case 'mustache-top':
-        pos = 'top';
-        break;
+  var compiled = $(Mustache.render(decoded_html, msg.data || {}));
+  var new_ids = _.map(compiled, function (x) { return dom_id($(x)); });
 
-      case 'mustache-bottom':
-        pos = 'bottom';
-        break;
-    } // === switch type[1]
+  if (pos === 'replace' || pos === 'bottom')
+    compiled.insertBefore($('#' + id));
+  else
+    compiled.insertAfter($('#' + id));
 
-    var meta = {
-      id             : id,
-      key            : data_key,
-      html           : html,
-      mustache       : html,
-      placeholder_id : placeholder_id,
-      elements       : null,
-      pos            : pos
-    };
+  me.elements = ([]).concat(me.elements).concat( new_ids );
 
-    o.applet.new_func(
-      function (o, data) {
-        if (o.name !== 'data' || !_.isPlainObject(data[meta.key]))
-          return;
+  App('run', {dom: true});
 
-        // === Remove old nodes:
-        if (meta.elements && meta.pos === 'replace') {
-          meta.elements.remove();
-        }
-
-        var html = $(Mustache.render(meta.mustache, data));
-        if (meta.pos === 'replace' || meta.pos === 'bottom')
-          html.insertBefore($('#' + meta.placeholder_id));
-        else
-          html.insertAfter($('#' + meta.placeholder_id));
-
-        meta.elements = html;
-        o.applet.run({
-          name   : 'dom',
-          target : html
-        });
-      }
-    ); // === new_func
-
-  });
-
+  return new_ids;
 } // ==== funcs: template ==========
 
 
