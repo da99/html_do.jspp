@@ -22,6 +22,12 @@ function log(_args) {
   return false;
 } // === func
 
+spec(is_arguments, [(function () {return arguments;})()], true);
+spec(is_arguments, [[]], false);
+function is_arguments(v) {
+  return is_something(v) && or(is(0), is_positive)(v.length) && v.hasOwnProperty('callee');
+}
+
 spec(to_string, [null], 'null');
 spec(to_string, [undefined], 'undefined');
 spec(to_string, [[1]], '[1]');
@@ -40,7 +46,8 @@ function to_string(val) {
   if (_.isString(val))
     return '"' + val + '"';
 
-  if (or(is(0), is_positive)(val.length) && val.hasOwnProperty('callee'))
+
+  if ( is_arguments(val) )
     return to_string(_.toArray(val));
 
   if (is_plain_object(val)) {
@@ -121,6 +128,51 @@ function apply_function(f, args) {
     throw new Error('function.length (' + function_to_name(f) + ' ' + f.length + ') !== ' + args.length);
   return f.apply(null, args);
 }
+
+
+spec(merge, [{a: [1]}, {a: [2,3]}], {a: [1,2,3]});
+spec(merge, [[1], [2,3]], [1,2,3]);
+spec(merge, [{a: 1}, {b: 2}, {c: 3}], {a: 1, b: 2, c: 3});
+function merge(_args) {
+  if (arguments.length === 0)
+    throw new Error('Arguments misisng.');
+  var type = is_array(arguments[0]) ? 'array' : 'plain object';
+  var fin  = (type === 'array') ? [] : {};
+  eachs(arguments, function (kx,x) {
+    if (type === 'array' && !is_array(x))
+      throw new Error('Value needs to be an array: ' + to_string(x));
+    if (type === 'plain object'  && !is_plain_object(x))
+      throw new Error('Value needs to be a plain object: ' + to_string(x));
+
+    eachs(x, function (key, val) {
+      if ( type === 'array' ) {
+        fin.push(val);
+        return;
+      }
+
+      if (fin[key] === val || !fin.hasOwnProperty(key)) {
+        fin[key] = val;
+        return;
+      }
+
+      if (is_array(fin[key]) && is_array(val)) {
+        fin[key] = [].concat(fin[key]).concat(val);
+        return;
+      }
+
+      if (is_plain_object(fin[key]) && is_plain_object(val))  {
+        fin[key] = merge(fin[key], val);
+        return;
+      }
+
+      throw new Error('Could not merge key: [' + to_string(key) +  '] ' + to_string(fin[key]) + ' -> ' + to_string(val) );
+
+    }); // === eachs
+  });
+
+  return fin;
+}
+
 
 returns({a:{b:"c"}, b:true}, function () { // Does not alter orig.
   var orig = {a:{b:"c"}, b:true};
@@ -517,7 +569,7 @@ function function_to_name(f) {
 
 spec(is_enumerable, [$('<p></p>')], true);
 function is_enumerable(v) {
-  return is_string(v) || is_array(v) || is_plain_object(v) || (v.hasOwnProperty('length') && v.constructor === $);
+  return is_string(v) || is_array(v) || is_plain_object(v) || (v.hasOwnProperty('length') && v.constructor === $ || is_arguments(v));
 }
 
 spec(l, [[1]], 1);
@@ -854,8 +906,11 @@ function Computer() {
           var answer      = (!is_negate && msg[base_key] === true) ||
                   (is_negate && msg[base_key] === false);
           try {
-            if (is_question)
-              msg_copy.configs.unshift(answer);
+            if (is_question) {
+              if (msg_copy.hasOwnProperty('args'))
+                throw new Error('Key, args, already defined on message: ' + to_string(msg));
+              msg_copy.args = [answer];
+            }
 
             if ( is_question || answer )
               acc.push([
@@ -877,6 +932,26 @@ function Computer() {
   } // === return function State;
 
 } // === function Computer
+
+returns('', function () {
+  spec_dom().html('<div data-dum="is_ruby? show_hide" style="display: none;">Ruby</div>');
+  App('run', {dom: true});
+  App('run', {is_ruby: true});
+  return spec_dom().find('div').attr('style');
+});
+returns('', function () {
+  spec_dom().html('<div data-dum="!is_ruby? show_hide" style="display: none;">Perl</div>');
+  App('run', {dom: true});
+  App('run', {is_ruby: false});
+  return spec_dom().find('div').attr('style');
+});
+function dum_show_hide(msg) {
+  if (msg.args[0] === true)
+    return dum_show(msg);
+  else
+    return dum_hide(msg);
+}
+
 
 returns('', function () {
   spec_dom().html('<div data-dum="is_factor show" style="display: none;">Factor</div>');
@@ -932,7 +1007,9 @@ function dum_dom(data) {
       if (is_now) {
         apply_function(
           func, [{
-            on_dom: true, dom_id : dom_id($(raw_e)), config : args.slice(0)
+            on_dom : true,
+            dom_id : dom_id($(raw_e)),
+            args : args.slice(0)
           }]
         );
         return;
@@ -943,7 +1020,7 @@ function dum_dom(data) {
       var is_event = _.detect(events, is(action_name));
       if (!is_event) {
         return App('push', action_name, function (msg) {
-          return apply_function(func, [_.extend({}, msg, {dom_id:id, config: args})]);
+          return apply_function(func, [merge(msg, {dom_id:id, args: args})]);
         });
       }
 
@@ -953,7 +1030,7 @@ function dum_dom(data) {
           is_event: true,
           event_name: action_name,
           dom_id: id,
-          config: args
+          args: args
         };
         msg['on_' + action_name] = true;
         msg[action_name]         = true;
@@ -984,7 +1061,7 @@ returns(3, function () {
   return spec_dom().find('p').length;
 });
 function dum_template(msg) {
-  var pos = (msg.config || [])[0] || 'replace';
+  var pos = (msg.args || [])[0] || 'replace';
 
   var t        = $('#' + msg.dom_id);
   var raw_html = t.html();
