@@ -970,8 +970,7 @@ returns(3, function () {
   );
   App('run', {dom: true});
   App('run', {is_text: true});
-  App('run', {dom: true});
-  // App('run', {is_val: true, data: {a:'1', b: '2', c:'3'}});
+  App('run', {is_val: true, data: {a:'1', b: '2', c:'3'}});
   return spec_dom().find('p').length;
 });
 function dum_template(msg) {
