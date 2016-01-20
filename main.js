@@ -397,21 +397,6 @@ function returns(expect, f) {
 }
 
 
-spec(about_action, ['is_key'], {name: 'is_key', is_question: false, is_negate: false, is_now: false});
-spec(about_action, ['!is_key'], {name: 'is_key', is_question: false, is_negate: true, is_now: false});
-spec(about_action, ['is_key?'], {name: 'is_key', is_question: true, is_negate: false, is_now: false});
-spec(about_action, ['!is_key?'], {name: 'is_key', is_question: true, is_negate: true, is_now: false});
-spec(about_action, ['is_key!'], {name: 'is_key', is_question: false, is_negate: false, is_now: true});
-function about_action(raw_str) {
-  var str = _.trim(raw_str);
-  var about = {
-    name        : _.trim(str, '!?'),
-    is_question : _.endsWith('?'),
-    is_negate   : _.startsWith(str, '!'),
-    is_now      : _.endsWith(str, '!')
-  };
-  return about;
-} // === func about_action
 
 spec(name_to_function, ["name_to_function"], name_to_function);
 function name_to_function(raw) {
@@ -797,8 +782,8 @@ returns(3, function () {
 });
 returns(1, function () {
   var a = 0, id = next_id('is_happy');
-  var d_false = {}; d_false[id] = false;
-  var d_true  = {}; d_true[id]  = true;
+  var d_false = {rand_key: 1}; d_false[id] = false;
+  var d_true  = {rand_key2: 2}; d_true[id]  = true;
   var state = new Computer();
   state('push', '!' + id, function (msg) {a=a+1;});
   state('run', d_false);
@@ -860,14 +845,23 @@ function Computer() {
         arguments_are(arguments, is('run'), is_plain_object).shift();
         var msg = arguments[1];
 
-        return reduce_eachs([], msg, funcs, function (acc, data_key, x, _ky, meta) {
-          if (!key_to_bool(meta.name, data_key, msg))
-            return acc;
+        var chars = '?!';
+        return reduce_eachs([], funcs, function (acc, _ky, meta) {
+          var is_question = _.endsWith(meta.name, '?');
+          var is_negate   = _.startsWith(meta.name, '!');
+          var base_key    = _.trim(meta.name, '?!');
+          var msg_copy    = copy_value(msg);
+          var answer      = (!is_negate && msg[base_key] === true) ||
+                  (is_negate && msg[base_key] === false);
           try {
-            acc.push([
-              meta,
-              apply_function(meta.func, [copy_value(msg)])
-            ]);
+            if (is_question)
+              msg_copy.configs.unshift(answer);
+
+            if ( is_question || answer )
+              acc.push([
+                meta,
+                apply_function(meta.func, [msg_copy])
+              ]);
           } catch (e) {
             State('invalid');
             throw e;
@@ -919,17 +913,23 @@ function dum_dom(data) {
       if (is_empty(raw_cmd))
         return;
 
-      var args = _.trim(raw_cmd).split(WHITESPACE);
+      var args = raw_cmd.split(WHITESPACE);
+
+      // === data-dum="is_name my_func"
+      if (l(args) < 1)
+        throw new Error("Invalid command: " + to_string(raw_cmd));
 
       var action_name = args.shift();
-      var action      = about_action(action_name);
-      var func_name   = (action.is_now) ? action.name : args.shift();
+      var action_key  = _.trim(action_name, '!?');
+      var is_now      = _.endsWith(action_name, '!');
+
+      var func_name   = (is_now) ? action_key : args.shift();
       var func        = (window['dum_' + func_name]) ?
-        name_to_function( 'dum' + func_name) :
+        name_to_function( 'dum_' + func_name) :
         name_to_function(func_name);
 
       // === data-dum="do_something! arg1 arg 2"
-      if (action.is_now) {
+      if (is_now) {
         apply_function(
           func, [{
             on_dom: true, dom_id : dom_id($(raw_e)), config : args.slice(0)
@@ -938,12 +938,9 @@ function dum_dom(data) {
         return;
       }
 
-      // === data-dum="is_name my_func"
-      if (l(args) < 2)
-        throw new Error("Invalid command: " + to_string(args));
 
       var id       = dom_id($(raw_e));
-      var is_event = _.detect(events, function (x) { return x === action_name; });
+      var is_event = _.detect(events, is(action_name));
       if (!is_event) {
         return App('push', action_name, function (msg) {
           return apply_function(func, [_.extend({}, msg, {dom_id:id, config: args})]);
