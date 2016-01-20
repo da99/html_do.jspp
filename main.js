@@ -423,7 +423,7 @@ function App() {
 
 
 function new_spec(str_or_func) {
-  if (!is_localhost())
+  if (!(is_localhost() && $('#Spec_Stage').length === 1))
     return false;
 
   // === Is there a specific spec to run?
@@ -446,9 +446,9 @@ function spec_dom(cmd) {
 
   switch (cmd) {
     case 'reset':
-      var stage = $('#The_Stage');
+      var stage = $('#Spec_Stage');
       if (stage.length === 0)
-        $('body').prepend('<div id="The_Stage"></div>');
+        $('body').prepend('<div id="Spec_Stage"></div>');
       else
         stage.empty();
       break;
@@ -458,7 +458,7 @@ function spec_dom(cmd) {
       throw new Error("Unknown value: " + to_string(arguments));
   } // === switch cmd
 
-  return $('#The_Stage');
+  return $('#Spec_Stage');
 }
 
 function function_sig(f, args) {
