@@ -961,11 +961,17 @@ returns(3, function () {
     '<script type="application/dum_template" data-dum="is_text template">'+
       '&lt;p&gt;1&lt;/p&gt;' +
       '&lt;p&gt;2&lt;/p&gt;' +
-      '&lt;p&gt;3&lt;/p&gt;' +
+
+      '&lt;script type="application/dum_template" data-dum="is_val template"&gt;' +
+        '&amp;lt;p&amp;gt;{{c}}&amp;lt;/p&amp;gt;' +
+      '&lt;/script&gt;' +
+
     '</script>'
   );
   App('run', {dom: true});
   App('run', {is_text: true});
+  App('run', {dom: true});
+  // App('run', {is_val: true, data: {a:'1', b: '2', c:'3'}});
   return spec_dom().find('p').length;
 });
 function dum_template(msg) {
@@ -976,12 +982,14 @@ function dum_template(msg) {
   var id       = msg.dom_id;
   var me       = dum_template;
 
-  if (!is_array(me.elements))
-    me.elements = [];
+  if (!is_plain_object(me.elements))
+    me.elements = {};
+  if (!is_array(me.elements[id]))
+    me.elements[id] = [];
 
   // === Remove old nodes:
   if (pos === 'replace') {
-    eachs(me.elements, function (_index, id) {
+    eachs(me.elements[id], function (_index, id) {
       $('#' + id).remove();
     });
   }
@@ -999,7 +1007,7 @@ function dum_template(msg) {
   else
     compiled.insertAfter($('#' + id));
 
-  me.elements = ([]).concat(me.elements).concat( new_ids );
+  me.elements[id] = ([]).concat(me.elements[id]).concat( new_ids );
 
   App('run', {dom: true});
 
