@@ -397,6 +397,22 @@ function returns(expect, f) {
 }
 
 
+spec(about_action, ['is_key'], {name: 'is_key', is_question: false, is_negate: false, is_now: false});
+spec(about_action, ['!is_key'], {name: 'is_key', is_question: false, is_negate: true, is_now: false});
+spec(about_action, ['is_key?'], {name: 'is_key', is_question: true, is_negate: false, is_now: false});
+spec(about_action, ['!is_key?'], {name: 'is_key', is_question: true, is_negate: true, is_now: false});
+spec(about_action, ['is_key!'], {name: 'is_key', is_question: false, is_negate: false, is_now: true});
+function about_action(raw_str) {
+  var str = _.trim(raw_str);
+  var about = {
+    name        : _.trim(str, '!?'),
+    is_question : _.endsWith('?'),
+    is_negate   : _.startsWith(str, '!'),
+    is_now      : _.endsWith(str, '!')
+  };
+  return about;
+} // === func about_action
+
 spec(name_to_function, ["name_to_function"], name_to_function);
 function name_to_function(raw) {
   if (!is_string(raw))
@@ -905,14 +921,18 @@ function dum_dom(data) {
 
       var args = _.trim(raw_cmd).split(WHITESPACE);
 
-      // === data-dum="on_dom_create_widget"
-      if (args[0] === 'on_dom') {
-        var prep_func = window[args[1]];
-        if (!prep_func)
-          throw new Error('func not found: ' + func);
+      var action_name = args.shift();
+      var action      = about_action(action_name);
+      var func_name   = (action.is_now) ? action.name : args.shift();
+      var func        = (window['dum_' + func_name]) ?
+        name_to_function( 'dum' + func_name) :
+        name_to_function(func_name);
+
+      // === data-dum="do_something! arg1 arg 2"
+      if (action.is_now) {
         apply_function(
-          prep_func, [{
-            on_dom: true, dom_id : dom_id($(raw_e)), config : args.slice(2)
+          func, [{
+            on_dom: true, dom_id : dom_id($(raw_e)), config : args.slice(0)
           }]
         );
         return;
@@ -922,31 +942,24 @@ function dum_dom(data) {
       if (l(args) < 2)
         throw new Error("Invalid command: " + to_string(args));
 
-      var bool_name = args.shift();
-      var func_name = args.shift();
-      if (!window[func_name])
-        func_name = 'dum_' + func_name;
-      var func = name_to_function(func_name);
-      var id   = dom_id($(raw_e));
-
-
-      var is_event = _.detect(events, function (x) { return x === bool_name; });
+      var id       = dom_id($(raw_e));
+      var is_event = _.detect(events, function (x) { return x === action_name; });
       if (!is_event) {
-        return App('push', bool_name, function (msg) {
+        return App('push', action_name, function (msg) {
           return apply_function(func, [_.extend({}, msg, {dom_id:id, config: args})]);
         });
       }
 
       // === is event: on_click, etc.
-      $('#' + id).on(bool_name.replace('on_', ''), function () {
+      $('#' + id).on(action_name.replace('on_', ''), function () {
         var msg = {
           is_event: true,
-          event_name: bool_name,
+          event_name: action_name,
           dom_id: id,
           config: args
         };
-        msg['on_' + bool_name] = true;
-        msg[bool_name]         = true;
+        msg['on_' + action_name] = true;
+        msg[action_name]         = true;
         return apply_function(func, [msg]);
       });
 
