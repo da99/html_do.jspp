@@ -26,3 +26,4 @@ Extremes:
 * Foms - before/after/on submit
 * Mouse & keyboard events
 * HTML -> JS (function)
+* Toggles: bool -> function

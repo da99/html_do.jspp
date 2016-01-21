@@ -644,6 +644,55 @@ function keys_or_indexes(v) {
   return a;
 }
 
+// it 'returns true if key is "truthy"'
+spec(key_map_to_bool, [{time: 'morning'}, 'time'], true);
+
+// it 'returns true if: !key , key is !truthy'
+spect(key_map_to_bool, [{time: false}, '!time')], true);
+
+// it 'handles nested keys'
+spec( key_map_to_bool, [{first: {second: { third: true}}}, '!first.second.third'], true);
+
+// it 'handles multiple exclamation marks'
+spec( key_map_to_bool, [{first: false}, '!!!first'], true);
+
+// it 'returns undefined if one non-nested key is specified, but not found'
+spec( key_map_to_bool, [{}, 'first'], undefined);
+
+function key_map_to_bool(data, raw_key) {
+  var FRONT_BANGS = /^\!+/;
+
+  var key        = _.trim(raw_key);
+  var bang_match = key.match(FRONT_BANGS);
+  var dots       = ( bang_match ? key.replace(bang_match[0], '') : key ).split('.');
+  var keys       = _.map( dots, _.trim );
+
+  var current = data;
+  var ans  = false;
+
+  _.detect(keys, function (key) {
+    if (_.has(current, key)) {
+      current = data[key];
+      ans = !!current;
+    } else {
+      ans = undefined;
+    }
+
+    return !ans;
+  });
+
+  if (ans === undefined)
+    return ans;
+
+  if (bang_match) {
+    _.times(bang_match[0].length, function () {
+      ans = !ans;
+    });
+  }
+
+  return ans;
+}; // === func
+
 
 
 // TODO: spec: does not modify arr
