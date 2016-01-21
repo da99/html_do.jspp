@@ -22,7 +22,7 @@ function log(_args) {
   return false;
 } // === func
 
-spec(is_arguments, [(function () {return arguments;})()], true);
+spec(is_arguments, [return_arguments()], true);
 spec(is_arguments, [[]], false);
 function is_arguments(v) {
   return is_something(v) && or(is(0), is_positive)(v.length) && v.hasOwnProperty('callee');
@@ -223,12 +223,23 @@ function dom_attrs(dom) {
   );
 } // === attrs
 
+
+returns('has id', function dom_id_adds_id_attr_to_element() {
+  spec_dom().html('<div>has id</div>');
+  var id = dom_id(spec_dom().find('div:first'));
+  return $('#' + id).html();
+});
+
+returns('non_override_1', function dom_id_does_not_override_original_id() {
+  spec_dom().html('<div id="non_override_1">override id</div>');
+  return dom_id(spec_dom().find('div:first'));
+});
+
 // Returns id.
 // Sets id of element if no id is set.
 //
 // .dom_id(raw_or_jquery)
 // .dom_id('prefix', raw_or_jquer)
-//
 function dom_id() {
   var args   = _.toArray(arguments);
   var o      = _.find(args, _.negate(_.isString));
@@ -397,6 +408,7 @@ function to_function_string(f, args) {
 }
 
 
+// Specification function:
 function throws(f, args, expect) {
   if (!new_spec(f))
     return false;
@@ -432,6 +444,7 @@ function throws(f, args, expect) {
   throw err;
 }
 
+// Specification function:
 function returns(expect, f) {
   if (!new_spec(f))
     return false;
@@ -439,7 +452,7 @@ function returns(expect, f) {
   if (!_.isFunction(f))
     throw new Error('Invalid value for func: ' + to_string(f));
 
-  var sig = f.toString();
+  var sig = function_to_name(f);
   var actual = f();
   var msg = to_match_string(actual, expect);
   if (!_.isEqual(actual,expect))
@@ -495,6 +508,7 @@ function new_spec(str_or_func) {
 }
 
 
+// Specification function:
 function spec_dom(cmd) {
 
   switch (cmd) {
@@ -541,6 +555,7 @@ function has_own_property(name) {
   return set_function_string_name(f, arguments);
 }
 
+// Specification function:
 function spec(f, args, expect) {
   if (!new_spec(f))
     return false;
@@ -661,6 +676,11 @@ function node_array(unknown) {
   return arr;
 }
 
+function outer_html(raw) {
+  return raw.map(function () {
+    return $(this).prop('outerHTML');
+  }).toArray().join('');
+}
 
 function top_descendents(dom, selector) {
   var arr = [];
@@ -799,7 +819,7 @@ function reduce_eachs() {
 // TODO: spec :eachs does not alter inputs
 returns(
   ["01", "12"],
-  function () {
+  function eachs_passes_key_and_val() {
     var v = [];
     eachs( [1,2], function (kx, x) { v.push("" + kx + x); });
     return v;
@@ -808,7 +828,7 @@ returns(
 
 returns(
   ["1a", "1b", "2a", "2b"],
-  function () {
+  function eachs_passes_vals_of_multiple_colls() {
     var v = [];
     eachs( [1,2], ["a", "b"], function (kx, x, ky, y) { v.push("" + x + y); });
     return v;
@@ -817,7 +837,7 @@ returns(
 
 returns(
   ["onea", "twoa"],
-  function () {
+  function eachs_passes_keys_and_vals_of_arrays_and_plain_objects() {
     var v = [];
     eachs({one: 1, two: 2}, ["a"], function (kx, x, ky, y) { v.push("" + kx + y); });
     return v;
@@ -826,7 +846,7 @@ returns(
 
 returns(
   ["1a", "1b", "2a", "2b"],
-  function () {
+  function eachs_passes_vals_of_plain_object_and_array() {
     var v = [];
     eachs({one: 1, two: 2}, ["a", "b"], function (kx, x, ky, y) { v.push("" + x + y); });
     return v;
@@ -836,7 +856,7 @@ returns(
 
 returns(
   [],
-  function () {
+  function eachs_returns_empty_array_if_one_array_is_empty() {
     var v = [];
     eachs({one: 1, two: 2}, [], ["a"], function (kx, x, ky, y, kz, z) { v.push("" + kx + y); });
     return v;
