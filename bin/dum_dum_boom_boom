@@ -25,6 +25,20 @@ case $action in
     bash_setup print_help $0
     ;;
 
+  list)
+    # === list  # List functions
+    cat -n $(dirname $0)/../main.js \
+      | grep --extended-regexp '^\s+[0-9]+\sfunction\s+[^\(\)]+' \
+      | sort -k2 \
+      | grep --extended-regexp '\s+[^\( ]+\(' \
+      | cut -d\( -f1 \
+      | tr '\t' ' '  \
+      | tr --squeeze-repeats ' ' \
+      | tr ' ' '\t'  \
+      | cut -f2,4 \
+      | grep --color --extended-regexp '\s+.+' \
+    ;;
+
   watch)
     cmd () {
       if [[ -z "$@" ]]; then
