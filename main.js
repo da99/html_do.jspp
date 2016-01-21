@@ -203,13 +203,8 @@ function standard_name(str) {
   return _.trim(str).replace(WHITESPACE, ' ').toLowerCase();
 }
 
-returns(
-  {"class": 'is_happy'},
-  function () {
-    spec_dom().html('<div class="is_happy"></div>');
-    return dom_attrs(spec_dom().find('div')[0]);
-  }
-);
+spec(dom_attrs, [$('<div id="000" img=".png"></div>')[0]], {id: "000", img: ".png"});
+spec(dom_attrs, [$('<div class="is_happy"></div>')[0]], {"class": 'is_happy'});
 function dom_attrs(dom) {
   arguments_are(arguments, has_property_of('attributes', 'object'));
 
