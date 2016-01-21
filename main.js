@@ -198,6 +198,10 @@ function copy_value(v) {
   throw new Error('Value can\'t be copied: ' + to_string(v));
 }
 
+
+spec(standard_name, ['NAME NAME'], "name name"); // it 'lowercases names'
+spec(standard_name,['  name  '],'name'); // it 'trims string'
+spec(standard_name, ['name    name'] , 'name name'); // it 'compacts multiple spaces'
 spec(standard_name, ['n   aME'], 'n ame');
 function standard_name(str) {
   return _.trim(str).replace(WHITESPACE, ' ').toLowerCase();
@@ -705,6 +709,24 @@ function top_descendents(dom, selector) {
   return arr;
 }
 
+
+
+// it 'returns value of the attribute'
+returns('one', function remove_attr_returns_value_of_the_attribute() {
+  spec_dom().html('<div show_if="one"></div>');
+  return remove_attr(spec_dom().find('div:first'), 'show_if');
+});
+
+// it 'removes attribute from node'
+returns({id: 'target_remove_attr'}, function remove_attr_removes_attribute_from_node() {
+  spec_dom().html('<div id="target_remove_attr" show_if="one"></div>');
+  remove_attr(spec_dom().find('div:first'), 'show_if');
+  return _.reduce(
+    spec_dom().find('div:first')[0].attributes,
+    function (a, v) { a[v.name] = v.value; return a; },
+    {}
+  );
+});
 function remove_attr(node, name) {
   var val = $(node).attr(name);
   $(node).removeAttr(name);
