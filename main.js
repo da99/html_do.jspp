@@ -995,10 +995,9 @@ function dum_dom(data) {
         throw new Error("Invalid command: " + to_string(raw_cmd));
 
       var action_name = args.shift();
-      var action_key  = _.trim(action_name, '!?');
       var is_now      = _.endsWith(action_name, '!');
 
-      var func_name   = (is_now) ? action_key : args.shift();
+      var func_name   = (is_now) ? _.trimRight(action_name, '!') : args.shift();
       var func        = (window['dum_' + func_name]) ?
         name_to_function( 'dum_' + func_name) :
         name_to_function(func_name);
