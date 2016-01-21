@@ -648,7 +648,7 @@ function keys_or_indexes(v) {
 spec(key_map_to_bool, [{time: 'morning'}, 'time'], true);
 
 // it 'returns true if: !key , key is !truthy'
-spect(key_map_to_bool, [{time: false}, '!time')], true);
+spec(key_map_to_bool, [{time: false}, '!time'], true);
 
 // it 'handles nested keys'
 spec( key_map_to_bool, [{first: {second: { third: true}}}, '!first.second.third'], true);
@@ -691,7 +691,7 @@ function key_map_to_bool(data, raw_key) {
   }
 
   return ans;
-}; // === func
+} // === func
 
 
 
