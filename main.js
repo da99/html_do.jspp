@@ -644,6 +644,42 @@ function keys_or_indexes(v) {
   return a;
 }
 
+function node_array(unknown) {
+  var arr = [];
+  _.each($(unknown), function (dom) {
+    if (dom.nodeType !== 1)
+      return arr.push(dom);
+
+    arr.push({
+      tag    : dom.nodeName,
+      attrs  : dom_attrs(dom),
+      custom : {},
+      childs : node_array($(dom).contents())
+    });
+  });
+
+  return arr;
+}
+
+
+function top_descendents(dom, selector) {
+  var arr = [];
+  _.each($(dom), function (node) {
+    var o = $(node);
+    if (o.is(selector))
+      return arr.push(o);
+    arr = arr.concat(top_descendents(o.children(), selector));
+  }); // === func
+
+  return arr;
+}
+
+function remove_attr(node, name) {
+  var val = $(node).attr(name);
+  $(node).removeAttr(name);
+  return val;
+}
+
 // it 'returns true if key is "truthy"'
 spec(key_map_to_bool, [{time: 'morning'}, 'time'], true);
 
