@@ -5,6 +5,30 @@
 var WHITESPACE = /\s+/g;
 function identity() { return _.identity.call(_, arguments); }
 
+returns(3, function dot_returns_value() {
+  return dot('num')({num: 3});
+});
+throws(dot('num'), [{n:4}], 'Property not found: "num" in {"n":4}');
+function dot(name) {
+  return function _dot_(o) {
+    if (is_undefined(o[name]))
+      throw new Error('Property not found: ' + to_string(name) + ' in ' + to_string(o));
+    return o[name];
+  };
+} // === func dot
+
+
+returns(3, function get_property_returns_own_property() {
+  return get_property('num')({num: 3});
+});
+throws(get_property('num'), [{n:4}], 'Key not found: "num" in {"n":4}');
+function get_property(name) {
+  return function _get_property_(o) {
+    if (!o.hasOwnProperty(name))
+      throw new Error('Key not found: ' + to_string(name) + ' in ' + to_string(o));
+    return o[name];
+  };
+} // === func get_property
 
 spec(is_localhost, [], window.location.href.indexOf('/dum_dum_boom_boom/example.html') > 0);
 function is_localhost() {
@@ -28,11 +52,15 @@ function is_arguments(v) {
   return is_something(v) && or(is(0), is_positive)(v.length) && v.hasOwnProperty('callee');
 }
 
+function html_escape(str) {
+  return _.escape(str);
+}
+
 spec(to_string, [null], 'null');
 spec(to_string, [undefined], 'undefined');
 spec(to_string, [[1]], '[1]');
 spec(to_string, ['yo yo'], '"yo yo"');
-spec(to_string, [{a:'b', c:'d'}], '{a="b",c="d"}');
+spec(to_string, [{a:'b', c:'d'}], '{"a":"b","c":"d"}');
 function to_string(val) {
   if (val === null)
     return "null";
@@ -52,7 +80,7 @@ function to_string(val) {
 
   if (is_plain_object(val)) {
     return '{' + _.reduce(_.keys(val), function (acc, k) {
-      acc.push(k + '=' + to_string(val[k]));
+      acc.push(to_string(k) + ':' + to_string(val[k]));
       return acc;
     }, []).join(",") + '}';
   }
@@ -199,10 +227,9 @@ function copy_value(v) {
 }
 
 
-spec(standard_name, ['NAME NAME'], "name name"); // it 'lowercases names'
-spec(standard_name,['  name  '],'name'); // it 'trims string'
-spec(standard_name, ['name    name'] , 'name name'); // it 'compacts multiple spaces'
-spec(standard_name, ['n   aME'], 'n ame');
+spec(standard_name, ['NAME NAME'], "name name");     // it 'lowercases names'
+spec(standard_name, ['  name  '],  'name');          // it 'trims string'
+spec(standard_name, ['n   aME'],   'n ame');         // it 'squeezes whitespace'
 function standard_name(str) {
   return _.trim(str).replace(WHITESPACE, ' ').toLowerCase();
 }
@@ -337,12 +364,16 @@ function is_num(v) {
   return typeof v === 'number' && isFinite(v);
 }
 
+spec(is_null, [null], true);
+spec(is_null, [undefined], false);
 function is_null(v) {
-  return v === undefined;
+  return v === null;
 }
 
+spec(is_undefined, [undefined], true);
+spec(is_undefined, [null], false);
 function is_undefined(v) {
-  return v === null;
+  return v === undefined;
 }
 
 function is_plain_object(v) {
@@ -696,6 +727,31 @@ function outer_html(raw) {
     return $(this).prop('outerHTML');
   }).toArray().join('');
 }
+
+
+returns('target_top_desc', function () { // it 'returns self if selector matches'
+  spec_dom().html('<div id="target_top_desc" template="num"></div>');
+  return top_descendents(spec_dom().children(), '*[template]')[0].attr('id');
+});
+
+returns(['SPAN', 'SPAN'], function () { // it 'returns first children matching selector'
+  spec_dom().html('<div><span class="top"></span><span class="top"></span></div>');
+  return _.map(
+    top_descendents(spec_dom().children(), '.top'),
+    function (n) { return n[0].tagName; }
+  );
+});
+
+
+returns([['DIV', 'target']], function () { // it 'does not return nested matching descendants if ancestor matches selector'
+  spec_dom().html(
+    '<div><div id="target" class="top"><span class="top"></span><span class="top"></span></div><div>'
+  );
+  return _.map(
+    top_descendents(spec_dom().children(), '.top'),
+    function (n) { return [n[0].tagName, n.attr('id')]; }
+  );
+});
 
 function top_descendents(dom, selector) {
   var arr = [];
@@ -1180,6 +1236,19 @@ function dum_dom(data) {
 
 } // === dum_dom
 
+returns(['SCRIPT','P','DIV'], function dum_template_renders_elements_below_by_default() {
+  spec_dom().html(
+    '<script type="application/dum_template" data-dum="is_text template">' +
+      html_escape('<p>one</p>') +
+      html_escape('<div>two</div>') +
+        '</script>'
+  );
+
+  App('run', {dom: true});
+  App('run', {is_text: true});
+  return _.map(spec_dom().children(), dot('tagName'));
+});
+
 returns(3, function () {
   spec_dom().html(
     '<script type="application/dum_template" data-dum="is_text template">'+
@@ -1226,9 +1295,9 @@ function dum_template(msg) {
   var new_ids = _.map(compiled, function (x) { return dom_id($(x)); });
 
   if (pos === 'replace' || pos === 'bottom')
-    compiled.insertBefore($('#' + id));
-  else
     compiled.insertAfter($('#' + id));
+  else
+    compiled.insertBefore($('#' + id));
 
   me.elements[id] = ([]).concat(me.elements[id]).concat( new_ids );
 
@@ -1243,7 +1312,9 @@ function dum_template(msg) {
 //
 // ============================================================================
 if (is_localhost())
-  log('============ Specs Finished ==========');
+  log('      ======================================');
+  log('      ============ Specs Finished ==========');
+  log('      ======================================');
 
 // log("THE_FILE_DATE");
 
