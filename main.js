@@ -1038,10 +1038,10 @@ function to_function() {
   }; // return
 }
 
-returns('"4"', function to_return_returns_a_value() {
-  return to_return(to_function(4), to_string, to_string);
+returns('"4"', function to_value_returns_a_value() {
+  return to_value(to_function(4), to_string, to_string);
 });
-function to_return() {
+function to_value() {
   var val, i = 0, f;
   var l = arguments.length;
   while (i < l) {
