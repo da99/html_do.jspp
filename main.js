@@ -55,8 +55,17 @@ function is_arguments(v) {
   return is_something(v) && or(is(0), is_positive)(v.length) && v.hasOwnProperty('callee');
 }
 
+spec(html_escape, ['<p>{{a}}</p>'], '&lt;p&gt;&#123;&#123;a&#125;&#125;&lt;/p&gt;');
 function html_escape(str) {
-  return _.escape(str);
+  return _.escape(str).replace(/\{/g, '&#123;').replace(/\}/g, '&#125;');
+}
+
+spec(html_unescape, ["&lt;p&gt;&#123;&#123;1&#125;&#125;&lt;/p&gt;"], '<p>{{1}}</p>');
+function html_unescape(raw) {
+  // From: http://stackoverflow.com/questions/1912501/unescape-html-entities-in-javascript
+  return (new DOMParser().parseFromString(raw, "text/html"))
+  .documentElement
+  .textContent;
 }
 
 spec(to_string, [null], 'null');
@@ -981,11 +990,12 @@ returns(
 );
 
 
-returns(
-  [],
+returns( [],
   function eachs_returns_empty_array_if_one_array_is_empty() {
     var v = [];
-    eachs({one: 1, two: 2}, [], ["a"], function (kx, x, ky, y, kz, z) { v.push("" + kx + y); });
+    eachs({one: 1, two: 2}, [], ["a"], function (kx, x, ky, y, kz, z) {
+      v.push("" + kx + y);
+    });
     return v;
   }
 );
@@ -1327,6 +1337,21 @@ function dum_dom(data) {
 
 } // === dum_dom
 
+
+returns(['SCRIPT', 'SPAN', 'P'], function dum_template_replaces_elements_by_default() {
+  spec_dom().html(
+    '<script type="application/dum_template" data-dum="is_text template">' +
+      html_escape('<span>{{a1}}</span>') +
+      html_escape('<p>{{a2}}</p>') +
+        '</script>'
+  );
+
+  App('run', {dom: true});
+  App('run', {is_text: true, data: {a1: '1', a2: '2'}});
+  App('run', {is_text: true, data: {a1: '3', a2: '4'}});
+  return _.map(spec_dom().children(), dot('tagName'));
+});
+
 returns(['SCRIPT','P','DIV'], function dum_template_renders_elements_below_by_default() {
   spec_dom().html(
     '<script type="application/dum_template" data-dum="is_text template">' +
@@ -1340,22 +1365,21 @@ returns(['SCRIPT','P','DIV'], function dum_template_renders_elements_below_by_de
   return _.map(spec_dom().children(), dot('tagName'));
 });
 
-returns(3, function () {
+returns('123', function dum_template_renders_vars() {
   spec_dom().html(
     '<script type="application/dum_template" data-dum="is_text template">'+
-      '&lt;p&gt;1&lt;/p&gt;' +
-      '&lt;p&gt;2&lt;/p&gt;' +
+      html_escape('<p>{{a}}</p>') +
+      html_escape('<p>{{b}}</p>') +
 
-      '&lt;script type="application/dum_template" data-dum="is_val template"&gt;' +
-        '&amp;lt;p&amp;gt;{{c}}&amp;lt;/p&amp;gt;' +
-      '&lt;/script&gt;' +
-
+      html_escape('<script type="application/dum_template" data-dum="is_val template">') +
+        html_escape(html_escape('<p>{{c}}</p>')) +
+      html_escape('</script>') +
     '</script>'
   );
   App('run', {dom: true});
-  App('run', {is_text: true});
-  App('run', {is_val: true, data: {a:'1', b: '2', c:'3'}});
-  return spec_dom().find('p').length;
+  App('run', {is_text: true, data: {a: 1, b: 2}});
+  App('run', {is_val: true, data: {c:'3'}});
+  return _.map(spec_dom().find('p'), function (x) {return $(x).html();}).join('');
 });
 function dum_template(msg) {
   var pos = (msg.args || [])[0] || 'replace';
@@ -1377,11 +1401,7 @@ function dum_template(msg) {
     });
   }
 
-  // From: http://stackoverflow.com/questions/1912501/unescape-html-entities-in-javascript
-  var decoded_html = (new DOMParser().parseFromString(raw_html, "text/html"))
-  .documentElement
-  .textContent;
-
+  var decoded_html = html_unescape(raw_html);
   var compiled = $(Mustache.render(decoded_html, msg.data || {}));
   var new_ids = _.map(compiled, function (x) { return dom_id($(x)); });
 
