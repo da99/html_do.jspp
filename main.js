@@ -3,7 +3,10 @@
 /* global Mustache, promise  */
 
 var WHITESPACE = /\s+/g;
-function identity() { return _.identity.call(_, arguments); }
+
+function identity(x) {
+  return x;
+}
 
 returns(3, function dot_returns_value() {
   return dot('num')({num: 3});
@@ -150,8 +153,8 @@ function arguments_are(args_o, _funcs) {
 function apply_function(f, args) {
   if (arguments.length !== 2)
     throw new Error('Wrong # of argumments: expected: ' + 2 + ' actual: ' + arguments.length);
-  if (!is_array(args))
-    throw new Error('Not an array: ' + to_string(args));
+  if (!is_array(args) && !is_arguments(args))
+    throw new Error('Not an array/arguments: ' + to_string(args));
   if (f.length !== args.length)
     throw new Error('function.length (' + function_to_name(f) + ' ' + f.length + ') !== ' + args.length);
   return f.apply(null, args);
@@ -994,7 +997,51 @@ function eachs() {
   }
 }
 
-function pipe_line() {
+returns('"3"', function to_function_returns_a_function() {
+  return to_function(identity, to_string, to_string)(3);
+});
+function to_function() {
+  if (arguments.length === 1 && !is_function(arguments[0])) {
+    var x = arguments[0];
+    return function () { return x; };
+  }
+
+  if (arguments.length === 1 && is_function(arguments[0]))
+    throw new Error('Not enough arguments of type "function".');
+
+  var i = 0, f;
+  var l = arguments.length;
+  while (i < l) {
+    f = arguments[i];
+    if (!_.isFunction(f))
+      throw new Error('Not a function: ' + to_string(f));
+    i = i + 1;
+  }
+
+  var funcs = arguments;
+  return function () {
+    var i = 0, f, val;
+    while (i < l) {
+      f = funcs[i];
+      if (i === 0) {
+        if (f.length !== arguments.length)
+          throw new Error('Function.length ' + f.length + ' ' + to_string(f) + ' !=== arguments.length ' +  arguments.length + ' ' + to_string(arguments));
+        val = apply_function(f, arguments);
+      } else {
+        if (f.length !== 1)
+          throw new Error('Function.length ' + f.length + ' !=== 1');
+        val = apply_function(f, [val]);
+      }
+      i = i + 1;
+    }
+    return val;
+  }; // return
+}
+
+returns('"4"', function to_return_returns_a_value() {
+  return to_return(to_function(4), to_string, to_string);
+});
+function to_return() {
   var val, i = 0, f;
   var l = arguments.length;
   while (i < l) {
