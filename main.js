@@ -997,17 +997,25 @@ function eachs() {
   }
 }
 
+returns(true, function to_function_returns_sole_function() {
+  var f = function () {};
+  return to_function(f) === f;
+});
+returns(2, function to_function_returns_an_identity_function() {
+  return to_function(2)();
+});
 returns('"3"', function to_function_returns_a_function() {
   return to_function(identity, to_string, to_string)(3);
 });
 function to_function() {
-  if (arguments.length === 1 && !is_function(arguments[0])) {
-    var x = arguments[0];
-    return function () { return x; };
+  if (arguments.length === 1) {
+    if (is_function(arguments[0])) {
+      return arguments[0];
+    } else{
+      var x = arguments[0];
+      return function () { return x; };
+    }
   }
-
-  if (arguments.length === 1 && is_function(arguments[0]))
-    throw new Error('Not enough arguments of type "function".');
 
   var i = 0, f;
   var l = arguments.length;
@@ -1039,17 +1047,20 @@ function to_function() {
 }
 
 returns('"4"', function to_value_returns_a_value() {
-  return to_value(to_function(4), to_string, to_string);
+  return to_value(4, to_string, to_string);
 });
-function to_value() {
-  var val, i = 0, f;
-  var l = arguments.length;
+returns(5, function to_value_returns_first_value_if_no_funcs() {
+  return to_value(5);
+});
+function to_value(val, _funcs) {
+  if (is_empty(arguments))
+    throw new Error('No arguments.');
+  if (is_undefined(val))
+    throw new Error('"undefined" not allowed.');
+
+  var i = 1, l = arguments.length;
   while (i < l) {
-    f = arguments[i];
-    if (i === 0)
-      val = f();
-    else
-      val = f(val);
+    val = arguments[i](val);
     i = i + 1;
   }
   return val;
