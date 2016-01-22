@@ -1420,6 +1420,17 @@ returns(['P', 'P', 'SCRIPT'], function dum_template_renders_above() {
   return map_x(spec_dom().children(), dot('tagName'));
 });
 
+returns(['SCRIPT', 'SPAN', 'P'], function dum_template_renders_below() {
+  spec_dom().html(
+    '<script type="application/dum_template" data-dum="is_text template bottom">'+
+      html_escape('<span>{{a}}</span>') + html_escape('<p>{{b}}</p>') +
+    '</script>'
+  );
+  App('run', {dom: true});
+  App('run', {is_text: true, data: {a: 6, b: 7}});
+  return map_x(spec_dom().children(), dot('tagName'));
+});
+
 function dum_template(msg) {
   var pos = (msg.args || [])[0] || 'replace';
 
