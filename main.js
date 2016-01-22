@@ -11,12 +11,18 @@ function identity(x) {
 returns(3, function dot_returns_value() {
   return dot('num')({num: 3});
 });
+spec(dot('html()'), [{html: to_function('hyper')}], 'hyper');
 throws(dot('num'), [{n:4}], 'Property not found: "num" in {"n":4}');
-function dot(name) {
+function dot(raw_name) {
+  var name = _.trimRight(raw_name, '()');
   return function _dot_(o) {
     if (is_undefined(o[name]))
       throw new Error('Property not found: ' + to_string(name) + ' in ' + to_string(o));
-    return o[name];
+    if (name !== raw_name) {
+      should_be(o[name], is_function);
+      return o[name]();
+    } else
+      return o[name];
   };
 } // === func dot
 
@@ -61,6 +67,13 @@ function html_escape(str) {
 }
 
 spec(html_unescape, ["&lt;p&gt;&#123;&#123;1&#125;&#125;&lt;/p&gt;"], '<p>{{1}}</p>');
+returns('<p>{{1}}</p>', function html_unescape_multiple_times() {
+  return to_value(
+    '<p>{{1}}</p>',
+    html_escape, html_escape, html_escape,
+    html_unescape, html_unescape, html_unescape
+  );
+});
 function html_unescape(raw) {
   // From: http://stackoverflow.com/questions/1912501/unescape-html-entities-in-javascript
   return (new DOMParser().parseFromString(raw, "text/html"))
@@ -979,7 +992,6 @@ returns(
     return v;
   }
 );
-
 returns(
   ["1a", "1b", "2a", "2b"],
   function eachs_passes_vals_of_plain_object_and_array() {
@@ -988,8 +1000,6 @@ returns(
     return v;
   }
 );
-
-
 returns( [],
   function eachs_returns_empty_array_if_one_array_is_empty() {
     var v = [];
@@ -1041,6 +1051,22 @@ function eachs() {
     return;
   }
 }
+
+function map_x(coll, f) {
+  should_be(f, is_function);
+  should_be(coll, is_enumerable);
+  return _.map(coll, function (x) { return f(x); });
+}
+
+function each_x(coll, f) {
+  should_be(f, is_function);
+  should_be(coll, is_enumerable);
+  return eachs(coll, function (_i, x) {
+    return f(x);
+  });
+}
+
+function to_$(x) { return $(x); }
 
 returns(true, function to_function_returns_sole_function() {
   var f = function () {};
@@ -1379,8 +1405,21 @@ returns('123', function dum_template_renders_vars() {
   App('run', {dom: true});
   App('run', {is_text: true, data: {a: 1, b: 2}});
   App('run', {is_val: true, data: {c:'3'}});
-  return _.map(spec_dom().find('p'), function (x) {return $(x).html();}).join('');
+
+  return map_x(spec_dom().find('p'), to_function(to_$, dot('html()'))).join('');
 });
+
+returns(['P', 'P', 'SCRIPT'], function dum_template_renders_above() {
+  spec_dom().html(
+    '<script type="application/dum_template" data-dum="is_text template above">'+
+      html_escape('<p>{{a}}</p>') + html_escape('<p>{{b}}</p>') +
+    '</script>'
+  );
+  App('run', {dom: true});
+  App('run', {is_text: true, data: {a: 4, b: 5}});
+  return map_x(spec_dom().children(), dot('tagName'));
+});
+
 function dum_template(msg) {
   var pos = (msg.args || [])[0] || 'replace';
 
