@@ -109,6 +109,32 @@ function is(target) { return function (v) { return v === target; }; }
 
 function is_positive(v) { return typeof v === 'number' && isFinite(v) && v > 0; }
 
+returns(true, function () { return not(is_something)(null); });
+returns(true, function () { return not(length_gt(2), is_null)([1]); });
+returns(false, function () { return not(is_something)(1); });
+returns(false, function () { return not(is_something, is_null)(1); });
+function not() {
+  should_be(arguments, length_gt(0));
+  var l = arguments.length, funcs = arguments;
+  for (var i = 0; i < l; i++) {
+    if (!is_function(funcs[i]))
+      throw new Error('Not a function: ' + to_string(funcs[i]));
+  }
+
+  return function custom_not(val) {
+    if (arguments.length !== 1)
+      throw new Error('arguments.length !== 1');
+    var result;
+    for (var i = 0; i < l; i++) {
+      result = funcs[i](val);
+      if (!is_bool(result))
+        throw new Error('Function did not return boolean: ' + to_string(funcs[i]) + ' -> ' + to_string(result));
+      if (result)
+        return false;
+    }
+    return true;
+  };
+}
 
 function is_$(v) {
   return v && typeof v.html === 'function' && typeof v.attr === 'function';
@@ -117,14 +143,23 @@ function is_$(v) {
 function to_arg(val) { return function (f) { return f(val); }; }
 
 spec(should_be, [1, is_num], 1);
-throws(
-  should_be, ['1', is_num],
-  'Value: "1" !== is_num'
-);
-function should_be(val, func) {
-  if (func(val))
-    return val;
-  throw new Error('Value: ' + to_string(val) + ' !== ' + function_to_name(func));
+spec(should_be, [1, is_num, is_something], 1);
+throws( should_be, ['1', is_num], 'Value: "1" !== is_num');
+throws( should_be, [2, is_num, is_null], 'Value: 2 !== is_null');
+function should_be(val, _funcs) {
+  if (arguments.length < 2)
+    throw new Error('Not enought arguments: ' + to_string(arguments));
+  var funcs = _.toArray(arguments).slice(1);
+  var l = funcs.length, result;
+  for (var i = 0; i < l; i++) {
+    result = funcs[i](val);
+    if (!is_bool(result))
+      throw new Error('Return value  not a boolean: ' + to_string(result) + ' <- ' + to_string(funcs[i]) + '(' + to_string(val) + ')');
+    if (!result)
+      throw new Error('Value: ' + to_string(val) + ' !== ' + function_to_name(funcs[i]));
+  }
+
+  return val;
 }
 
 
@@ -473,8 +508,8 @@ function throws(f, args, expect) {
     return true;
   }
 
-  log('!!! Unexpected error for: ' + sig + ' -> ' + msg);
-  throw err;
+  log(err);
+  throw new Error('Error message does not match: ' + to_string(actual) + ' !== ' + to_string(expect) );
 }
 
 // Specification function:
@@ -1053,10 +1088,8 @@ returns(5, function to_value_returns_first_value_if_no_funcs() {
   return to_value(5);
 });
 function to_value(val, _funcs) {
-  if (is_empty(arguments))
-    throw new Error('No arguments.');
-  if (is_undefined(val))
-    throw new Error('"undefined" not allowed.');
+  should_be(val, is_something);
+  should_be(arguments, not(is_empty));
 
   var i = 1, l = arguments.length;
   while (i < l) {
