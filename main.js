@@ -1431,6 +1431,18 @@ returns(['SCRIPT', 'SPAN', 'P'], function dum_template_renders_below() {
   return map_x(spec_dom().children(), dot('tagName'));
 });
 
+returns('none', function dum_template_renders_dum_functionality() {
+  spec_dom().html(
+    '<script type="application/dum_template" data-dum="render_template template">'+
+      html_escape('<div id="target"><span id="target_sub" data-dum="is_num hide">{{num.word}}</span></div>') +
+      '</script>'
+  );
+  App('run', {dom: true});
+  App('run', {render_template: true});
+  App('run', {is_num: true, data: {num: {word: 'one'}}});
+  return $('#target_sub').css('display');
+});
+
 function dum_template(msg) {
   var pos = (msg.args || [])[0] || 'replace';
 
