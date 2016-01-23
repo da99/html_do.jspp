@@ -4,7 +4,7 @@
 
 
 const app          = require('express')();
-const serve_static = require('serve-static')('.');
+const serve_static = require('serve-static')('./www');
 const port         = parseInt(process.env.PORT);
 const logger       = require('morgan')('dev');
 
