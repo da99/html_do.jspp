@@ -39,7 +39,7 @@ function own_property(name) {
   };
 } // === func own_property
 
-spec(is_localhost, [], window.location.href.indexOf('/dum_dum_boom_boom/example.html') > 0);
+spec(is_localhost, [], window.location.href.indexOf('/specs.html') > 0);
 function is_localhost() {
   var addr = window.location.href;
   return window.console && (addr.indexOf("localhost") > -1 ||

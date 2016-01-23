@@ -9,6 +9,11 @@ else
   shift
 fi
 
+if [[ -z "$PORT" ]]; then
+    PORT=4567
+fi
+export PORT="$PORT"
+
 set -u -e -o pipefail
 
 Color_Off='\e[0m'
@@ -19,8 +24,34 @@ Green='\e[0;32m'
 Orange='\e[0;33m'
 BOrange='\e[1;33m'
 
-files="$(find . -maxdepth 1 -type f -name '*.js')"
+files="$(find . -maxdepth 1 -type f -name '*.js' )"
 main_js="$(echo -e "$files" | head -n 1)"
+
+
+start_server () {
+    shutdown_server
+    (node server.js) &
+    server_pid="$!"
+
+    mkdir -p tmp
+    echo "$server_pid" > tmp/pid.txt
+    echo "=== Started server: $server_pid - $$"
+}
+
+shutdown_server () {
+    if [[ -f "tmp/pid.txt"  ]]; then
+        pid="$(cat tmp/pid.txt)"
+        if [[ -n "$pid" ]]; then
+            if kill -0 "$pid" 2>/dev/null; then
+                echo "=== Shutting server down: pid: $pid - \$\$: $$ ..."
+                kill -SIGINT "$pid"
+            fi
+        fi
+        rm tmp/pid.txt || :
+    fi
+}
+
+
 case $action in
   help|--help)
     bash_setup print_help $0
@@ -55,16 +86,24 @@ case $action in
 
       stamp="$(date '+%r')"
 
-      { jshint $path && echo -e "=== ${Green}Passed${Reset}: $path -> $stamp"; } || \
+      is_fine=""
+      { jshint $path && is_fine="yes" && echo -e "=== ${Green}Passed${Reset}: $path -> $stamp"; } || \
         echo -e "${Red}Failed${Reset}"
 
-      content="$(cat "$path")"
-      output="tmp/$(basename $path)"
-      echo "${content/THE_FILE_DATE/$stamp}" > "$output"
-    }
-    cmd
+      # content="$(cat "$path")"
+      # output="tmp/$(basename $path)"
+      # echo "${content/THE_FILE_DATE/$stamp}" > "$output"
 
-    echo -e "\n=== Watching: $files"
+      if [[ "$path" =~ "server.js" && -n "$is_fine" ]]; then
+          shutdown_server
+          start_server
+      fi
+    }
+    while read -r FILE; do
+        cmd $FILE
+    done < <(echo -e "$files")
+
+    echo -e "\n=== Watching: $(echo -e "$files" | tr '\n' ' ')"
     while read -r CHANGE; do
       dir=$(echo "$CHANGE" | cut -d' ' -f 1)
       op=$(echo "$CHANGE" | cut -d' ' -f 2)
@@ -78,9 +117,14 @@ case $action in
         break
       fi
 
+
       if [[ "$file" =~ ".js" ]]; then
         cmd $path
       fi
+
+
+
+
     done < <(inotifywait --quiet --monitor --event close_write  $(echo -e "$files" | tr '\n' ' ') "$0") || exit 1
     $0 watch $THE_ARGS
     ;;
