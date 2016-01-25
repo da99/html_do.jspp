@@ -12,7 +12,7 @@ spec_returns(3, function dot_returns_value() {
   return dot('num')({num: 3});
 });
 spec(dot('html()'), [{html: to_function('hyper')}], 'hyper');
-throws(dot('num'), [{n:4}], 'Property not found: "num" in {"n":4}');
+spec_throws(dot('num'), [{n:4}], 'Property not found: "num" in {"n":4}');
 function dot(raw_name) {
   var name = _.trimRight(raw_name, '()');
   return function _dot_(o) {
@@ -30,7 +30,7 @@ function dot(raw_name) {
 spec_returns(3, function own_property_returns_own_property() {
   return own_property('num')({num: 3});
 });
-throws(own_property('num'), [{n:4}], 'Key not found: "num" in {"n":4}');
+spec_throws(own_property('num'), [{n:4}], 'Key not found: "num" in {"n":4}');
 function own_property(name) {
   return function _own_property_(o) {
     if (!o.hasOwnProperty(name))
@@ -166,8 +166,8 @@ function to_arg(val) { return function (f) { return f(val); }; }
 
 spec(should_be, [1, is_num], 1);
 spec(should_be, [1, is_num, is_something], 1);
-throws( should_be, ['1', is_num], 'Value: "1" !== is_num');
-throws( should_be, [2, is_num, is_null], 'Value: 2 !== is_null');
+spec_throws( should_be, ['1', is_num], 'Value: "1" !== is_num');
+spec_throws( should_be, [2, is_num, is_null], 'Value: 2 !== is_null');
 function should_be(val, _funcs) {
   if (arguments.length < 2)
     throw new Error('Not enought arguments: ' + to_string(arguments));
@@ -185,7 +185,7 @@ function should_be(val, _funcs) {
 }
 
 
-throws(
+spec_throws(
   arguments_are, [[1], is_num, is_num],
   'Wrong # of arguments: expected: 2 actual: 1'
 );
@@ -450,7 +450,7 @@ spec(is_empty, [[1]],      false);
 spec(is_empty, ["a"],      false);
 spec(is_empty, [return_arguments()],      true);
 spec(is_empty, [return_arguments(1,2,3)], false);
-throws(is_empty, [null],   'invalid value for is_empty: null');
+spec_throws(is_empty, [null],   'invalid value for is_empty: null');
 function is_empty(v) {
   if (arguments.length !== 1)
     throw new Error("arguments.length !== 1: " + to_string(v));
@@ -499,7 +499,7 @@ function to_function_string(f, args) {
 
 
 // Specification function:
-function throws(f, args, expect) {
+function spec_throws(f, args, expect) {
   if (!new_spec(f))
     return false;
 
@@ -678,7 +678,7 @@ function is_enumerable(v) {
 }
 
 spec(l, [[1]], 1);
-throws(l, [{}], '.length is {}.undefined');
+spec_throws(l, [{}], '.length is {}.undefined');
 function l(v) {
   if (!is_enumerable(v))
     throw new Error('invalid value for l(): ' + to_string(v));
@@ -696,8 +696,8 @@ function is_length(v, num) {
 
 spec(is_anything, [false], true);
 spec(is_anything, [true], true);
-throws(is_anything, [null], 'null found');
-throws(is_anything, [undefined], 'undefined found');
+spec_throws(is_anything, [null], 'null found');
+spec_throws(is_anything, [undefined], 'undefined found');
 function is_anything(v) {
   if (v === null)
     throw new Error('null found');
