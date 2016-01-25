@@ -8,7 +8,7 @@ function identity(x) {
   return x;
 }
 
-returns(3, function dot_returns_value() {
+spec_returns(3, function dot_returns_value() {
   return dot('num')({num: 3});
 });
 spec(dot('html()'), [{html: to_function('hyper')}], 'hyper');
@@ -27,7 +27,7 @@ function dot(raw_name) {
 } // === func dot
 
 
-returns(3, function own_property_returns_own_property() {
+spec_returns(3, function own_property_returns_own_property() {
   return own_property('num')({num: 3});
 });
 throws(own_property('num'), [{n:4}], 'Key not found: "num" in {"n":4}');
@@ -67,7 +67,7 @@ function html_escape(str) {
 }
 
 spec(html_unescape, ["&lt;p&gt;&#123;&#123;1&#125;&#125;&lt;/p&gt;"], '<p>{{1}}</p>');
-returns('<p>{{1}}</p>', function html_unescape_multiple_times() {
+spec_returns('<p>{{1}}</p>', function html_unescape_multiple_times() {
   return to_value(
     '<p>{{1}}</p>',
     html_escape, html_escape, html_escape,
@@ -125,16 +125,16 @@ function is_array_of_functions(a) {
   return _.isArray(a) && l(a) > 0 && _.all(a, _.isFunction);
 } // === func
 
-returns(true,  function () { return is(5)(5); });
-returns(false, function () { return is("a")("b"); });
+spec_returns(true,  function () { return is(5)(5); });
+spec_returns(false, function () { return is("a")("b"); });
 function is(target) { return function (v) { return v === target; }; }
 
 function is_positive(v) { return typeof v === 'number' && isFinite(v) && v > 0; }
 
-returns(true, function () { return not(is_something)(null); });
-returns(true, function () { return not(length_gt(2), is_null)([1]); });
-returns(false, function () { return not(is_something)(1); });
-returns(false, function () { return not(is_something, is_null)(1); });
+spec_returns(true, function () { return not(is_something)(null); });
+spec_returns(true, function () { return not(length_gt(2), is_null)([1]); });
+spec_returns(false, function () { return not(is_something)(1); });
+spec_returns(false, function () { return not(is_something, is_null)(1); });
 function not() {
   should_be(arguments, length_gt(0));
   var l = arguments.length, funcs = arguments;
@@ -262,7 +262,7 @@ function merge(_args) {
 }
 
 
-returns({a:{b:"c"}, b:true}, function () { // Does not alter orig.
+spec_returns({a:{b:"c"}, b:true}, function () { // Does not alter orig.
   var orig = {a:{b:"c"}, b:true};
   var copy = copy_value(orig);
   copy.a.b = "1";
@@ -310,13 +310,13 @@ function dom_attrs(dom) {
 } // === attrs
 
 
-returns('has id', function dom_id_adds_id_attr_to_element() {
+spec_returns('has id', function dom_id_adds_id_attr_to_element() {
   spec_dom().html('<div>has id</div>');
   var id = dom_id(spec_dom().find('div:first'));
   return $('#' + id).html();
 });
 
-returns('non_override_1', function dom_id_does_not_override_original_id() {
+spec_returns('non_override_1', function dom_id_does_not_override_original_id() {
   spec_dom().html('<div id="non_override_1">override id</div>');
   return dom_id(spec_dom().find('div:first'));
 });
@@ -535,7 +535,7 @@ function throws(f, args, expect) {
 }
 
 // Specification function:
-function returns(expect, f) {
+function spec_returns(expect, f) {
   if (!new_spec(f))
     return false;
 
@@ -761,7 +761,7 @@ spec(node_array, ['<div id="111" show_if="happy?"><span></span></div>'], [
   }
 ]);
 
-returns(['a', undefined, 'b'], function node_array_returns_raw_text_nodes() {
+spec_returns(['a', undefined, 'b'], function node_array_returns_raw_text_nodes() {
   var arr = node_array('<div><span>a<span></span>b</span></div>');
   return _.pluck(arr[0].childs[0].childs, 'nodeValue');
 });
@@ -789,12 +789,12 @@ function outer_html(raw) {
 }
 
 
-returns('target_top_desc', function () { // it 'returns self if selector matches'
+spec_returns('target_top_desc', function () { // it 'returns self if selector matches'
   spec_dom().html('<div id="target_top_desc" template="num"></div>');
   return top_descendents(spec_dom().children(), '*[template]')[0].attr('id');
 });
 
-returns(['SPAN', 'SPAN'], function () { // it 'returns first children matching selector'
+spec_returns(['SPAN', 'SPAN'], function () { // it 'returns first children matching selector'
   spec_dom().html('<div><span class="top"></span><span class="top"></span></div>');
   return _.map(
     top_descendents(spec_dom().children(), '.top'),
@@ -803,7 +803,7 @@ returns(['SPAN', 'SPAN'], function () { // it 'returns first children matching s
 });
 
 
-returns([['DIV', 'target']], function () { // it 'does not return nested matching descendants if ancestor matches selector'
+spec_returns([['DIV', 'target']], function () { // it 'does not return nested matching descendants if ancestor matches selector'
   spec_dom().html(
     '<div><div id="target" class="top"><span class="top"></span><span class="top"></span></div><div>'
   );
@@ -828,13 +828,13 @@ function top_descendents(dom, selector) {
 
 
 // it 'returns value of the attribute'
-returns('one', function remove_attr_returns_value_of_the_attribute() {
+spec_returns('one', function remove_attr_returns_value_of_the_attribute() {
   spec_dom().html('<div show_if="one"></div>');
   return remove_attr(spec_dom().find('div:first'), 'show_if');
 });
 
 // it 'removes attribute from node'
-returns({id: 'target_remove_attr'}, function remove_attr_removes_attribute_from_node() {
+spec_returns({id: 'target_remove_attr'}, function remove_attr_removes_attribute_from_node() {
   spec_dom().html('<div id="target_remove_attr" show_if="one"></div>');
   remove_attr(spec_dom().find('div:first'), 'show_if');
   return _.reduce(
@@ -966,7 +966,7 @@ function reduce_eachs() {
 
 
 // TODO: spec :eachs does not alter inputs
-returns(
+spec_returns(
   ["01", "12"],
   function eachs_passes_key_and_val() {
     var v = [];
@@ -975,7 +975,7 @@ returns(
   }
 );
 
-returns(
+spec_returns(
   ["1a", "1b", "2a", "2b"],
   function eachs_passes_vals_of_multiple_colls() {
     var v = [];
@@ -984,7 +984,7 @@ returns(
   }
 );
 
-returns(
+spec_returns(
   ["onea", "twoa"],
   function eachs_passes_keys_and_vals_of_arrays_and_plain_objects() {
     var v = [];
@@ -992,7 +992,7 @@ returns(
     return v;
   }
 );
-returns(
+spec_returns(
   ["1a", "1b", "2a", "2b"],
   function eachs_passes_vals_of_plain_object_and_array() {
     var v = [];
@@ -1000,7 +1000,7 @@ returns(
     return v;
   }
 );
-returns( [],
+spec_returns( [],
   function eachs_returns_empty_array_if_one_array_is_empty() {
     var v = [];
     eachs({one: 1, two: 2}, [], ["a"], function (kx, x, ky, y, kz, z) {
@@ -1068,14 +1068,14 @@ function each_x(coll, f) {
 
 function to_$(x) { return $(x); }
 
-returns(true, function to_function_returns_sole_function() {
+spec_returns(true, function to_function_returns_sole_function() {
   var f = function () {};
   return to_function(f) === f;
 });
-returns(2, function to_function_returns_an_identity_function() {
+spec_returns(2, function to_function_returns_an_identity_function() {
   return to_function(2)();
 });
-returns('"3"', function to_function_returns_a_function() {
+spec_returns('"3"', function to_function_returns_a_function() {
   return to_function(identity, to_string, to_string)(3);
 });
 function to_function() {
@@ -1117,10 +1117,10 @@ function to_function() {
   }; // return
 }
 
-returns('"4"', function to_value_returns_a_value() {
+spec_returns('"4"', function to_value_returns_a_value() {
   return to_value(4, to_string, to_string);
 });
-returns(5, function to_value_returns_first_value_if_no_funcs() {
+spec_returns(5, function to_value_returns_first_value_if_no_funcs() {
   return to_value(5);
 });
 function to_value(val, _funcs) {
@@ -1145,7 +1145,7 @@ function next_id() {
 }
 
 // ========================= Computer
-returns(3, function () {
+spec_returns(3, function () {
   var a = 0, id = next_id('is_happy');
   var data = {}; data[id] = true;
   var state = new Computer();
@@ -1153,7 +1153,7 @@ returns(3, function () {
   state('run', data); state('run', data); state('run', data);
   return a;
 });
-returns(1, function () {
+spec_returns(1, function () {
   var a = 0, id = next_id('is_happy');
   var d_false = {rand_key: 1}; d_false[id] = false;
   var d_true  = {rand_key2: 2}; d_true[id]  = true;
@@ -1254,13 +1254,13 @@ function Computer() {
 
 } // === function Computer
 
-returns('', function () {
+spec_returns('', function () {
   spec_dom().html('<div data-dum="is_ruby? show_hide" style="display: none;">Ruby</div>');
   App('run', {dom: true});
   App('run', {is_ruby: true});
   return spec_dom().find('div').attr('style');
 });
-returns('', function () {
+spec_returns('', function () {
   spec_dom().html('<div data-dum="!is_ruby? show_hide" style="display: none;">Perl</div>');
   App('run', {dom: true});
   App('run', {is_ruby: false});
@@ -1274,7 +1274,7 @@ function dum_show_hide(msg) {
 }
 
 
-returns('', function () {
+spec_returns('', function () {
   spec_dom().html('<div data-dum="is_factor show" style="display: none;">Factor</div>');
   App('run', {dom: true});
   App('run', {is_factor: true});
@@ -1285,7 +1285,7 @@ function dum_show(msg) {
   return 'show: ' + msg.dom_id;
 }
 
-returns('display: none;', function () {
+spec_returns('display: none;', function () {
   spec_dom().html('<div data-dum="is_factor hide">Factor</div>');
   App('run', {dom: true});
   App('run', {is_factor: true});
@@ -1364,7 +1364,7 @@ function dum_dom(data) {
 } // === dum_dom
 
 
-returns(['SCRIPT', 'SPAN', 'P'], function dum_template_replaces_elements_by_default() {
+spec_returns(['SCRIPT', 'SPAN', 'P'], function dum_template_replaces_elements_by_default() {
   spec_dom().html(
     '<script type="application/dum_template" data-dum="is_text template">' +
       html_escape('<span>{{a1}}</span>') +
@@ -1378,7 +1378,7 @@ returns(['SCRIPT', 'SPAN', 'P'], function dum_template_replaces_elements_by_defa
   return _.map(spec_dom().children(), dot('tagName'));
 });
 
-returns(['SCRIPT','P','DIV'], function dum_template_renders_elements_below_by_default() {
+spec_returns(['SCRIPT','P','DIV'], function dum_template_renders_elements_below_by_default() {
   spec_dom().html(
     '<script type="application/dum_template" data-dum="is_text template">' +
       html_escape('<p>one</p>') +
@@ -1391,7 +1391,7 @@ returns(['SCRIPT','P','DIV'], function dum_template_renders_elements_below_by_de
   return _.map(spec_dom().children(), dot('tagName'));
 });
 
-returns('123', function dum_template_renders_vars() {
+spec_returns('123', function dum_template_renders_vars() {
   spec_dom().html(
     '<script type="application/dum_template" data-dum="is_text template">'+
       html_escape('<p>{{a}}</p>') +
@@ -1409,7 +1409,7 @@ returns('123', function dum_template_renders_vars() {
   return map_x(spec_dom().find('p'), to_function(to_$, dot('html()'))).join('');
 });
 
-returns(['P', 'P', 'SCRIPT'], function dum_template_renders_above() {
+spec_returns(['P', 'P', 'SCRIPT'], function dum_template_renders_above() {
   spec_dom().html(
     '<script type="application/dum_template" data-dum="is_text template above">'+
       html_escape('<p>{{a}}</p>') + html_escape('<p>{{b}}</p>') +
@@ -1420,7 +1420,7 @@ returns(['P', 'P', 'SCRIPT'], function dum_template_renders_above() {
   return map_x(spec_dom().children(), dot('tagName'));
 });
 
-returns(['SCRIPT', 'SPAN', 'P'], function dum_template_renders_below() {
+spec_returns(['SCRIPT', 'SPAN', 'P'], function dum_template_renders_below() {
   spec_dom().html(
     '<script type="application/dum_template" data-dum="is_text template bottom">'+
       html_escape('<span>{{a}}</span>') + html_escape('<p>{{b}}</p>') +
@@ -1431,7 +1431,7 @@ returns(['SCRIPT', 'SPAN', 'P'], function dum_template_renders_below() {
   return map_x(spec_dom().children(), dot('tagName'));
 });
 
-returns('none', function dum_template_renders_dum_functionality() {
+spec_returns('none', function dum_template_renders_dum_functionality() {
   spec_dom().html(
     '<script type="application/dum_template" data-dum="render_template template">'+
       html_escape('<div id="target"><span id="target_sub" data-dum="is_num hide">{{num.word}}</span></div>') +
