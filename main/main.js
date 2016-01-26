@@ -5,6 +5,8 @@
 var WHITESPACE = /\s+/g;
 
 function identity(x) {
+  if (arguments.length !== 1)
+    throw new Error("arguments.length !== 0");
   return x;
 }
 
@@ -25,7 +27,6 @@ function dot(raw_name) {
       return o[name];
   };
 } // === func dot
-
 
 spec_returns(3, function own_property_returns_own_property() {
   return own_property('num')({num: 3});
@@ -98,7 +99,6 @@ function to_string(val) {
 
   if (_.isString(val))
     return '"' + val + '"';
-
 
   if ( is_arguments(val) )
     return to_string(_.toArray(val));
@@ -500,7 +500,7 @@ function to_function_string(f, args) {
 
 // Specification function:
 function spec_throws(f, args, expect) {
-  if (!new_spec(f))
+  if (!spec_new(f))
     return false;
 
   if (!_.isFunction(f))
@@ -536,7 +536,7 @@ function spec_throws(f, args, expect) {
 
 // Specification function:
 function spec_returns(expect, f) {
-  if (!new_spec(f))
+  if (!spec_new(f))
     return false;
 
   if (!_.isFunction(f))
@@ -577,9 +577,14 @@ function App() {
   return App;
 }
 
+// Specification function:
+function is_spec_env() {
+  return !(is_localhost() && $('#Spec_Stage').length === 1);
+}
 
-function new_spec(str_or_func) {
-  if (!(is_localhost() && $('#Spec_Stage').length === 1))
+// Specification function:
+function spec_new(str_or_func) {
+  if (!is_spec_env())
     return false;
 
   // === Is there a specific spec to run?
@@ -646,8 +651,18 @@ function has_own_property(name) {
 }
 
 // Specification function:
+function spec_for_later(f) {
+  if (!is_spec_env())
+    return false;
+  if (!spec_for_later.specs)
+    spec_for_later.specs = [];
+  spec_for_later.specs = ([]).concat(spec_for_later.specs).concat([f]);
+  return true;
+}
+
+// Specification function:
 function spec(f, args, expect) {
-  if (!new_spec(f))
+  if (!spec_new(f))
     return false;
 
   if (!_.isFunction(f))
@@ -1493,3 +1508,5 @@ if (is_localhost())
 
 // === Spec of specs
 // spec - can compare the results when they are two arrays: [1] === [1]
+
+

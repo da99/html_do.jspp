@@ -17,20 +17,22 @@ export PORT="$PORT"
 set -u -e -o pipefail
 
 Color_Off='\e[0m'
+Bold="$(tput bold)"
 Reset='\e[0m'
 BRed='\e[1;31m'
 Red='\e[0;31m'
 Green='\e[0;32m'
+BGreen='\e[1;32m'
 Orange='\e[0;33m'
 BOrange='\e[1;33m'
 
-files="$(find . -maxdepth 1 -type f -name '*.js' )"
+files="$(find main/ -maxdepth 1 -type f -name '*.js' )"
 main_js="$(echo -e "$files" | head -n 1)"
 
 
 start_server () {
     shutdown_server
-    (node server.js) &
+    (node main/server.js) &
     server_pid="$!"
 
     mkdir -p tmp
@@ -87,12 +89,12 @@ case $action in
       stamp="$(date '+%r')"
 
       is_fine=""
-      { jshint $path && is_fine="yes" && echo -e "=== ${Green}Passed${Reset}: $path -> $stamp"; } || \
+      {
+        echo -e "=== jshint ${Bold}${path}${Reset}: " \
+          && jshint $path && is_fine="yes" \
+          && tput cuu1                     \
+          && echo -e "=== jshint ${Bold}${path}${Reset} ${Bold}${Green}@${Reset} $stamp"; } || \
         echo -e "${Red}Failed${Reset}"
-
-      # content="$(cat "$path")"
-      # output="tmp/$(basename $path)"
-      # echo "${content/THE_FILE_DATE/$stamp}" > "$output"
 
       if [[ "$path" =~ "server.js" && -n "$is_fine" ]]; then
           shutdown_server
@@ -103,29 +105,25 @@ case $action in
         cmd $FILE
     done < <(echo -e "$files")
 
-    echo -e "\n=== Watching: $(echo -e "$files" | tr '\n' ' ')"
     while read -r CHANGE; do
       dir=$(echo "$CHANGE" | cut -d' ' -f 1)
       op=$(echo "$CHANGE" | cut -d' ' -f 2)
       path="${dir}$(echo "$CHANGE" | cut -d' ' -f 3)"
       file="$(basename $path)"
 
-      echo -e "\n=== $CHANGE ($path)"
-
       if [[ "$path" =~ "$0" ]]; then
-        echo "=== Reloading..."
+        echo -e "=== Reloading...\n"
         break
       fi
 
-
       if [[ "$file" =~ ".js" ]]; then
         cmd $path
+        continue
       fi
 
+      #echo -e "\n=== $CHANGE ($path)"
 
-
-
-    done < <(inotifywait --quiet --monitor --event close_write  $(echo -e "$files" | tr '\n' ' ') "$0") || exit 1
+    done < <(inotifywait --monitor --event moved_to,close_write  -r main/ -r bin/ ) || exit 1
     $0 watch $THE_ARGS
     ;;
 

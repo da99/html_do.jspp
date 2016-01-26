@@ -1,5 +1,5 @@
 
-Don't use Dum_Dum_Boom_Boom.
+Don't use Dum\_Dum\_Boom\_Boom.
 =================================
 
 You should be using this instead (in order of awesomeness):
