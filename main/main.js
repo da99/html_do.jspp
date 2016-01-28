@@ -689,7 +689,10 @@ function function_to_name(f) {
 
 spec(is_enumerable, [$('<p></p>')], true);
 function is_enumerable(v) {
-  return is_string(v) || is_array(v) || is_plain_object(v) || (v.hasOwnProperty('length') && v.constructor === $ || is_arguments(v));
+  return is_string(v) ||
+  is_array(v)         ||
+  is_plain_object(v)  ||
+  (v.hasOwnProperty('length') && v.constructor === $ || is_arguments(v));
 }
 
 spec(l, [[1]], 1);
