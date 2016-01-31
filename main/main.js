@@ -643,7 +643,7 @@ function has_property_of(name, type) {
 }
 
 function has_own_property(name) {
-  var f = function has_own_property(o) {
+  var f = function __has_own_property(o) {
     return o.hasOwnProperty(name);
   };
 
