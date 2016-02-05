@@ -1,6 +1,6 @@
 "use strict";
-/* jshint esnext: true, undef: true, unused: true */
-/* global require, process */
+/* jshint esnext: true, globalstrict: true, strict: true, undef: true, unused: true */
+/* globals console, require, process */
 
 
 const app          = require('express')();

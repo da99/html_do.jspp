@@ -1,6 +1,6 @@
 "use strict";
-/* jshint undef: true */
-/* global Mustache, promise  */
+/* jshint globalstrict: true, undef: true */
+/* globals Mustache, promise, _, $, window, console, DOMParser  */
 
 var WHITESPACE = /\s+/g;
 
