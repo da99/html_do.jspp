@@ -170,7 +170,7 @@ spec_throws( should_be, ['1', is_num], 'Value: "1" !== is_num');
 spec_throws( should_be, [2, is_num, is_null], 'Value: 2 !== is_null');
 function should_be(val, _funcs) {
   if (arguments.length < 2)
-    throw new Error('Not enought arguments: ' + to_string(arguments));
+    throw new Error('Not enough arguments: ' + to_string(arguments));
   var funcs = _.toArray(arguments).slice(1);
   var l = funcs.length, result;
   for (var i = 0; i < l; i++) {
