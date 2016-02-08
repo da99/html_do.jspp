@@ -104,6 +104,7 @@ case $action in
     }
     while read -r FILE; do
         cmd $FILE
+        bash_setup is_same_file "$FILE" || :
     done < <(echo -e "$files")
 
     while read -r CHANGE; do
@@ -115,7 +116,13 @@ case $action in
       # Make sure this is not a temp/swap file:
       { [[ ! -f "$path" ]] && continue; } || :
 
+      if bash_setup is_same_file "$path"; then
+        echo "=== No change: $CHANGE"
+        continue
+      fi
+
       echo -e "\n=== $CHANGE ($path)"
+
       if [[ "$path" =~ "$0" ]]; then
         echo -e "=== Reloading...\n"
         break
@@ -126,8 +133,7 @@ case $action in
         continue
       fi
 
-
-    done < <(inotifywait --monitor --event moved_to,close_write  -r main/ -r bin/ ) || exit 1
+    done < <(inotifywait --monitor --event close_write  -r main/ -r bin/ ) || exit 1
     $0 watch $THE_ARGS
     ;;
 
