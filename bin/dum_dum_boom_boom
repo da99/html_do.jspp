@@ -93,7 +93,8 @@ case $action in
         echo -e "=== jshint ${Bold}${path}${Reset}: " \
           && jshint $path && is_fine="yes" \
           && tput cuu1                     \
-          && echo -e "=== jshint ${Bold}${path}${Reset} ${Bold}${Green}@${Reset} $stamp"; } || \
+          && echo -e "=== jshint ${Bold}${path}${Reset} ${Bold}${Green}@${Reset} $stamp"; } \
+          || \
         echo -e "${Red}Failed${Reset}"
 
       if [[ "$path" =~ "server.js" && -n "$is_fine" ]]; then
@@ -111,17 +112,20 @@ case $action in
       path="${dir}$(echo "$CHANGE" | cut -d' ' -f 3)"
       file="$(basename $path)"
 
+      # Make sure this is not a temp/swap file:
+      { [[ ! -f "$path" ]] && continue; } || :
+
+      echo -e "\n=== $CHANGE ($path)"
       if [[ "$path" =~ "$0" ]]; then
         echo -e "=== Reloading...\n"
         break
       fi
 
       if [[ "$file" =~ ".js" ]]; then
-        cmd $path
+        cmd $path && gui_setup reload-browser google-chrome "Dum"
         continue
       fi
 
-      #echo -e "\n=== $CHANGE ($path)"
 
     done < <(inotifywait --monitor --event moved_to,close_write  -r main/ -r bin/ ) || exit 1
     $0 watch $THE_ARGS
