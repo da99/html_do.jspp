@@ -16,6 +16,9 @@ export PORT="$PORT"
 
 set -u -e -o pipefail
 
+TEMP_DIR=${TEMP_DIR:-"$(mktemp -d)"}
+export TEMP_DIR
+
 Color_Off='\e[0m'
 Bold="$(tput bold)"
 Reset='\e[0m'
