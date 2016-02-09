@@ -510,29 +510,31 @@ function spec_throws(f, args, expect) {
   if (!_.isString(expect))
     throw new Error('Invalid valie for expect: ' + to_string(expect));
 
-  var actual, err;
-  var sig = to_function_string(f, args);
+  spec_push(function () {
+    var actual, err;
+    var sig = to_function_string(f, args);
 
-  try {
-    f.apply(null, args);
-  } catch (e) {
-    err = e;
-    actual = e.message;
-  }
+    try {
+      f.apply(null, args);
+    } catch (e) {
+      err = e;
+      actual = e.message;
+    }
 
-  var msg = to_match_string(actual, expect);
+    var msg = to_match_string(actual, expect);
 
-  if (!actual)
-    throw new Error('!!! Failed to throw error: ' + sig + ' -> ' + expect);
+    if (!actual)
+      throw new Error('!!! Failed to throw error: ' + sig + ' -> ' + expect);
 
-  if (_.isEqual(actual, expect)) {
-    log('=== Passed: ' + sig + ' -> ' + expect);
-    return true;
-  }
+    if (_.isEqual(actual, expect)) {
+      log('=== Passed: ' + sig + ' -> ' + expect);
+      return true;
+    }
 
-  log(err);
-  throw new Error('Error message does not match: ' + to_string(actual) + ' !== ' + to_string(expect) );
-}
+    log(err);
+    throw new Error('Error message does not match: ' + to_string(actual) + ' !== ' + to_string(expect) );
+  });
+} // === function spec_throws
 
 // Specification function:
 function spec_returns(expect, f) {
@@ -542,14 +544,16 @@ function spec_returns(expect, f) {
   if (!_.isFunction(f))
     throw new Error('Invalid value for func: ' + to_string(f));
 
-  var sig = function_to_name(f);
-  var actual = f();
-  var msg = to_match_string(actual, expect);
-  if (!_.isEqual(actual,expect))
-    throw new Error("!!! Failed: " + sig + ' -> ' + msg);
-  log('=== Passed: ' + sig + ' -> ' + msg);
-  return true;
-}
+  spec_push(function () {
+    var sig = function_to_name(f);
+    var actual = f();
+    var msg = to_match_string(actual, expect);
+    if (!_.isEqual(actual,expect))
+      throw new Error("!!! Failed: " + sig + ' -> ' + msg);
+    log('=== Passed: ' + sig + ' -> ' + msg);
+    return true;
+  });
+} // === spec_returns
 
 
 
@@ -583,6 +587,8 @@ function is_spec_env() {
 }
 
 // Specification function:
+// Accepts:
+//   str_or_func : The function the spec is about.
 function spec_new(str_or_func) {
   if (!is_spec_env())
     return false;
@@ -604,6 +610,8 @@ function spec_new(str_or_func) {
 
 
 // Specification function:
+// Accepts:
+//   string : 'reset'  => Reset dom for next test.
 function spec_dom(cmd) {
 
   switch (cmd) {
@@ -651,14 +659,29 @@ function has_own_property(name) {
 }
 
 // Specification function:
-function spec_for_later(f) {
+//   Accepts:
+//     f - function
+//   Runs function (ie test) with all other tests
+//   when spec_run is called.
+function spec_push(f) {
   if (!is_spec_env())
     return false;
-  if (!spec_for_later.specs)
-    spec_for_later.specs = [];
-  spec_for_later.specs = ([]).concat(spec_for_later.specs).concat([f]);
+  if (!spec.specs)
+    spec.specs = [];
+  spec.specs = ([]).concat(spec.specs).concat([f]);
   return true;
 }
+
+function spec_run() {
+  if (!spec.specs || is_empty(spec.specs))
+    throw new Error('No specs found.');
+  var i = 0;
+  while (spec.specs[i]) {
+    spec.specs[i]();
+    i = i + 1;
+  }
+  return true;
+} // function spec_run
 
 // Specification function:
 function spec(f, args, expect) {
@@ -671,15 +694,17 @@ function spec(f, args, expect) {
   if (arguments.length !== 3)
     throw new Error("arguments.length invalid for spec: " + to_string(arguments.length));
 
-  var sig    = to_function_string(f, args);
-  var actual = f.apply(null, args);
-  var msg    = to_match_string(actual, expect);
+  spec_push(function () {
+    var sig    = to_function_string(f, args);
+    var actual = f.apply(null, args);
+    var msg    = to_match_string(actual, expect);
 
-  if (actual !== expect && !_.isEqual(actual, expect))
-    throw new Error("!!! Failed: " + sig + ' -> ' + msg );
+    if (actual !== expect && !_.isEqual(actual, expect))
+      throw new Error("!!! Failed: " + sig + ' -> ' + msg );
 
-  log('=== Passed: ' + sig + ' -> ' + msg);
-  return true;
+    log('=== Passed: ' + sig + ' -> ' + msg);
+    return true;
+  });
 }
 
 spec(function_to_name, ["function my_name() {}"], "my_name");
@@ -1502,6 +1527,8 @@ function dum_template(msg) {
 // -- None, so far.
 //
 // ============================================================================
+spec_run();
+
 if (is_localhost())
   log('      ======================================');
   log('      ============ Specs Finished ==========');
