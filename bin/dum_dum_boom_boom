@@ -96,9 +96,10 @@ case $action in
         echo -e "=== jshint ${Bold}${path}${Reset}: " \
           && jshint $path && is_fine="yes" \
           && tput cuu1                     \
-          && echo -e "=== jshint ${Bold}${path}${Reset} ${Bold}${Green}@${Reset} $stamp"; } \
-          || \
-        echo -e "${Red}Failed${Reset}"
+          && echo -e "=== jshint ${Bold}${path}${Reset} ${Bold}${Green}@${Reset} $stamp"; \
+        } \
+        || \
+        { stat=$?; echo -e "${Red}Failed${Reset}"; return $stat; }
 
       if [[ "$path" =~ "server.js" && -n "$is_fine" ]]; then
           shutdown_server
@@ -106,7 +107,7 @@ case $action in
       fi
     }
     while read -r FILE; do
-        cmd $FILE
+        cmd $FILE || :
         bash_setup is_same_file "$FILE" || :
     done < <(echo -e "$files")
 
@@ -132,7 +133,7 @@ case $action in
       fi
 
       if [[ "$file" =~ ".js" ]]; then
-        cmd $path && gui_setup reload-browser google-chrome "Dum"
+        { cmd $path && gui_setup reload-browser google-chrome "Dum"; } || :
         continue
       fi
 
