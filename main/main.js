@@ -1,6 +1,6 @@
 "use strict";
 /* jshint globalstrict: true, undef: true */
-/* globals Mustache, promise, _, $, window, console, DOMParser  */
+/* globals setTimeout, Mustache, promise, _, $, window, console, DOMParser  */
 
 var WHITESPACE = /\s+/g;
 
@@ -608,6 +608,18 @@ function spec_new(str_or_func) {
   return true;
 }
 
+function spec_wait_for(index, func) {
+  func(function () { spec_is_done(index, func); });
+  setTimeout(function () {
+    if (!spec_run.dones[index])
+      throw new Error("Spec did not finish in time: " + to_string(func));
+  }, 2500);
+}
+
+function spec_is_done(i, func) {
+  spec_run.dones[i] = true;
+  return spec_run();
+}
 
 // Specification function:
 // Accepts:
@@ -675,11 +687,34 @@ function spec_push(f) {
 function spec_run() {
   if (!spec.specs || is_empty(spec.specs))
     throw new Error('No specs found.');
-  var i = 0;
-  while (spec.specs[i]) {
-    spec.specs[i]();
-    i = i + 1;
-  }
+
+  if (!is_plain_object(spec_run.done))
+    spec_run.done = {};
+
+  if (!is_num(spec_run.i))
+    spec_run.i = 0;
+
+  var func;
+
+  while (spec.specs[spec_run.i]) {
+    func = spec.specs[spec_run.i];
+
+    if (func.length === 1 ) {
+      spec_wait_for(spec_run.i, func);
+      break;
+    }
+
+    if (func.length === 0) {
+      func();
+      spec_run.i = spec_run.i + 1;
+      continue;
+    }
+
+    throw new Error('Function has invalid arguments: ' + to_string(func));
+  } // === while
+
+  spec_run.i = null;
+  spec_run.dones = null;
   return true;
 } // function spec_run
 
