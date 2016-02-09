@@ -671,40 +671,53 @@ function spec_push(f) {
   return true;
 }
 
+function is_specs(specs) {
+  should_be(specs, is_plain_object);
+  should_be(specs.list, not(is_empty));
+  should_be(specs.i, or(is('init'), is(0), is_positive));
+  should_be(specs.dones, is_plain_object);
+  return true;
+}
+
+// === Arguments:
+// spec_run()
+// spec_run({list: [], i:"init"|0|positive});
+//
 function spec_run() {
   if (is_empty(arguments)) {
     return spec_run({
-      i : -1,
+      i : 'init',
       list: spec.specs.slice(0),
       dones: {}
     });
   } // == if
 
-  var specs = should_be(arguments[0], is_plain_object);
-  should_be(specs.list, not(is_empty));
-  should_be(specs.i, or(is(-1), is(0), is_positive));
-  should_be(specs.dones, is_plain_object);
+  var specs = should_be(arguments[0], is_specs);
 
-  if (specs.i !== -1) {
+  if (specs.i === 'init') {
+      specs.i = 0;
+  } else {
     if (specs.dones[specs.i] !== true)
       throw new Error("Spec did not finish: " + to_string(specs.list[specs.i]));
+    specs.i = specs.i + 1;
   }
-
-  specs.i = specs.i + 1;
 
   var i    = specs.i;
   var list = specs.list;
   var func = list[i];
 
+  // === Are all specs finished?
   if (!func && i >= l(specs.list)) {
     return l(specs.list);
   }
 
+  // === Function was found?
   if (!func) {
     throw new Error('Spec not found: ' + to_string(i));
   }
 
-  if (func.length === 1 ) {
+  // === Async?
+  if (l(func) === 1 ) {
     setTimeout(function () {
       if (!specs.dones[i])
         throw new Error("Spec did not finish in time: " + to_string(func));
@@ -716,7 +729,8 @@ function spec_run() {
     return false;
   }
 
-  if (func.length === 0) {
+  // === Regular?
+  if (l(func) === 0) {
     func();
     specs.dones[i] = true;
     return spec_run(specs);
@@ -763,9 +777,12 @@ function is_enumerable(v) {
 }
 
 spec(l, [[1]], 1);
-spec_throws(l, [{}], '.length is {}.undefined');
+spec(l, [function () {}], 0);
+spec(l, [function (a) { return a;}], 1);
+spec(l, [{length: 3}], 3);
+spec_throws(l, [{}], 'invalid value for l(): {}');
 function l(v) {
-  if (!is_enumerable(v))
+  if (!v || !is_num(v.length))
     throw new Error('invalid value for l(): ' + to_string(v));
 
   var num = v.length;
