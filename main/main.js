@@ -275,7 +275,7 @@ function copy_value(v) {
     return v;
 
   if (is_array(v))
-    return _.map(v, copy_value);
+    return _.map(v, function (v) { return copy_value(v); });
 
   if (is_plain_object(v))
     return reduce_eachs({}, v, function (acc, kx, x) {
@@ -608,19 +608,6 @@ function spec_new(str_or_func) {
   return true;
 }
 
-function spec_wait_for(index, func) {
-  func(function () { spec_is_done(index, func); });
-  setTimeout(function () {
-    if (!spec_run.dones[index])
-      throw new Error("Spec did not finish in time: " + to_string(func));
-  }, 2500);
-}
-
-function spec_is_done(i, func) {
-  spec_run.dones[i] = true;
-  return spec_run();
-}
-
 // Specification function:
 // Accepts:
 //   string : 'reset'  => Reset dom for next test.
@@ -685,37 +672,57 @@ function spec_push(f) {
 }
 
 function spec_run() {
-  if (!spec.specs || is_empty(spec.specs))
-    throw new Error('No specs found.');
+  if (is_empty(arguments)) {
+    return spec_run({
+      i : -1,
+      list: spec.specs.slice(0),
+      dones: {}
+    });
+  } // == if
 
-  if (!is_plain_object(spec_run.done))
-    spec_run.done = {};
+  var specs = should_be(arguments[0], is_plain_object);
+  should_be(specs.list, not(is_empty));
+  should_be(specs.i, or(is(-1), is(0), is_positive));
+  should_be(specs.dones, is_plain_object);
 
-  if (!is_num(spec_run.i))
-    spec_run.i = 0;
+  if (specs.i !== -1) {
+    if (specs.dones[specs.i] !== true)
+      throw new Error("Spec did not finish: " + to_string(specs.list[specs.i]));
+  }
 
-  var func;
+  specs.i = specs.i + 1;
 
-  while (spec.specs[spec_run.i]) {
-    func = spec.specs[spec_run.i];
+  var i    = specs.i;
+  var list = specs.list;
+  var func = list[i];
 
-    if (func.length === 1 ) {
-      spec_wait_for(spec_run.i, func);
-      break;
-    }
+  if (!func && i >= l(specs.list)) {
+    return l(specs.list);
+  }
 
-    if (func.length === 0) {
-      func();
-      spec_run.i = spec_run.i + 1;
-      continue;
-    }
+  if (!func) {
+    throw new Error('Spec not found: ' + to_string(i));
+  }
 
-    throw new Error('Function has invalid arguments: ' + to_string(func));
-  } // === while
+  if (func.length === 1 ) {
+    setTimeout(function () {
+      if (!specs.dones[i])
+        throw new Error("Spec did not finish in time: " + to_string(func));
+    }, 2500);
+    func(function () {
+      specs.dones[i] = true;
+      spec_run(specs);
+    });
+    return false;
+  }
 
-  spec_run.i = null;
-  spec_run.dones = null;
-  return true;
+  if (func.length === 0) {
+    func();
+    specs.dones[i] = true;
+    return spec_run(specs);
+  }
+
+  throw new Error('Function has invalid arguments: ' + to_string(func));
 } // function spec_run
 
 // Specification function:
@@ -1562,12 +1569,16 @@ function dum_template(msg) {
 // -- None, so far.
 //
 // ============================================================================
-spec_run();
 
-if (is_localhost())
-  log('      ======================================');
-  log('      ============ Specs Finished ==========');
-  log('      ======================================');
+
+(function () {
+  if (is_localhost()) {
+    var total = spec_run();
+    log('      ======================================');
+    log('      Specs Finish: ' + to_string(total) + ' tests');
+    log('      ======================================');
+  }
+})();
 
 // log("THE_FILE_DATE");
 
