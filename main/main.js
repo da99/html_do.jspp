@@ -729,7 +729,7 @@ function spec_run() {
     return false;
   }
 
-  // === Regular?
+  // === Regular spec, non-asyc?
   if (l(func) === 0) {
     func();
     specs.dones[i] = true;
