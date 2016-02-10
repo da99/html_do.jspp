@@ -16,6 +16,11 @@ Someone beat me to this:
 
 ![Example in erlang](./docs/CYJSUDfWcAU9dVQ.png?raw=true)
 
+Message Standardization:
+=======================
+
+* `{ ok : true, ... }`
+* `{ err: true, err_server|err_user: true, msg: "string", ... }`
 
 Extremes:
 =========
