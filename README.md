@@ -21,17 +21,15 @@ Extremes:
 =========
 
 * State between functions
-* AJAX - request
-* AJAX - response
 * Foms - before/after/on submit
 * Mouse & keyboard events
 * HTML -> JS (function)
 * Toggles: bool -> function
 * Logic as a value
-  * Markup = Logic Preview -> Templates
+  * Markup -> Logic Preview -> Templates
 * Standardization of messages:
+  * AJAX request/response -> message -> processed data structure
   * message -> processed data structure (inspiration Mustache)
-  * AJAX response -> message -> processed data structure
   * processed data structure -> markup/view
 
 
