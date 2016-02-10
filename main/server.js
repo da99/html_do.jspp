@@ -49,6 +49,10 @@ app.post("/text", function (req, resp) {
   resp.send("Some plain text.");
 });
 
+app.post("/repeat", function (req, resp) {
+  resp.send( json(resp, {ok: true, data: {"not_ready": "not ready"}, msg: 'hello'}) );
+});
+
 app.post("/json", function (req, resp) {
   resp.send( json(resp, {msg: 'get smart'}) );
 });
