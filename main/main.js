@@ -568,15 +568,20 @@ function name_to_function(raw) {
 }
 
 
+// === Examples:
+// App()
+// App('reset')
+// App('push', 'action', function)
 function App() {
-  var is_reset = arguments.length === 1 && arguments[0] === 'reset for specs';
-  if (!App.hasOwnProperty('_state') || is_reset) {
-    var c = App._state = new Computer();
-    c('push', 'dom', dum_dom); // push dom func
-  } // === if !_state
+  var is_reset = l(arguments) === 1 && arguments[0] === 'reset';
+  var is_new_computer = is_empty(arguments) && !App._computer;
 
-  if (!is_reset)
-    App._state.apply(null, arguments);
+  if (is_reset || is_new_computer) {
+    App._computer = new Computer();
+    App._computer('push', 'dom', dum_dom); // push dom func
+  } else {
+    App._computer.apply(null, arguments);
+  }
 
   return App;
 }
@@ -603,7 +608,7 @@ function spec_new(str_or_func) {
   spec_dom('reset');
 
   // === Reset App state:
-  App('reset for specs');
+  App('reset');
 
   return true;
 }
@@ -1398,6 +1403,14 @@ function dum_hide(msg) {
   return 'hide: ' + msg.dom_id;
 }
 
+// === Adds functionality:
+// data-dum="do_something!  arg1 arg2"
+// data-dum="is_something?  do_something"
+// data-dum="is_something   do_something"
+// data-dum="!is_something  do_something"
+// data-dum="on_click       do_something"
+// data-dum="on_mousedown   do_something"
+// data-dum="on_keypress    do_something"
 function dum_dom(data) {
   var selector = '*[data-dum]:not(*[data-dum_fin~="yes"])';
   var elements = $((data && data.target) || $('body')).find(selector).addBack(selector);
@@ -1438,6 +1451,7 @@ function dum_dom(data) {
       }
 
 
+      // === data-dum="is_something?|!is_something|is_something  [args]"
       var id       = dom_id($(raw_e));
       var is_event = _.detect(events, is(action_name));
       if (!is_event) {
@@ -1581,13 +1595,32 @@ function dum_template(msg) {
   return new_ids;
 } // ==== funcs: template ==========
 
+function submit_form(o) {
+  log(o);
+  // the form_id
+  // the form as a data structure
+  // Create callback for response
+  //   -- standardize response
+  //   -- send to Computer/App
+  // Send to ajax w/callback
+  throw new Error('not ready');
+} // === function submit_form
 
-// ==== Integration tests======================================================
-// -- None, so far.
-//
+// ==== Integration tests =====================================================
 // ============================================================================
+spec_returns('yo mo', function (fin) {
+  spec_dom().html(
+    '<form id="the_form" action="/repeat">' +
+      '<script type="application/dum_template" data-dum="the_form.ok template">' +
+        html_escape('<div>{{val1}} {{val2}}</div>') +
+          '</script><button data-dum="on_click submit_form">Submit</button></form>'
+  );
+  App('run', {dom: true});
+  spec_dom().find('button').click();
+});
 
 
+// ==== Run all the tests =====================================================
 (function () {
   if (is_localhost()) {
     var total = spec_run();
@@ -1596,8 +1629,6 @@ function dum_template(msg) {
     log('      ======================================');
   }
 })();
-
-// log("THE_FILE_DATE");
 
 // === Spec of specs
 // spec - can compare the results when they are two arrays: [1] === [1]
