@@ -523,17 +523,29 @@ function length_gt(num) {
 function is_string(v) { return typeof v === "string"; }
 function is_array(v) { return  _.isArray(v); }
 function is_bool(v) { return _.isBoolean(v); }
+
+spec(is_blank_string, [""],     true);
+spec(is_blank_string, ["   "],  true);
+spec(is_blank_string, [" a  "], false);
 function is_blank_string(v) {
   should_be(v, is_string);
-  return l(_.trim(v)) > 0;
+  return l(_.trim(v)) < 1;
 }
+
+
+spec(split_on, [/;/, "a;b;c"], ['a', 'b', 'c']);
+spec(split_on, [/;/, "a;b;c"], ['a', 'b', 'c']);
+spec(split_on, [/;/, "a; ;c"], ['a', 'c']);
 function split_on(pattern, str) {
   arguments_are(arguments, is_something, is_string);
   var trim = _.trim(str);
   if (is_empty(trim))
     return [];
-  return trim.split(WHITESPACE);
+  return _.compact( map_x(trim.split(pattern), function (x) {
+    return !is_blank_string(x) && _.trim(x);
+  }));
 }
+
 
 function is_empty(v) {
   var l = v.length;
@@ -909,7 +921,9 @@ spec(l, [function (a) { return a;}], 1);
 spec(l, [{length: 3}], 3);
 spec_throws(l, [{}], 'invalid value for l(): {}');
 function l(v) {
-  if (!v || !is_num(v.length))
+  // NOTE: !v === true -> when v == '' (empty string)
+  // So we use is_num, is_undefined
+  if (is_num(v) || is_undefined(v) || !is_num(v.length))
     throw new Error('invalid value for l(): ' + to_string(v));
 
   var num = v.length;
@@ -1375,44 +1389,44 @@ function next_id() {
 }
 
 
-spec_returns('', function () { // === dum_show_hide shows element if key = true
+spec_returns('', function () { // === show_hide shows element if key = true
   spec_dom().html('<div data-if="is_ruby? show_hide" style="display: none;">Ruby</div>');
-  App('run', {dom: true});
+  App('run', {'dom-change': true});
   App('run', {is_ruby: true});
   return spec_dom().find('div').attr('style');
 });
-spec_returns('', function () { // === dum_show_hide hides element if key = false
+spec_returns('', function () { // === show_hide hides element if key = false
   spec_dom().html('<div data-if="!is_ruby? show_hide" style="display: none;">Perl</div>');
-  App('run', {dom: true});
+  App('run', {'dom-change': true});
   App('run', {is_ruby: false});
   return spec_dom().find('div').attr('style');
 });
-function dum_show_hide(msg) {
+function show_hide(msg) {
   if (msg.args[0] === true)
-    return dum_show(msg);
+    return show(msg);
   else
-    return dum_hide(msg);
+    return hide(msg);
 }
 
 
 spec_returns('', function () {
   spec_dom().html('<div data-if="is_factor show" style="display: none;">Factor</div>');
-  App('run', {dom: true});
+  App('run', {'dom-change': true});
   App('run', {is_factor: true});
   return spec_dom().find('div').attr('style');
 });
-function dum_show(msg) {
+function show(msg) {
   $('#' + msg.dom_id).show();
   return 'show: ' + msg.dom_id;
 }
 
 spec_returns('display: none;', function () {
   spec_dom().html('<div data-if="is_factor hide">Factor</div>');
-  App('run', {dom: true});
+  App('run', {'dom-change': true});
   App('run', {is_factor: true});
   return spec_dom().find('div').attr('style');
 });
-function dum_hide(msg) {
+function hide(msg) {
   $('#' + msg.dom_id).hide();
   return 'hide: ' + msg.dom_id;
 }
@@ -1424,14 +1438,16 @@ App('push', 'dom-change', function process_data_ifs(data) {
   var elements = $((data && data.target) || $('body')).find(selector).addBack(selector);
 
   eachs(elements, function (i, raw_e) {
-    eachs($(raw_e).attr('data-if').split(';'), function (_i, raw_cmd) {
+    var orig_val = $(raw_e).attr('data-if');
+    var raw_val  = split_on(';', orig_val);
+    eachs(raw_val, function (_i, raw_cmd) {
       if (is_blank_string(raw_cmd))
         return;
 
-      var args = raw_cmd.split(WHITESPACE);
+      var args = split_on(WHITESPACE, raw_cmd);
 
-      if (l(args) < 1) // if invalid: data-if="is_name"
-        throw new Error("Invalid command: " + to_string(raw_cmd));
+      if (l(args) < 2) // if invalid: data-if="is_name"
+        throw new Error("Invalid command: " + to_string(raw_cmd) + " in: " + to_string(orig_val));
 
       var action_name = args.shift();
       var func_name   = args.shift();
@@ -1455,7 +1471,7 @@ App('push', 'dom-change', function process_data_dos(msg) {
   var elements = $((msg && msg.target) || $('body')).find(selector).addBack(selector);
 
   eachs(elements, function (i, raw_e) {
-    eachs($(raw_e).attr('data-do').split(';'), function (_i, raw_cmd) {
+    eachs(split_on(';', $(raw_e).attr('data-do')), function (_i, raw_cmd) {
 
       var args = split_on(WHITESPACE, raw_cmd);
 
@@ -1480,14 +1496,14 @@ App('push', 'dom-change', function process_data_dos(msg) {
 
 }); // === App push process_data_dos
 
-App('push', 'data-change', function process_data_on(msg) {
+App('push', 'dom-change', function process_data_on(msg) {
   var selector = '*[data-on]:not(*[data-on_done~="yes"])';
   var elements = $((msg && msg.target) || $('body')).find(selector).addBack(selector);
 
   var events = ['click', 'mousedown', 'mouseup', 'keypress'];
 
   eachs(elements, function (i, raw_e) {
-    eachs($(raw_e).attr('data-on').split(';'), function (_i, raw_cmd) {
+    eachs(split_on(';', $(raw_e).attr('data-on')), function (_i, raw_cmd) {
 
       var args = split_on(WHITESPACE, raw_cmd);
 
@@ -1507,7 +1523,8 @@ App('push', 'data-change', function process_data_on(msg) {
         throw new Error('Not an event: ' + to_string(raw_cmd));
       }
 
-      $('#' + id).on(action_name, function () {
+      $('#' + id).on(action_name, function (e) {
+        e.stopPropagation();
         var msg = {
           is_event: true,
           event_name: action_name,
@@ -1516,7 +1533,8 @@ App('push', 'data-change', function process_data_on(msg) {
         };
         msg['on_' + action_name] = true;
         msg[action_name]         = true;
-        return apply_function(func, [msg]);
+        apply_function(func, [msg]);
+        return null;
       });
 
     });
@@ -1526,92 +1544,92 @@ App('push', 'data-change', function process_data_on(msg) {
 }); // === App push process_data_on
 
 
-spec_returns(['SCRIPT', 'SPAN', 'P'], function dum_template_replaces_elements_by_default() {
+spec_returns(['SCRIPT', 'SPAN', 'P'], function template_replaces_elements_by_default() {
   spec_dom().html(
-    '<script type="application/dum_template" data-if="is_text template">' +
+    '<script type="application/template" data-if="is_text template">' +
       html_escape('<span>{{a1}}</span>') +
       html_escape('<p>{{a2}}</p>') +
         '</script>'
   );
 
-  App('run', {dom: true});
+  App('run', {'dom-change': true});
   App('run', {is_text: true, data: {a1: '1', a2: '2'}});
   App('run', {is_text: true, data: {a1: '3', a2: '4'}});
   return _.map(spec_dom().children(), dot('tagName'));
 });
 
-spec_returns(['SCRIPT','P','DIV'], function dum_template_renders_elements_below_by_default() {
+spec_returns(['SCRIPT','P','DIV'], function template_renders_elements_below_by_default() {
   spec_dom().html(
-    '<script type="application/dum_template" data-if="is_text template">' +
+    '<script type="application/template" data-if="is_text template">' +
       html_escape('<p>one</p>') +
       html_escape('<div>two</div>') +
         '</script>'
   );
 
-  App('run', {dom: true});
+  App('run', {'dom-change': true});
   App('run', {is_text: true});
   return _.map(spec_dom().children(), dot('tagName'));
 });
 
-spec_returns('123', function dum_template_renders_vars() {
+spec_returns('123', function template_renders_vars() {
   spec_dom().html(
-    '<script type="application/dum_template" data-if="is_text template">'+
+    '<script type="application/template" data-if="is_text template">'+
       html_escape('<p>{{a}}</p>') +
       html_escape('<p>{{b}}</p>') +
 
-      html_escape('<script type="application/dum_template" data-if="is_val template">') +
+      html_escape('<script type="application/template" data-if="is_val template">') +
         html_escape(html_escape('<p>{{c}}</p>')) +
       html_escape('</script>') +
     '</script>'
   );
-  App('run', {dom: true});
+  App('run', {'dom-change': true});
   App('run', {is_text: true, data: {a: 1, b: 2}});
   App('run', {is_val: true, data: {c:'3'}});
 
   return map_x(spec_dom().find('p'), to_function(to_$, dot('html()'))).join('');
 });
 
-spec_returns(['P', 'P', 'SCRIPT'], function dum_template_renders_above() {
+spec_returns(['P', 'P', 'SCRIPT'], function template_renders_above() {
   spec_dom().html(
-    '<script type="application/dum_template" data-if="is_text template above">'+
+    '<script type="application/template" data-if="is_text template above">'+
       html_escape('<p>{{a}}</p>') + html_escape('<p>{{b}}</p>') +
     '</script>'
   );
-  App('run', {dom: true});
+  App('run', {'dom-change': true});
   App('run', {is_text: true, data: {a: 4, b: 5}});
   return map_x(spec_dom().children(), dot('tagName'));
 });
 
-spec_returns(['SCRIPT', 'SPAN', 'P'], function dum_template_renders_below() {
+spec_returns(['SCRIPT', 'SPAN', 'P'], function template_renders_below() {
   spec_dom().html(
-    '<script type="application/dum_template" data-if="is_text template bottom">'+
+    '<script type="application/template" data-if="is_text template bottom">'+
       html_escape('<span>{{a}}</span>') + html_escape('<p>{{b}}</p>') +
     '</script>'
   );
-  App('run', {dom: true});
+  App('run', {'dom-change': true});
   App('run', {is_text: true, data: {a: 6, b: 7}});
   return map_x(spec_dom().children(), dot('tagName'));
 });
 
-spec_returns('none', function dum_template_renders_dum_functionality() {
+spec_returns('none', function template_renders_dum_functionality() {
   spec_dom().html(
-    '<script type="application/dum_template" data-if="render_template template">' +
-      html_escape('<div><span id="dum_template_1" data-if="is_num hide">{{num.word}}</span></div>') +
+    '<script type="application/template" data-if="render_template template">' +
+      html_escape('<div><span id="template_1" data-if="is_num hide">{{num.word}}</span></div>') +
       '</script>'
   );
-  App('run', {dom: true});
+  App('run', {'dom-change': true});
   App('run', {render_template: true});
   App('run', {is_num: true, data: {num: {word: 'one'}}});
-  return $('#dum_template_1').css('display');
+  return $('#template_1').css('display');
 });
 
-function dum_template(msg) {
+function template(msg) {
   var pos = (msg.args || [])[0] || 'replace';
 
   var t        = $('#' + msg.dom_id);
   var raw_html = t.html();
   var id       = msg.dom_id;
-  var me       = dum_template;
+  var me       = template;
 
   if (!is_plain_object(me.elements))
     me.elements = {};
@@ -1636,7 +1654,7 @@ function dum_template(msg) {
 
   me.elements[id] = ([]).concat(me.elements[id]).concat( new_ids );
 
-  App('run', {dom: true});
+  App('run', {'dom-change': true});
 
   return new_ids;
 } // ==== funcs: template ==========
@@ -1654,15 +1672,15 @@ function submit_form(o) {
 
 // ==== Integration tests =====================================================
 // ============================================================================
-spec_returns('yo mo', function (fin) {
+spec_returns('yo mo', function button_submit(fin) {
   spec_dom().html(
     '<form id="the_form" action="/repeat">' +
-      '<script type="application/dum_template" data-if="the_form.ok template">' +
+      '<script type="application/template" data-if="the_form.ok template">' +
         html_escape('<div>{{val1}} {{val2}}</div>') +
           '</script><button data-on="click submit_form">Submit</button></form>'
   );
-  App('run', {dom: true});
-  spec_dom().find('button').click();
+  App('run', {'dom-change': true});
+  // spec_dom().find('button').click();
 });
 
 
