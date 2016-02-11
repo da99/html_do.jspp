@@ -570,18 +570,15 @@ function name_to_function(raw) {
 
 // === Examples:
 // App()
-// App('reset')
 // App(..args for underlying Computer)
 function App() {
-  var is_reset = l(arguments) === 1 && arguments[0] === 'reset';
-  var is_new_computer = is_empty(arguments) && !App._computer;
-
-  if (is_reset || is_new_computer) {
+  if (!App._computer) {
     App._computer = new Computer();
     App._computer('push', 'dom', dum_dom); // push dom func
-  } else {
-    App._computer.apply(null, arguments);
   }
+
+  if (!is_empty(arguments))
+    App._computer.apply(null, arguments);
 
   return App;
 }
@@ -606,9 +603,6 @@ function spec_new(str_or_func) {
 
   // === Reset DOM:
   spec_dom('reset');
-
-  // === Reset App state:
-  App('reset');
 
   return true;
 }
