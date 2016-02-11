@@ -703,7 +703,6 @@ function name_to_function(raw) {
 function App() {
   if (!App._computer) {
     App._computer = new Computer();
-    App._computer('push', 'dom', dum_dom); // push dom func
   }
 
   if (!is_empty(arguments))
@@ -1377,13 +1376,13 @@ function next_id() {
 
 
 spec_returns('', function () { // === dum_show_hide shows element if key = true
-  spec_dom().html('<div data-do="is_ruby? show_hide" style="display: none;">Ruby</div>');
+  spec_dom().html('<div data-if="is_ruby? show_hide" style="display: none;">Ruby</div>');
   App('run', {dom: true});
   App('run', {is_ruby: true});
   return spec_dom().find('div').attr('style');
 });
 spec_returns('', function () { // === dum_show_hide hides element if key = false
-  spec_dom().html('<div data-do="!is_ruby? show_hide" style="display: none;">Perl</div>');
+  spec_dom().html('<div data-if="!is_ruby? show_hide" style="display: none;">Perl</div>');
   App('run', {dom: true});
   App('run', {is_ruby: false});
   return spec_dom().find('div').attr('style');
@@ -1397,7 +1396,7 @@ function dum_show_hide(msg) {
 
 
 spec_returns('', function () {
-  spec_dom().html('<div data-do="is_factor show" style="display: none;">Factor</div>');
+  spec_dom().html('<div data-if="is_factor show" style="display: none;">Factor</div>');
   App('run', {dom: true});
   App('run', {is_factor: true});
   return spec_dom().find('div').attr('style');
@@ -1408,7 +1407,7 @@ function dum_show(msg) {
 }
 
 spec_returns('display: none;', function () {
-  spec_dom().html('<div data-do="is_factor hide">Factor</div>');
+  spec_dom().html('<div data-if="is_factor hide">Factor</div>');
   App('run', {dom: true});
   App('run', {is_factor: true});
   return spec_dom().find('div').attr('style');
@@ -1421,7 +1420,7 @@ function dum_hide(msg) {
 // === Collects raw 'data-if'
 //     then sends each to 'raw-data-if'.
 App('push', 'dom-change', function process_data_ifs(data) {
-  var selector = '*[data-if]:not(*[data-if_cooked~="yes"])';
+  var selector = '*[data-if]:not(*[data-if_done~="yes"])';
   var elements = $((data && data.target) || $('body')).find(selector).addBack(selector);
 
   eachs(elements, function (i, raw_e) {
@@ -1444,7 +1443,7 @@ App('push', 'dom-change', function process_data_ifs(data) {
         return apply_function(func, [merge(msg, {dom_id:id, args: args})]);
       });
     }); // === each
-    $(raw_e).attr('data-if_cooked', 'yes');
+    $(raw_e).attr('data-if_done', 'yes');
   }); // === each
 }); // === App push process_data_ifs
 
@@ -1452,7 +1451,7 @@ App('push', 'dom-change', function process_data_ifs(data) {
 // === Adds functionality:
 //     <div data-do="my_func arg1 arg2">content</div>
 App('push', 'dom-change', function process_data_dos(msg) {
-  var selector = '*[data-do]:not(*[data-do_fin~="yes"])';
+  var selector = '*[data-do]:not(*[data-do_done~="yes"])';
   var elements = $((msg && msg.target) || $('body')).find(selector).addBack(selector);
 
   eachs(elements, function (i, raw_e) {
@@ -1476,71 +1475,39 @@ App('push', 'dom-change', function process_data_dos(msg) {
       return;
 
     });
-    $(raw_e).attr('data-do_fin', 'yes');
+    $(raw_e).attr('data-do_done', 'yes');
   });
 
 }); // === App push process_data_dos
 
+App('push', 'data-change', function process_data_on(msg) {
+  var selector = '*[data-on]:not(*[data-on_done~="yes"])';
+  var elements = $((msg && msg.target) || $('body')).find(selector).addBack(selector);
 
-// === Adds functionality:
-// data-do="do_something!  arg1 arg2"
-// data-do="is_something?  do_something"
-// data-do="is_something   do_something"
-// data-do="!is_something  do_something"
-// data-do="on_click       do_something"
-// data-do="on_mousedown   do_something"
-// data-do="on_keypress    do_something"
-function dum_dom(data) {
-  var selector = '*[data-do]:not(*[data-do_fin~="yes"])';
-  var elements = $((data && data.target) || $('body')).find(selector).addBack(selector);
-
-  var events = ['on_click', 'on_mousedown', 'on_mouseup', 'on_keypress'];
+  var events = ['click', 'mousedown', 'mouseup', 'keypress'];
 
   eachs(elements, function (i, raw_e) {
-    eachs($(raw_e).attr('data-do').split(';'), function (_i, raw_cmd) {
+    eachs($(raw_e).attr('data-on').split(';'), function (_i, raw_cmd) {
 
-      raw_cmd = _.trim(raw_cmd);
-      if (is_empty(raw_cmd))
+      var args = split_on(WHITESPACE, raw_cmd);
+
+      if (is_empty(args))
         return;
 
-      var args = raw_cmd.split(WHITESPACE);
-
-      // === data-do="is_name my_func"
-      if (l(args) < 1)
+      if (l(args) < 2) // === data-on="is_name"
         throw new Error("Invalid command: " + to_string(raw_cmd));
 
       var action_name = args.shift();
-      var is_now      = _.endsWith(action_name, '!');
+      var func_name   = args.shift();
+      var func        = name_to_function(func_name);
 
-      var func_name   = (is_now) ? _.trimRight(action_name, '!') : args.shift();
-      var func        = (window['dum_' + func_name]) ?
-        name_to_function( 'dum_' + func_name) :
-        name_to_function(func_name);
-
-      // === data-do="do_something! arg1 arg 2"
-      if (is_now) {
-        apply_function(
-          func, [{
-            on_dom : true,
-            dom_id : dom_id($(raw_e)),
-            args : args.slice(0)
-          }]
-        );
-        return;
-      }
-
-
-      // === data-do="is_something?|!is_something|is_something  [args]"
+      // === data-="is_something?|!is_something|is_something  [args]"
       var id       = dom_id($(raw_e));
-      var is_event = _.detect(events, is(action_name));
-      if (!is_event) {
-        return App('push', action_name, function (msg) {
-          return apply_function(func, [merge(msg, {dom_id:id, args: args})]);
-        });
+      if (!_.detect(events, is(action_name))) {
+        throw new Error('Not an event: ' + to_string(raw_cmd));
       }
 
-      // === is event: on_click, etc.
-      $('#' + id).on(action_name.replace('on_', ''), function () {
+      $('#' + id).on(action_name, function () {
         var msg = {
           is_event: true,
           event_name: action_name,
@@ -1553,15 +1520,15 @@ function dum_dom(data) {
       });
 
     });
-    $(raw_e).attr('data-do_fin', 'yes');
+    $(raw_e).attr('data-on_done', 'yes');
   });
 
-} // === dum_dom
+}); // === App push process_data_on
 
 
 spec_returns(['SCRIPT', 'SPAN', 'P'], function dum_template_replaces_elements_by_default() {
   spec_dom().html(
-    '<script type="application/dum_template" data-do="is_text template">' +
+    '<script type="application/dum_template" data-if="is_text template">' +
       html_escape('<span>{{a1}}</span>') +
       html_escape('<p>{{a2}}</p>') +
         '</script>'
@@ -1575,7 +1542,7 @@ spec_returns(['SCRIPT', 'SPAN', 'P'], function dum_template_replaces_elements_by
 
 spec_returns(['SCRIPT','P','DIV'], function dum_template_renders_elements_below_by_default() {
   spec_dom().html(
-    '<script type="application/dum_template" data-do="is_text template">' +
+    '<script type="application/dum_template" data-if="is_text template">' +
       html_escape('<p>one</p>') +
       html_escape('<div>two</div>') +
         '</script>'
@@ -1588,11 +1555,11 @@ spec_returns(['SCRIPT','P','DIV'], function dum_template_renders_elements_below_
 
 spec_returns('123', function dum_template_renders_vars() {
   spec_dom().html(
-    '<script type="application/dum_template" data-do="is_text template">'+
+    '<script type="application/dum_template" data-if="is_text template">'+
       html_escape('<p>{{a}}</p>') +
       html_escape('<p>{{b}}</p>') +
 
-      html_escape('<script type="application/dum_template" data-do="is_val template">') +
+      html_escape('<script type="application/dum_template" data-if="is_val template">') +
         html_escape(html_escape('<p>{{c}}</p>')) +
       html_escape('</script>') +
     '</script>'
@@ -1606,7 +1573,7 @@ spec_returns('123', function dum_template_renders_vars() {
 
 spec_returns(['P', 'P', 'SCRIPT'], function dum_template_renders_above() {
   spec_dom().html(
-    '<script type="application/dum_template" data-do="is_text template above">'+
+    '<script type="application/dum_template" data-if="is_text template above">'+
       html_escape('<p>{{a}}</p>') + html_escape('<p>{{b}}</p>') +
     '</script>'
   );
@@ -1617,7 +1584,7 @@ spec_returns(['P', 'P', 'SCRIPT'], function dum_template_renders_above() {
 
 spec_returns(['SCRIPT', 'SPAN', 'P'], function dum_template_renders_below() {
   spec_dom().html(
-    '<script type="application/dum_template" data-do="is_text template bottom">'+
+    '<script type="application/dum_template" data-if="is_text template bottom">'+
       html_escape('<span>{{a}}</span>') + html_escape('<p>{{b}}</p>') +
     '</script>'
   );
@@ -1628,8 +1595,8 @@ spec_returns(['SCRIPT', 'SPAN', 'P'], function dum_template_renders_below() {
 
 spec_returns('none', function dum_template_renders_dum_functionality() {
   spec_dom().html(
-    '<script type="application/dum_template" data-do="render_template template">' +
-      html_escape('<div><span id="dum_template_1" data-do="is_num hide">{{num.word}}</span></div>') +
+    '<script type="application/dum_template" data-if="render_template template">' +
+      html_escape('<div><span id="dum_template_1" data-if="is_num hide">{{num.word}}</span></div>') +
       '</script>'
   );
   App('run', {dom: true});
@@ -1690,9 +1657,9 @@ function submit_form(o) {
 spec_returns('yo mo', function (fin) {
   spec_dom().html(
     '<form id="the_form" action="/repeat">' +
-      '<script type="application/dum_template" data-do="the_form.ok template">' +
+      '<script type="application/dum_template" data-if="the_form.ok template">' +
         html_escape('<div>{{val1}} {{val2}}</div>') +
-          '</script><button data-do="on_click submit_form">Submit</button></form>'
+          '</script><button data-on="click submit_form">Submit</button></form>'
   );
   App('run', {dom: true});
   spec_dom().find('button').click();
