@@ -1680,7 +1680,7 @@ spec_returns('yo mo', function button_submit(fin) {
           '</script><button data-on="click submit_form">Submit</button></form>'
   );
   App('run', {'dom-change': true});
-  // spec_dom().find('button').click();
+  spec_dom().find('button').click();
 });
 
 
