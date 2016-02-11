@@ -1390,13 +1390,13 @@ function next_id() {
 
 
 spec_returns('', function () { // === show_hide shows element if key = true
-  spec_dom().html('<div data-if="is_ruby? show_hide" style="display: none;">Ruby</div>');
+  spec_dom().html('<div data-do="show_hide is_ruby?" style="display: none;">Ruby</div>');
   App('run', {'dom-change': true});
   App('run', {is_ruby: true});
   return spec_dom().find('div').attr('style');
 });
 spec_returns('', function () { // === show_hide hides element if key = false
-  spec_dom().html('<div data-if="!is_ruby? show_hide" style="display: none;">Perl</div>');
+  spec_dom().html('<div data-do="show_hide !is_ruby?" style="display: none;">Perl</div>');
   App('run', {'dom-change': true});
   App('run', {is_ruby: false});
   return spec_dom().find('div').attr('style');
@@ -1410,7 +1410,7 @@ function show_hide(msg) {
 
 
 spec_returns('', function () {
-  spec_dom().html('<div data-if="is_factor show" style="display: none;">Factor</div>');
+  spec_dom().html('<div data-do="show is_factor" style="display: none;">Factor</div>');
   App('run', {'dom-change': true});
   App('run', {is_factor: true});
   return spec_dom().find('div').attr('style');
@@ -1421,7 +1421,7 @@ function show(msg) {
 }
 
 spec_returns('display: none;', function () {
-  spec_dom().html('<div data-if="is_factor hide">Factor</div>');
+  spec_dom().html('<div data-do="hide is_factor">Factor</div>');
   App('run', {'dom-change': true});
   App('run', {is_factor: true});
   return spec_dom().find('div').attr('style');
@@ -1430,38 +1430,6 @@ function hide(msg) {
   $('#' + msg.dom_id).hide();
   return 'hide: ' + msg.dom_id;
 }
-
-// === Collects raw 'data-if'
-//     then sends each to 'raw-data-if'.
-App('push', 'dom-change', function process_data_ifs(data) {
-  var selector = '*[data-if]:not(*[data-if_done~="yes"])';
-  var elements = $((data && data.target) || $('body')).find(selector).addBack(selector);
-
-  eachs(elements, function (i, raw_e) {
-    var orig_val = $(raw_e).attr('data-if');
-    var raw_val  = split_on(';', orig_val);
-    eachs(raw_val, function (_i, raw_cmd) {
-      if (is_blank_string(raw_cmd))
-        return;
-
-      var args = split_on(WHITESPACE, raw_cmd);
-
-      if (l(args) < 2) // if invalid: data-if="is_name"
-        throw new Error("Invalid command: " + to_string(raw_cmd) + " in: " + to_string(orig_val));
-
-      var action_name = args.shift();
-      var func_name   = args.shift();
-      var func        = name_to_function(func_name);
-
-      // === data-if="!is_something|is_something  [args]"
-      var id = dom_id($(raw_e));
-      return App('push', action_name, function (msg) {
-        return apply_function(func, [merge(msg, {dom_id:id, args: args})]);
-      });
-    }); // === each
-    $(raw_e).attr('data-if_done', 'yes');
-  }); // === each
-}); // === App push process_data_ifs
 
 
 // === Adds functionality:
@@ -1496,6 +1464,8 @@ App('push', 'dom-change', function process_data_dos(msg) {
 
 }); // === App push process_data_dos
 
+
+// === Adds: data-on="click|mousedown|.. my_func"
 App('push', 'dom-change', function process_data_on(msg) {
   var selector = '*[data-on]:not(*[data-on_done~="yes"])';
   var elements = $((msg && msg.target) || $('body')).find(selector).addBack(selector);
@@ -1546,7 +1516,7 @@ App('push', 'dom-change', function process_data_on(msg) {
 
 spec_returns(['SCRIPT', 'SPAN', 'P'], function template_replaces_elements_by_default() {
   spec_dom().html(
-    '<script type="application/template" data-if="is_text template">' +
+    '<script type="application/template" data-do="template is_text">' +
       html_escape('<span>{{a1}}</span>') +
       html_escape('<p>{{a2}}</p>') +
         '</script>'
@@ -1560,7 +1530,7 @@ spec_returns(['SCRIPT', 'SPAN', 'P'], function template_replaces_elements_by_def
 
 spec_returns(['SCRIPT','P','DIV'], function template_renders_elements_below_by_default() {
   spec_dom().html(
-    '<script type="application/template" data-if="is_text template">' +
+    '<script type="application/template" data-do="template is_text">' +
       html_escape('<p>one</p>') +
       html_escape('<div>two</div>') +
         '</script>'
@@ -1573,11 +1543,11 @@ spec_returns(['SCRIPT','P','DIV'], function template_renders_elements_below_by_d
 
 spec_returns('123', function template_renders_vars() {
   spec_dom().html(
-    '<script type="application/template" data-if="is_text template">'+
+    '<script type="application/template" data-do="template is_text">'+
       html_escape('<p>{{a}}</p>') +
       html_escape('<p>{{b}}</p>') +
 
-      html_escape('<script type="application/template" data-if="is_val template">') +
+      html_escape('<script type="application/template" data-do="template is_val">') +
         html_escape(html_escape('<p>{{c}}</p>')) +
       html_escape('</script>') +
     '</script>'
@@ -1591,7 +1561,7 @@ spec_returns('123', function template_renders_vars() {
 
 spec_returns(['P', 'P', 'SCRIPT'], function template_renders_above() {
   spec_dom().html(
-    '<script type="application/template" data-if="is_text template above">'+
+    '<script type="application/template" data-do="template is_text above">'+
       html_escape('<p>{{a}}</p>') + html_escape('<p>{{b}}</p>') +
     '</script>'
   );
@@ -1602,7 +1572,7 @@ spec_returns(['P', 'P', 'SCRIPT'], function template_renders_above() {
 
 spec_returns(['SCRIPT', 'SPAN', 'P'], function template_renders_below() {
   spec_dom().html(
-    '<script type="application/template" data-if="is_text template bottom">'+
+    '<script type="application/template" data-do="template is_text bottom">'+
       html_escape('<span>{{a}}</span>') + html_escape('<p>{{b}}</p>') +
     '</script>'
   );
@@ -1613,8 +1583,8 @@ spec_returns(['SCRIPT', 'SPAN', 'P'], function template_renders_below() {
 
 spec_returns('none', function template_renders_dum_functionality() {
   spec_dom().html(
-    '<script type="application/template" data-if="render_template template">' +
-      html_escape('<div><span id="template_1" data-if="is_num hide">{{num.word}}</span></div>') +
+    '<script type="application/template" data-do="template render_template">' +
+      html_escape('<div><span id="template_1" data-do="hide is_num">{{num.word}}</span></div>') +
       '</script>'
   );
   App('run', {'dom-change': true});
@@ -1675,9 +1645,9 @@ function submit_form(o) {
 spec_returns('yo mo', function button_submit(fin) {
   spec_dom().html(
     '<form id="the_form" action="/repeat">' +
-      '<script type="application/template" data-if="the_form.ok template">' +
+      '<script type="application/template" data-do="template the_form.ok">' +
         html_escape('<div>{{val1}} {{val2}}</div>') +
-          '</script><button data-on="click submit_form">Submit</button></form>'
+          '</script><button data-do="submit_form click">Submit</button></form>'
   );
   App('run', {'dom-change': true});
   spec_dom().find('button').click();
