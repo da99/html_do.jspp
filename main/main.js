@@ -1356,14 +1356,14 @@ function Computer() {
 
 } // === function Computer
 
-spec_returns('', function () {
-  spec_dom().html('<div data-dum="is_ruby? show_hide" style="display: none;">Ruby</div>');
+spec_returns('', function () { // === dum_show_hide shows element if key = true
+  spec_dom().html('<div data-do="is_ruby? show_hide" style="display: none;">Ruby</div>');
   App('run', {dom: true});
   App('run', {is_ruby: true});
   return spec_dom().find('div').attr('style');
 });
-spec_returns('', function () {
-  spec_dom().html('<div data-dum="!is_ruby? show_hide" style="display: none;">Perl</div>');
+spec_returns('', function () { // === dum_show_hide hides element if key = false
+  spec_dom().html('<div data-do="!is_ruby? show_hide" style="display: none;">Perl</div>');
   App('run', {dom: true});
   App('run', {is_ruby: false});
   return spec_dom().find('div').attr('style');
@@ -1377,7 +1377,7 @@ function dum_show_hide(msg) {
 
 
 spec_returns('', function () {
-  spec_dom().html('<div data-dum="is_factor show" style="display: none;">Factor</div>');
+  spec_dom().html('<div data-do="is_factor show" style="display: none;">Factor</div>');
   App('run', {dom: true});
   App('run', {is_factor: true});
   return spec_dom().find('div').attr('style');
@@ -1388,7 +1388,7 @@ function dum_show(msg) {
 }
 
 spec_returns('display: none;', function () {
-  spec_dom().html('<div data-dum="is_factor hide">Factor</div>');
+  spec_dom().html('<div data-do="is_factor hide">Factor</div>');
   App('run', {dom: true});
   App('run', {is_factor: true});
   return spec_dom().find('div').attr('style');
@@ -1399,21 +1399,21 @@ function dum_hide(msg) {
 }
 
 // === Adds functionality:
-// data-dum="do_something!  arg1 arg2"
-// data-dum="is_something?  do_something"
-// data-dum="is_something   do_something"
-// data-dum="!is_something  do_something"
-// data-dum="on_click       do_something"
-// data-dum="on_mousedown   do_something"
-// data-dum="on_keypress    do_something"
+// data-do="do_something!  arg1 arg2"
+// data-do="is_something?  do_something"
+// data-do="is_something   do_something"
+// data-do="!is_something  do_something"
+// data-do="on_click       do_something"
+// data-do="on_mousedown   do_something"
+// data-do="on_keypress    do_something"
 function dum_dom(data) {
-  var selector = '*[data-dum]:not(*[data-dum_fin~="yes"])';
+  var selector = '*[data-do]:not(*[data-do_fin~="yes"])';
   var elements = $((data && data.target) || $('body')).find(selector).addBack(selector);
 
   var events = ['on_click', 'on_mousedown', 'on_mouseup', 'on_keypress'];
 
   eachs(elements, function (i, raw_e) {
-    eachs($(raw_e).attr('data-dum').split(';'), function (_i, raw_cmd) {
+    eachs($(raw_e).attr('data-do').split(';'), function (_i, raw_cmd) {
 
       raw_cmd = _.trim(raw_cmd);
       if (is_empty(raw_cmd))
@@ -1421,7 +1421,7 @@ function dum_dom(data) {
 
       var args = raw_cmd.split(WHITESPACE);
 
-      // === data-dum="is_name my_func"
+      // === data-do="is_name my_func"
       if (l(args) < 1)
         throw new Error("Invalid command: " + to_string(raw_cmd));
 
@@ -1433,7 +1433,7 @@ function dum_dom(data) {
         name_to_function( 'dum_' + func_name) :
         name_to_function(func_name);
 
-      // === data-dum="do_something! arg1 arg 2"
+      // === data-do="do_something! arg1 arg 2"
       if (is_now) {
         apply_function(
           func, [{
@@ -1446,7 +1446,7 @@ function dum_dom(data) {
       }
 
 
-      // === data-dum="is_something?|!is_something|is_something  [args]"
+      // === data-do="is_something?|!is_something|is_something  [args]"
       var id       = dom_id($(raw_e));
       var is_event = _.detect(events, is(action_name));
       if (!is_event) {
@@ -1469,7 +1469,7 @@ function dum_dom(data) {
       });
 
     });
-    $(raw_e).attr('data-dum_fin', 'yes');
+    $(raw_e).attr('data-do_fin', 'yes');
   });
 
 } // === dum_dom
@@ -1477,7 +1477,7 @@ function dum_dom(data) {
 
 spec_returns(['SCRIPT', 'SPAN', 'P'], function dum_template_replaces_elements_by_default() {
   spec_dom().html(
-    '<script type="application/dum_template" data-dum="is_text template">' +
+    '<script type="application/dum_template" data-do="is_text template">' +
       html_escape('<span>{{a1}}</span>') +
       html_escape('<p>{{a2}}</p>') +
         '</script>'
@@ -1491,7 +1491,7 @@ spec_returns(['SCRIPT', 'SPAN', 'P'], function dum_template_replaces_elements_by
 
 spec_returns(['SCRIPT','P','DIV'], function dum_template_renders_elements_below_by_default() {
   spec_dom().html(
-    '<script type="application/dum_template" data-dum="is_text template">' +
+    '<script type="application/dum_template" data-do="is_text template">' +
       html_escape('<p>one</p>') +
       html_escape('<div>two</div>') +
         '</script>'
@@ -1504,11 +1504,11 @@ spec_returns(['SCRIPT','P','DIV'], function dum_template_renders_elements_below_
 
 spec_returns('123', function dum_template_renders_vars() {
   spec_dom().html(
-    '<script type="application/dum_template" data-dum="is_text template">'+
+    '<script type="application/dum_template" data-do="is_text template">'+
       html_escape('<p>{{a}}</p>') +
       html_escape('<p>{{b}}</p>') +
 
-      html_escape('<script type="application/dum_template" data-dum="is_val template">') +
+      html_escape('<script type="application/dum_template" data-do="is_val template">') +
         html_escape(html_escape('<p>{{c}}</p>')) +
       html_escape('</script>') +
     '</script>'
@@ -1522,7 +1522,7 @@ spec_returns('123', function dum_template_renders_vars() {
 
 spec_returns(['P', 'P', 'SCRIPT'], function dum_template_renders_above() {
   spec_dom().html(
-    '<script type="application/dum_template" data-dum="is_text template above">'+
+    '<script type="application/dum_template" data-do="is_text template above">'+
       html_escape('<p>{{a}}</p>') + html_escape('<p>{{b}}</p>') +
     '</script>'
   );
@@ -1533,7 +1533,7 @@ spec_returns(['P', 'P', 'SCRIPT'], function dum_template_renders_above() {
 
 spec_returns(['SCRIPT', 'SPAN', 'P'], function dum_template_renders_below() {
   spec_dom().html(
-    '<script type="application/dum_template" data-dum="is_text template bottom">'+
+    '<script type="application/dum_template" data-do="is_text template bottom">'+
       html_escape('<span>{{a}}</span>') + html_escape('<p>{{b}}</p>') +
     '</script>'
   );
@@ -1544,8 +1544,8 @@ spec_returns(['SCRIPT', 'SPAN', 'P'], function dum_template_renders_below() {
 
 spec_returns('none', function dum_template_renders_dum_functionality() {
   spec_dom().html(
-    '<script type="application/dum_template" data-dum="render_template template">' +
-      html_escape('<div><span id="dum_template_1" data-dum="is_num hide">{{num.word}}</span></div>') +
+    '<script type="application/dum_template" data-do="render_template template">' +
+      html_escape('<div><span id="dum_template_1" data-do="is_num hide">{{num.word}}</span></div>') +
       '</script>'
   );
   App('run', {dom: true});
@@ -1606,9 +1606,9 @@ function submit_form(o) {
 spec_returns('yo mo', function (fin) {
   spec_dom().html(
     '<form id="the_form" action="/repeat">' +
-      '<script type="application/dum_template" data-dum="the_form.ok template">' +
+      '<script type="application/dum_template" data-do="the_form.ok template">' +
         html_escape('<div>{{val1}} {{val2}}</div>') +
-          '</script><button data-dum="on_click submit_form">Submit</button></form>'
+          '</script><button data-do="on_click submit_form">Submit</button></form>'
   );
   App('run', {dom: true});
   spec_dom().find('button').click();
