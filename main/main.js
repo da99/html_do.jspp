@@ -316,8 +316,8 @@ spec_returns('has id', function dom_id_adds_id_attr_to_element() {
   return $('#' + id).html();
 });
 
-spec_returns('non_override_1', function dom_id_does_not_override_original_id() {
-  spec_dom().html('<div id="non_override_1">override id</div>');
+spec_returns('dom_id_does_not_override_original_id', function dom_id_does_not_override_original_id() {
+  spec_dom().html('<div id="dom_id_does_not_override_original_id">override id</div>');
   return dom_id(spec_dom().find('div:first'));
 });
 
@@ -571,7 +571,7 @@ function name_to_function(raw) {
 // === Examples:
 // App()
 // App('reset')
-// App('push', 'action', function)
+// App(..args for underlying Computer)
 function App() {
   var is_reset = l(arguments) === 1 && arguments[0] === 'reset';
   var is_new_computer = is_empty(arguments) && !App._computer;
@@ -896,8 +896,8 @@ function outer_html(raw) {
 }
 
 
-spec_returns('target_top_desc', function () { // it 'returns self if selector matches'
-  spec_dom().html('<div id="target_top_desc" template="num"></div>');
+spec_returns('top_descendents_returns_self_if_selector_matches', function top_descendents_returns_self_if_selector_matches() {
+  spec_dom().html('<div id="top_descendents_returns_self_if_selector_matches" template="num"></div>');
   return top_descendents(spec_dom().children(), '*[template]')[0].attr('id');
 });
 
@@ -910,9 +910,10 @@ spec_returns(['SPAN', 'SPAN'], function () { // it 'returns first children match
 });
 
 
-spec_returns([['DIV', 'target']], function () { // it 'does not return nested matching descendants if ancestor matches selector'
+spec_returns([['DIV', 'top_descendents_1']], function () { // does not return nested matching descendants if ancestor matches selector'
+  var id = next_id();
   spec_dom().html(
-    '<div><div id="target" class="top"><span class="top"></span><span class="top"></span></div><div>'
+    '<div><div id="top_descendents_1" class="top"><span class="top"></span><span class="top"></span></div><div>'
   );
   return _.map(
     top_descendents(spec_dom().children(), '.top'),
@@ -941,8 +942,8 @@ spec_returns('one', function remove_attr_returns_value_of_the_attribute() {
 });
 
 // it 'removes attribute from node'
-spec_returns({id: 'target_remove_attr'}, function remove_attr_removes_attribute_from_node() {
-  spec_dom().html('<div id="target_remove_attr" show_if="one"></div>');
+spec_returns({id: 'remove_attr_1'}, function remove_attr_removes_attribute_from_node() {
+  spec_dom().html('<div id="remove_attr_1" show_if="one"></div>');
   remove_attr(spec_dom().find('div:first'), 'show_if');
   return _.reduce(
     spec_dom().find('div:first')[0].attributes,
@@ -1549,14 +1550,14 @@ spec_returns(['SCRIPT', 'SPAN', 'P'], function dum_template_renders_below() {
 
 spec_returns('none', function dum_template_renders_dum_functionality() {
   spec_dom().html(
-    '<script type="application/dum_template" data-dum="render_template template">'+
-      html_escape('<div id="target"><span id="target_sub" data-dum="is_num hide">{{num.word}}</span></div>') +
+    '<script type="application/dum_template" data-dum="render_template template">' +
+      html_escape('<div><span id="dum_template_1" data-dum="is_num hide">{{num.word}}</span></div>') +
       '</script>'
   );
   App('run', {dom: true});
   App('run', {render_template: true});
   App('run', {is_num: true, data: {num: {word: 'one'}}});
-  return $('#target_sub').css('display');
+  return $('#dum_template_1').css('display');
 });
 
 function dum_template(msg) {
