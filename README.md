@@ -22,9 +22,29 @@ Message Standardization:
 * `{ ok : true, ... }`
 * `{ err: true, err_server|err_user: true, msg: "string", ... }`
 
+Computer
+========
+
+Holds state. Mainly keeps track of array of functions that process messages.
+There is no "name of message"/"type of message". This allows the functions
+flexibility to handle messages and avoid creating a limiting/inflexible
+DSL to associate messages w/functions.
+
+```javascript
+    computer('push', 'dom-change', my_func);
+    computer('push', '!dom-change', my_func);
+    computer('push', 'dom-change?', my_func);
+    computer('run', {dom_change: true});
+    // vs:
+    computer('push', my_func_with_closure);
+    computer('run', {dom_change: true});
+```
+
 Extremes:
 =========
 
+* Visualize GUI + prepare GUI elements
+  * Associate functions to elements, run those functions
 * State between functions
 * Foms - before/after/on submit
 * Mouse & keyboard events
