@@ -22,15 +22,15 @@ function Computer() {
   return State;
 
   function State(action, args) {
-    if (State.is_invalid === true)
-      throw new Error("state is invalid.");
-
     if (action === 'invalid') {
       State.is_invalid = true;
       return;
     }
 
-    if(!is_array(State.funcs || 'none'))
+    if (State.is_invalid === true)
+      throw new Error("state is invalid.");
+
+    if(!is_array(State.funcs))
       State.funcs = [];
     var funcs = State.funcs.slice(0);
 
@@ -1387,6 +1387,9 @@ function to_value(val, _funcs) {
   return val;
 }
 
+spec_returns(false, function () { // next_id returns a different value than previous
+  return next_id() === next_id();
+});
 function next_id() {
   if (!is_num(next_id.count))
     next_id.count = -1;
@@ -1398,26 +1401,35 @@ function next_id() {
 
 
 spec_returns('', function () { // === show_hide shows element if key = true
-  spec_dom().html('<div data-do="show_hide is_ruby?" style="display: none;">Ruby</div>');
+  spec_dom().html('<div data-do="show_hide is_ruby" style="display: none;">Ruby</div>');
   App('run', {'dom-change': true});
   App('run', {is_ruby: true});
   return spec_dom().find('div').attr('style');
 });
-spec_returns('', function () { // === show_hide hides element if key = false
-  spec_dom().html('<div data-do="show_hide !is_ruby?" style="display: none;">Perl</div>');
+spec_returns('display: none;', function () { // === show_hide hides element if key = false
+  spec_dom().html('<div data-do="show_hide !is_ruby" style="">Perl</div>');
   App('run', {'dom-change': true});
   App('run', {is_ruby: false});
   return spec_dom().find('div').attr('style');
 });
 function show_hide(msg) {
-  if (msg.args[0] === true)
-    return show(msg);
-  else
-    return hide(msg);
+  var dom_id = should_be(msg.dom_id, is_string);
+  var key    = should_be(msg.args, has_length(1));
+  var base   = _.trim(key, '!');
+  var is_negate = key === ('!' + base);
+
+  App('push', function _show_hide_(msg) {
+    if ($('#' + dom_id).length > 0 && is_plain_object(msg) && is_bool( msg[base] )) {
+      if ((!is_negate && msg[base]) || (is_negate && !msg[base]))
+        return $('#' + dom_id).show();
+      else
+        return $('#' + dom_id).hide();
+    }
+  });
 }
 
 
-spec_returns('', function () {
+spec_returns('', function () { // show: shows element when key is true
   spec_dom().html('<div data-do="show is_factor" style="display: none;">Factor</div>');
   App('run', {'dom-change': true});
   App('run', {is_factor: true});
@@ -1428,7 +1440,7 @@ function show(msg) {
   return 'show: ' + msg.dom_id;
 }
 
-spec_returns('display: none;', function () {
+spec_returns('display: none;', function () { // hide: hides element when key is true
   spec_dom().html('<div data-do="hide is_factor">Factor</div>');
   App('run', {'dom-change': true});
   App('run', {is_factor: true});
