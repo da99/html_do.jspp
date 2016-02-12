@@ -814,6 +814,9 @@ function is_specs(specs) {
 // spec_run({list: [], i:"init"|0|positive});
 //
 function spec_run() {
+  if (!spec.specs || is_empty(spec.specs))
+    throw new Error('No specs found.');
+
   if (is_empty(arguments)) {
     return spec_run({
       i : 'init',
@@ -1500,7 +1503,7 @@ spec_returns(['SCRIPT','P','DIV'], function template_renders_elements_below_by_d
   return _.map(spec_dom().children(), dot('tagName'));
 });
 
-spec_returns('123', function template_renders_vars() {
+spec_returns('123', function template_renders_nested_vars() {
   spec_dom().html(
     '<script type="application/template" data-do="template is_text replace">'+
       html_escape('<p>{{a}}</p>') +
@@ -1593,6 +1596,7 @@ function template(msg) {
 
     me.elements[id] = ([]).concat(me.elements[id]).concat( new_ids );
 
+    App('run', {'dom-change': true});
     return new_ids;
   }
 
@@ -1615,7 +1619,7 @@ function submit_form(o) {
 spec_returns('yo mo', function button_submit(fin) {
   spec_dom().html(
     '<form id="the_form" action="/repeat">' +
-      '<script type="application/template" data-do="template the_form.ok">' +
+      '<script type="application/template" data-do="template the_form.ok replace">' +
         html_escape('<div>{{val1}} {{val2}}</div>') +
           '</script><button data-do="submit_form click">Submit</button></form>'
   );
