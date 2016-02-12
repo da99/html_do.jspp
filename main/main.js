@@ -7,39 +7,19 @@ var WHITESPACE = /\s+/g;
 
 // ========================= Computer =========================================
 spec_returns(3, function () {
-  var a = 0, id = next_id('is_happy');
-  var data = {}; data[id] = true;
+  var counter = 0;
+  var data = {my_name: 'happy'};
   var state = new Computer();
-  state('push', id, function (msg) {a=a+1;});
-  state('run', data); state('run', data); state('run', data);
-  return a;
+  state('push', function (msg) {
+    if (!msg_match({my_name: 'happy'}, msg))
+      return;
+    ++counter;
+  });
+  do_it(3, function () { state('run', data); });
+  return counter;
 });
-spec_returns(1, function () {
-  var a = 0, id = next_id('is_happy');
-  var d_false = {rand_key: 1}; d_false[id] = false;
-  var d_true  = {rand_key2: 2}; d_true[id]  = true;
-  var state = new Computer();
-  state('push', '!' + id, function (msg) {a=a+1;});
-  state('run', d_false);
-  state('run', d_true);
-  state('run', d_true);
-  return a;
-});
-
 function Computer() {
-  State.allowed = ['data'];
   return State;
-
-  function allow(raw_name) {
-    var name = _.trimLeft(raw_name, '!');
-    State.allowed.push(name);
-    return name;
-  }
-
-  function is_allowed(raw_name) {
-    var name = _.trimLeft(raw_name, '!');
-    return _.detect(State.allowed, function (x) { return x === name; });
-  }
 
   function State(action, args) {
     if (State.is_invalid === true)
@@ -55,50 +35,24 @@ function Computer() {
     var funcs = State.funcs.slice(0);
 
     switch (action) {
-      case 'allow':
-        var new_actions = _.flattenDeep( [_.toArray(arguments)] );
-        State.allowed = [].concat(State.allowed).concat(new_actions);
-        break;
-
       case 'push':
-        var name=arguments[1], func= arguments[2];
+        arguments_are(arguments, is('push'), and(is_function, has_length(1)));
+        var func = arguments[1];
 
-        if (!is_string(name))
-          throw new Error("'name' value invalid: " + to_string(name));
-        if (!is_function(func))
-          throw new Error("invalid value for function: " + to_string(func));
         if (func.length !== 1)
           throw new Error("function.length needs to === 1: " + function_to_name(func));
-        if (!is_allowed(name))
-          allow(name);
 
-        State.funcs = funcs.slice(0).concat([{name: name, func: func}]);
+        State.funcs = funcs.slice(0).concat([func]);
         return true;
 
       case 'run':
-        arguments_are(arguments, is('run'), is_plain_object).shift();
+        arguments_are(arguments, is('run'), is_plain_object);
         var msg = arguments[1];
 
-        var chars = '?!';
-        return reduce_eachs([], funcs, function (acc, _ky, meta) {
-          var is_question = _.endsWith(meta.name, '?');
-          var is_negate   = _.startsWith(meta.name, '!');
-          var base_key    = _.trim(meta.name, '?!');
-          var msg_copy    = copy_value(msg);
-          var answer      = (!is_negate && msg[base_key] === true) ||
-                  (is_negate && msg[base_key] === false);
+        return reduce_eachs([], funcs, function (acc, _ky, func) {
           try {
-            if (is_question) {
-              if (msg_copy.hasOwnProperty('args'))
-                throw new Error('Key, args, already defined on message: ' + to_string(msg));
-              msg_copy.args = [answer];
-            }
-
-            if ( is_question || answer )
-              acc.push([
-                meta,
-                apply_function(meta.func, [msg_copy])
-              ]);
+            var msg_copy = copy_value(msg);
+            acc.push( apply_function(func, [msg_copy]));
           } catch (e) {
             State('invalid');
             throw e;
@@ -627,6 +581,44 @@ function is_nothing(v) {
   return or(is_null, is_undefined)(v);
 }
 
+spec(msg_match, [1,1], true);
+spec(msg_match, ["a", "a"], true);
+spec(msg_match, [[1],[1]], true);
+spec(msg_match, [[1,[2]],[1,[2]]], true);
+spec(msg_match, [{a:"b"}, {a:"b",c:"d"}], true);
+spec(msg_match, [{a:is_string}, {a:"b"}], true);
+spec(msg_match, [{}, {a:"b"}], false);
+spec(msg_match, [{}, {}], true);
+spec(msg_match, [[], []], true);
+function msg_match(pattern, msg) {
+  if (_.isEqual(pattern, msg))
+    return true;
+
+  if (is_plain_object(pattern) && is_plain_object(msg)) {
+    if (is_empty(pattern) !== is_empty(msg))
+      return false;
+
+    return !_.detect(_.keys(pattern), function (key) {
+      var target = pattern[key];
+      if (msg[key] === target)
+        return !true;
+      if (is_function(target))
+        return !should_be(target(msg[key]), is_bool);
+      return !false;
+    });
+  }
+
+  return false;
+}
+
+function do_it(num, func) {
+  arguments_are(arguments, is_positive, is_function);
+  for (var i = 0; i < num; i++) {
+    func();
+  }
+  return true;
+}
+
 function to_match_string(actual, expect) {
   if (_.isEqual(actual, expect))
     return to_string(actual) + ' === ' + to_string(expect);
@@ -930,6 +922,27 @@ function l(v) {
   if (!or(is(0), is_positive)(num))
     throw new Error('.length is ' + to_string(v) + '.' + to_string(num));
   return num;
+}
+
+spec_returns(true, function has_length_returns_function() {
+  return is_function(has_length(1));
+});
+spec_returns(true, function has_length_returns_function_comparing_length() {
+  return has_length(1)([1]);
+});
+spec_returns(true, function has_length_returns_function_comparing_length_of_function() {
+  return has_length(2)(function (a,b) {});
+});
+spec_throws(function () { // returns function that returns false on length mismatch
+  return has_length(3)([1,2]);
+}, [], "[1, 2].length !== 3");
+function has_length(num) {
+  return function _has_length_(val) {
+    arguments_are(arguments, is_something);
+    if (val.length === num)
+      return true;
+    throw new Error(to_string(val) + '.length !== ' + to_string(num));
+  };
 }
 
 spec(is_length, [[1,2,3], 3], true);
@@ -1434,7 +1447,10 @@ function hide(msg) {
 
 // === Adds functionality:
 //     <div data-do="my_func arg1 arg2">content</div>
-App('push', 'dom-change', function process_data_dos(msg) {
+App('push', function process_data_dos(msg) {
+  if (!msg_match({'dom-change': true}, msg))
+    return;
+
   var selector = '*[data-do]:not(*[data-do_done~="yes"])';
   var elements = $((msg && msg.target) || $('body')).find(selector).addBack(selector);
 
@@ -1463,55 +1479,6 @@ App('push', 'dom-change', function process_data_dos(msg) {
   });
 
 }); // === App push process_data_dos
-
-
-// === Adds: data-on="click|mousedown|.. my_func"
-App('push', 'dom-change', function process_data_on(msg) {
-  var selector = '*[data-on]:not(*[data-on_done~="yes"])';
-  var elements = $((msg && msg.target) || $('body')).find(selector).addBack(selector);
-
-  var events = ['click', 'mousedown', 'mouseup', 'keypress'];
-
-  eachs(elements, function (i, raw_e) {
-    eachs(split_on(';', $(raw_e).attr('data-on')), function (_i, raw_cmd) {
-
-      var args = split_on(WHITESPACE, raw_cmd);
-
-      if (is_empty(args))
-        return;
-
-      if (l(args) < 2) // === data-on="is_name"
-        throw new Error("Invalid command: " + to_string(raw_cmd));
-
-      var action_name = args.shift();
-      var func_name   = args.shift();
-      var func        = name_to_function(func_name);
-
-      // === data-="is_something?|!is_something|is_something  [args]"
-      var id       = dom_id($(raw_e));
-      if (!_.detect(events, is(action_name))) {
-        throw new Error('Not an event: ' + to_string(raw_cmd));
-      }
-
-      $('#' + id).on(action_name, function (e) {
-        e.stopPropagation();
-        var msg = {
-          is_event: true,
-          event_name: action_name,
-          dom_id: id,
-          args: args
-        };
-        msg['on_' + action_name] = true;
-        msg[action_name]         = true;
-        apply_function(func, [msg]);
-        return null;
-      });
-
-    });
-    $(raw_e).attr('data-on_done', 'yes');
-  });
-
-}); // === App push process_data_on
 
 
 spec_returns(['SCRIPT', 'SPAN', 'P'], function template_replaces_elements_by_default() {
