@@ -22,7 +22,7 @@ Message Standardization:
 * `{ ok : true, ... }`
 * `{ err: true, err_server|err_user: true, msg: "string", ... }`
 
-Discarded designs:
+1 - Previous designs:
 ==================
 ```javascript
     computer('push', 'dom-change', my_func);
@@ -42,11 +42,12 @@ Anytime you have to introduce mini-languages/DSLs and clever tricks, you are lim
 flexibility and creating future dead-ends. It adds more things to learn and more complexity
 to the implementation of `dum_dum_boom_boom`.
 
-The final design (see `Current design`) is basically an array of functions. Each function
+
+2 - Previous design:
+==============
+Basically an array of functions. Each function
 handles it's own message matching and allows for simplicity while adding flexibity.
 
-Current design:
-==============
 ```javascript
     data-do="my_func  arg1  arg2 ..."
     function my_func(msg) {
@@ -64,6 +65,13 @@ Current design:
 There is no "name of message"/"type of message". This allows the functions
 flexibility to handle messages and avoid creating a limiting/inflexible
 DSL to associate messages w/functions.
+
+Current Design:
+=================
+
+MOPs - Message Oriented Pipelines
+
+![Message Oriented Pipelines](./docs/MOPs.png?raw=true)
 
 Extremes:
 =========
