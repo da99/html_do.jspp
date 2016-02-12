@@ -1455,36 +1455,47 @@ function hide(msg) {
 // === Adds functionality:
 //     <div data-do="my_func arg1 arg2">content</div>
 App('push', function process_data_dos(msg) {
+  // The other functions
+  // may alter the DOM. So to prevent unprocessed DOM
+  // or infinit loops, we process one element, then call the function
+  // over until no other unprocessed elements are found.
+
   if (!msg_match({'dom-change': true}, msg))
     return;
 
   var selector = '*[data-do]:not(*[data-do_done~="yes"])';
-  var elements = $((msg && msg.target) || $('body')).find(selector).addBack(selector);
+  var elements = $('*[data-do]:not(*[data-do_done~="yes"]):first');
 
-  eachs(elements, function (i, raw_e) {
-    eachs(split_on(';', $(raw_e).attr('data-do')), function (_i, raw_cmd) {
+  if (l(elements) === 0)
+    return;
 
-      var args = split_on(WHITESPACE, raw_cmd);
+  var raw_e = elements[0];
 
-      if (is_empty(args))
-        throw new Error("Invalid command: " + to_string(raw_cmd));
+  $(raw_e).attr('data-do_done', 'yes');
+  eachs(split_on(';', $(raw_e).attr('data-do')), function (_i, raw_cmd) {
 
-      var func_name   = args.shift();
-      var func        = name_to_function(func_name);
+    var args = split_on(WHITESPACE, raw_cmd);
 
-      apply_function(
-        func, [{
-          on_dom : true,
-          dom_id : dom_id($(raw_e)),
-          args : args.slice(0)
-        }]
-      );
-      return;
+    if (is_empty(args))
+      throw new Error("Invalid command: " + to_string(raw_cmd));
 
-    });
-    $(raw_e).attr('data-do_done', 'yes');
+    var func_name   = args.shift();
+    var func        = name_to_function(func_name);
+
+    apply_function(
+      func, [{
+        on_dom : true,
+        dom_id : dom_id($(raw_e)),
+        args : args.slice(0)
+      }]
+    );
+    return;
+
   });
 
+  process_data_dos(msg);
+
+  return true;
 }); // === App push process_data_dos
 
 
@@ -1597,8 +1608,6 @@ function template(msg) {
     compiled.insertBefore($('#' + id));
 
   me.elements[id] = ([]).concat(me.elements[id]).concat( new_ids );
-
-  App('run', {'dom-change': true});
 
   return new_ids;
 } // ==== funcs: template ==========
