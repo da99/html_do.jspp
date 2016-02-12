@@ -971,10 +971,11 @@ spec(key_to_bool, ['is_happy', {is_happy: true}], true);
 spec(key_to_bool, ['!is_happy', {is_happy: true}], false);
 spec(key_to_bool, ['is_happy',  {is_happy: false}], false);
 spec(key_to_bool, ['!is_happy', {is_happy: false}], true);
+spec_throws(key_to_bool, [['is_factor'], {}], "Value: [\"is_factor\"] !== is_string");
 function key_to_bool(raw_key, data) {
   var FRONT_BANGS = /^\!+/;
 
-  var key        = _.trim(raw_key);
+  var key        = _.trim(should_be(raw_key, is_string));
   var bang_match = key.match(FRONT_BANGS);
   var dots       = ( bang_match ? key.replace(bang_match[0], '') : key ).split('.');
   var keys       = _.map( dots, _.trim );
@@ -1377,31 +1378,34 @@ function next_id() {
 }
 
 
-spec_returns('', function () { // === show_hide shows element if key = true
+spec_returns('', function _show_hide() { // === show_hide shows element if key = true
   spec_dom().html('<div data-do="show_hide is_ruby" style="display: none;">Ruby</div>');
   App('run', {'dom-change': true});
   App('run', {is_ruby: true});
   return spec_dom().find('div').attr('style');
 });
-spec_returns('display: none;', function () { // === show_hide hides element if key = false
-  spec_dom().html('<div data-do="show_hide !is_ruby" style="">Perl</div>');
+spec_returns('display: none;', function _show_hide() { // === show_hide hides element if key = false
+  spec_dom().html('<div data-do="show_hide is_ruby" style="">Perl</div>');
   App('run', {'dom-change': true});
   App('run', {is_ruby: false});
   return spec_dom().find('div').attr('style');
 });
 function show_hide(msg) {
   var dom_id = should_be(msg.dom_id, is_string);
-  var key    = should_be(msg.args, has_length(1));
-  var base   = _.trim(key, '!');
-  var is_negate = key === ('!' + base);
+  var key    = should_be(msg.args[0], is_string);
 
   App('push', function _show_hide_(msg) {
-    if ($('#' + dom_id).length > 0 && is_plain_object(msg) && is_bool( msg[base] )) {
-      if ((!is_negate && msg[base]) || (is_negate && !msg[base]))
-        return $('#' + dom_id).show();
-      else
-        return $('#' + dom_id).hide();
-    }
+    if (!is_plain_object(msg))
+      return;
+
+    var answer = key_to_bool(key, msg);
+    if (!is_bool(answer))
+      return;
+
+    if (answer)
+      return $('#' + dom_id).show();
+    else
+      return $('#' + dom_id).hide();
   });
 }
 
@@ -1412,9 +1416,22 @@ spec_returns('', function () { // show: shows element when key is true
   App('run', {is_factor: true});
   return spec_dom().find('div').attr('style');
 });
+spec_returns('display: none;', function () { // does not alter element msg is missing key
+  spec_dom().html('<div data-do="show is_pearl" style="display: none;">Pearl</div>');
+  App('run', {'dom-change': true});
+  App('run', {is_factor: true});
+  return spec_dom().find('div').attr('style');
+});
 function show(msg) {
-  $('#' + msg.dom_id).show();
-  return 'show: ' + msg.dom_id;
+  var dom_id = should_be(msg.dom_id, is_string);
+  var key    = should_be(msg.args[0], is_string);
+  App('push', function _show_(msg) {
+    var answer = key_to_bool(key, msg);
+    if (is_bool(answer) !== true)
+      return;
+    $('#' + dom_id).show();
+    return 'show: ' + dom_id;
+  });
 }
 
 spec_returns('display: none;', function () { // hide: hides element when key is true
@@ -1423,9 +1440,21 @@ spec_returns('display: none;', function () { // hide: hides element when key is 
   App('run', {is_factor: true});
   return spec_dom().find('div').attr('style');
 });
+spec_returns('', function () { // does not alter element if msg has missing key
+  spec_dom().html('<div data-do="hide is_dog" style="">Dog</div>');
+  App('run', {'dom-change': true});
+  App('run', {is_cat: true});
+  return spec_dom().find('div').attr('style');
+});
 function hide(msg) {
-  $('#' + msg.dom_id).hide();
-  return 'hide: ' + msg.dom_id;
+  var dom_id = should_be(msg.dom_id, is_string);
+  var key    = should_be(msg.args[0], is_string);
+  App('push', function _hide_(msg) {
+    if (key_to_bool(key, msg) !== true)
+      return;
+    $('#' + dom_id).hide();
+    return 'hide: ' + msg.dom_id;
+  });
 }
 
 

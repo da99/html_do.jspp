@@ -76,6 +76,7 @@ MOPs - Message Oriented Pipelines
 Extremes:
 =========
 
+* Pipelines: server-side (data processing) + client-side (GUIs)
 * Visualize GUI + prepare GUI elements
   * Associate functions to elements, run those functions
 * State between functions
