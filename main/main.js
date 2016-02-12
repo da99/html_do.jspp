@@ -958,9 +958,9 @@ function is_anything(v) {
 
 spec(key_to_bool, ['time', {time: 'morning'}], true); // it 'returns true if key is "truthy"'
 spec(key_to_bool, ['!time', {time: false}], true); // it 'returns true if: !key , key is !truthy'
-spec( key_to_bool, ['!first.second.third', {first: {second: { third: true}}}], true); // it 'handles nested keys'
-spec( key_to_bool, ['!!!first', {first: false}], true); // it 'handles multiple exclamation marks'
-spec( key_to_bool, ['first', {}], undefined); // it 'returns undefined if one non-nested key is specified, but not found'
+spec(key_to_bool, ['!first.second.third', {first: {second: { third: true}}}], true); // it 'handles nested keys'
+spec(key_to_bool, ['!!!first', {first: false}], true); // it 'handles multiple exclamation marks'
+spec(key_to_bool, ['first', {}], undefined); // it 'returns undefined if one non-nested key is specified, but not found'
 spec(key_to_bool, ['is_factor', {is_factor: true}], true);
 spec(key_to_bool, ['!is_factor', {is_factor: false}], true);
 spec(key_to_bool, ['is_factor', {is_ruby: false}], undefined);
@@ -1553,7 +1553,7 @@ spec_returns('none', function template_renders_dum_functionality() {
 });
 
 function template(msg) {
-  if (!msg_match({dom_id: is_string, dom_change: true}, msg))
+  if (!msg_match({dom_id: is_string}, msg))
     return;
 
   var key = should_be(msg.args[0], is_string);
@@ -1564,7 +1564,12 @@ function template(msg) {
   var id       = msg.dom_id;
 
   function _template_(future_msg) {
-    var me       = _template_;
+    if (key_to_bool(key, future_msg) !== true)
+      return;
+
+    var me = _template_;
+
+    // === Init state:
     if (!is_plain_object(me.elements))
       me.elements = {};
     if (!is_array(me.elements[id]))
