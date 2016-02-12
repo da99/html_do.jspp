@@ -334,7 +334,6 @@ function merge(_args) {
   return fin;
 }
 
-
 spec_returns({a:{b:"c"}, b:true}, function () { // Does not alter orig.
   var orig = {a:{b:"c"}, b:true};
   var copy = copy_value(orig);
@@ -957,28 +956,52 @@ function is_anything(v) {
   return true;
 }
 
-// === When actual value is: true
-spec(key_to_bool, ['is_happy',  'is_happy', {is_happy: true}], true);
-spec(key_to_bool, ['!is_happy', 'is_happy', {is_happy: true}], false);
-// === When actual value is: false
-spec(key_to_bool, ['is_happy',  'is_happy', {is_happy: false}], false);
-spec(key_to_bool, ['!is_happy', 'is_happy', {is_happy: false}], true);
-function key_to_bool(target, key, data) {
-  if (!data.hasOwnProperty(key))
-    return false;
-  var actual = data[key];
-  if (!is_bool(actual))
-    return false;
+spec(key_to_bool, ['time', {time: 'morning'}], true); // it 'returns true if key is "truthy"'
+spec(key_to_bool, ['!time', {time: false}], true); // it 'returns true if: !key , key is !truthy'
+spec( key_to_bool, ['!first.second.third', {first: {second: { third: true}}}], true); // it 'handles nested keys'
+spec( key_to_bool, ['!!!first', {first: false}], true); // it 'handles multiple exclamation marks'
+spec( key_to_bool, ['first', {}], undefined); // it 'returns undefined if one non-nested key is specified, but not found'
+spec(key_to_bool, ['is_factor', {is_factor: true}], true);
+spec(key_to_bool, ['!is_factor', {is_factor: false}], true);
+spec(key_to_bool, ['is_factor', {is_ruby: false}], undefined);
+spec(key_to_bool, ['is_happy', {is_happy: true}], true);
+spec(key_to_bool, ['!is_happy', {is_happy: true}], false);
+spec(key_to_bool, ['is_happy',  {is_happy: false}], false);
+spec(key_to_bool, ['!is_happy', {is_happy: false}], true);
+function key_to_bool(raw_key, data) {
+  var FRONT_BANGS = /^\!+/;
 
-  if (target === key)
-    return actual;
+  var key        = _.trim(raw_key);
+  var bang_match = key.match(FRONT_BANGS);
+  var dots       = ( bang_match ? key.replace(bang_match[0], '') : key ).split('.');
+  var keys       = _.map( dots, _.trim );
 
-  var not_key = '!' + key;
-  if (target === not_key)
-    return !actual;
+  var current = data;
+  var ans  = false;
 
-  return false;
-}
+  _.detect(keys, function (key) {
+    if (_.has(current, key)) {
+      current = data[key];
+      ans = !!current;
+    } else {
+      ans = undefined;
+    }
+
+    return !ans;
+  });
+
+  if (ans === undefined)
+    return ans;
+
+  if (bang_match) {
+    _.times(bang_match[0].length, function () {
+      ans = !ans;
+    });
+  }
+
+  return ans;
+} // === func
+
 
 function find_key(k, _args) {
   var args = _.toArray(arguments);
@@ -1100,55 +1123,6 @@ function remove_attr(node, name) {
   $(node).removeAttr(name);
   return val;
 }
-
-// it 'returns true if key is "truthy"'
-spec(key_map_to_bool, [{time: 'morning'}, 'time'], true);
-
-// it 'returns true if: !key , key is !truthy'
-spec(key_map_to_bool, [{time: false}, '!time'], true);
-
-// it 'handles nested keys'
-spec( key_map_to_bool, [{first: {second: { third: true}}}, '!first.second.third'], true);
-
-// it 'handles multiple exclamation marks'
-spec( key_map_to_bool, [{first: false}, '!!!first'], true);
-
-// it 'returns undefined if one non-nested key is specified, but not found'
-spec( key_map_to_bool, [{}, 'first'], undefined);
-
-function key_map_to_bool(data, raw_key) {
-  var FRONT_BANGS = /^\!+/;
-
-  var key        = _.trim(raw_key);
-  var bang_match = key.match(FRONT_BANGS);
-  var dots       = ( bang_match ? key.replace(bang_match[0], '') : key ).split('.');
-  var keys       = _.map( dots, _.trim );
-
-  var current = data;
-  var ans  = false;
-
-  _.detect(keys, function (key) {
-    if (_.has(current, key)) {
-      current = data[key];
-      ans = !!current;
-    } else {
-      ans = undefined;
-    }
-
-    return !ans;
-  });
-
-  if (ans === undefined)
-    return ans;
-
-  if (bang_match) {
-    _.times(bang_match[0].length, function () {
-      ans = !ans;
-    });
-  }
-
-  return ans;
-} // === func
 
 
 
@@ -1496,12 +1470,12 @@ App('push', function process_data_dos(msg) {
   process_data_dos(msg);
 
   return true;
-}); // === App push process_data_dos
+}); // === App push process_data_dos ==========================================
 
 
 spec_returns(['SCRIPT', 'SPAN', 'P'], function template_replaces_elements_by_default() {
   spec_dom().html(
-    '<script type="application/template" data-do="template is_text">' +
+    '<script type="application/template" data-do="template is_text replace">' +
       html_escape('<span>{{a1}}</span>') +
       html_escape('<p>{{a2}}</p>') +
         '</script>'
@@ -1515,7 +1489,7 @@ spec_returns(['SCRIPT', 'SPAN', 'P'], function template_replaces_elements_by_def
 
 spec_returns(['SCRIPT','P','DIV'], function template_renders_elements_below_by_default() {
   spec_dom().html(
-    '<script type="application/template" data-do="template is_text">' +
+    '<script type="application/template" data-do="template is_text replace">' +
       html_escape('<p>one</p>') +
       html_escape('<div>two</div>') +
         '</script>'
@@ -1528,11 +1502,11 @@ spec_returns(['SCRIPT','P','DIV'], function template_renders_elements_below_by_d
 
 spec_returns('123', function template_renders_vars() {
   spec_dom().html(
-    '<script type="application/template" data-do="template is_text">'+
+    '<script type="application/template" data-do="template is_text replace">'+
       html_escape('<p>{{a}}</p>') +
       html_escape('<p>{{b}}</p>') +
 
-      html_escape('<script type="application/template" data-do="template is_val">') +
+      html_escape('<script type="application/template" data-do="template is_val replace">') +
         html_escape(html_escape('<p>{{c}}</p>')) +
       html_escape('</script>') +
     '</script>'
@@ -1568,7 +1542,7 @@ spec_returns(['SCRIPT', 'SPAN', 'P'], function template_renders_below() {
 
 spec_returns('none', function template_renders_dum_functionality() {
   spec_dom().html(
-    '<script type="application/template" data-do="template render_template">' +
+    '<script type="application/template" data-do="template render_template replace">' +
       html_escape('<div><span id="template_1" data-do="hide is_num">{{num.word}}</span></div>') +
       '</script>'
   );
@@ -1579,37 +1553,45 @@ spec_returns('none', function template_renders_dum_functionality() {
 });
 
 function template(msg) {
-  var pos = (msg.args || [])[0] || 'replace';
+  if (!msg_match({dom_id: is_string, dom_change: true}, msg))
+    return;
+
+  var key = should_be(msg.args[0], is_string);
+  var pos = should_be(msg.args[1], is_string);
 
   var t        = $('#' + msg.dom_id);
   var raw_html = t.html();
   var id       = msg.dom_id;
-  var me       = template;
 
-  if (!is_plain_object(me.elements))
-    me.elements = {};
-  if (!is_array(me.elements[id]))
-    me.elements[id] = [];
+  function _template_(future_msg) {
+    var me       = _template_;
+    if (!is_plain_object(me.elements))
+      me.elements = {};
+    if (!is_array(me.elements[id]))
+      me.elements[id] = [];
 
-  // === Remove old nodes:
-  if (pos === 'replace') {
-    eachs(me.elements[id], function (_index, id) {
-      $('#' + id).remove();
-    });
+    // === Remove old nodes:
+    if (pos === 'replace') {
+      eachs(me.elements[id], function (_index, id) {
+        $('#' + id).remove();
+      });
+    }
+
+    var decoded_html = html_unescape(raw_html);
+    var compiled = $(Mustache.render(decoded_html, future_msg.data || {}));
+    var new_ids = _.map(compiled, function (x) { return dom_id($(x)); });
+
+    if (pos === 'replace' || pos === 'bottom')
+      compiled.insertAfter($('#' + id));
+    else
+      compiled.insertBefore($('#' + id));
+
+    me.elements[id] = ([]).concat(me.elements[id]).concat( new_ids );
+
+    return new_ids;
   }
 
-  var decoded_html = html_unescape(raw_html);
-  var compiled = $(Mustache.render(decoded_html, msg.data || {}));
-  var new_ids = _.map(compiled, function (x) { return dom_id($(x)); });
-
-  if (pos === 'replace' || pos === 'bottom')
-    compiled.insertAfter($('#' + id));
-  else
-    compiled.insertBefore($('#' + id));
-
-  me.elements[id] = ([]).concat(me.elements[id]).concat( new_ids );
-
-  return new_ids;
+  App('push', _template_);
 } // ==== funcs: template ==========
 
 function submit_form(o) {
