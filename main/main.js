@@ -945,11 +945,6 @@ function has_length(num) {
   };
 }
 
-spec(is_length, [[1,2,3], 3], true);
-function is_length(v, num) {
-  return l(v) === num;
-}
-
 spec(is_anything, [false], true);
 spec(is_anything, [true], true);
 spec_throws(is_anything, [null], 'null found');
