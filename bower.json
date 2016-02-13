@@ -17,6 +17,7 @@
     "tests"
   ],
   "dependencies": {
-    "form-to-obj": "chrisdavies/form-to-obj#^0.0.3"
+    "form-to-obj": "chrisdavies/form-to-obj#^0.0.3",
+    "alite": "chrisdavies/alite#^0.1.4"
   }
 }

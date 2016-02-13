@@ -7,6 +7,7 @@ const app          = require('express')();
 const serve_static = require('serve-static')('./www');
 const port         = parseInt(process.env.PORT);
 const logger       = require('morgan')('dev');
+const bodyParser   = require('body-parser');
 
 function json(app, o) {
   app.set('Content-Type', 'application/json');
@@ -17,6 +18,8 @@ function json(app, o) {
 //Create a server
 app.use(logger);
 app.use(serve_static);
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({extended: true}));
 
 app.post('/', function (req, resp) {
   json(resp, {when: 'for now'});
@@ -50,7 +53,7 @@ app.post("/text", function (req, resp) {
 });
 
 app.post("/repeat", function (req, resp) {
-  resp.send( json(resp, {ok: true, data: {"not_ready": "not ready"}, msg: 'hello'}) );
+  resp.send( json(resp, {ok: true, data: req.body, about: 'data received: ' + JSON.stringify(req.body) }) );
 });
 
 app.post("/json", function (req, resp) {

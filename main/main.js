@@ -1,6 +1,6 @@
 "use strict";
 /* jshint globalstrict: true, undef: true */
-/* globals setTimeout, Mustache, promise, _, $, window, console, DOMParser  */
+/* globals setTimeout, alite, formToObj, Mustache, promise, _, $, window, console, DOMParser  */
 
 var WHITESPACE = /\s+/g;
 
@@ -1654,21 +1654,47 @@ function on_click(msg) {
 
   on_click.processed[dom_id] = true;
 
+
   $('#' + msg.dom_id).on("click", function (e) {
     e.stopPropagation();
     func({dom_id: dom_id});
   });
 }
 
-function submit_form(o) {
-  log(o);
+function submit_form(msg) {
+  if (!msg_match({dom_id: is_string}, msg))
+    return;
+  var form = $('#' + msg.dom_id).closest('form');
+  var raw_form = form[0];
+  if (!raw_form)
+    return;
+  var form_dom_id = dom_id(form);
+
   // the form_id
   // the form as a data structure
   // Create callback for response
   //   -- standardize response
   //   -- send to Computer/App
   // Send to ajax w/callback
-  throw new Error('submit_form: not ready');
+  alite({url: form.attr('action'), method: 'POST', data: formToObj(raw_form)}).then(
+    function (result) {
+      if (!result.ok)
+        return;
+      if (!result.data)
+        return;
+      var data = {
+        ajax_response : true,
+        result: result,
+        data : result.data
+      };
+      data['ok_' + form_dom_id] = true;
+      App('run', data);
+    }
+  ).catch(
+    function (err) {
+      log(err);
+    }
+  );
 } // === function submit_form
 
 // ==== Integration tests =====================================================
@@ -1676,9 +1702,12 @@ function submit_form(o) {
 spec_returns('yo mo', function button_submit(fin) {
   spec_dom().html(
     '<form id="the_form" action="/repeat">' +
-      '<script type="application/template" data-do="template the_form.ok replace">' +
+      '<script type="application/template" data-do="template ok_the_form replace">' +
         html_escape('<div>{{val1}} {{val2}}</div>') +
-          '</script><button data-do="on_click submit_form">Submit</button></form>'
+          '</script><button onclick="return false;" data-do="on_click submit_form">Submit</button>' +
+            '<input type="hidden" name="val1" value="yo" />' +
+            '<input type="hidden" name="val2" value="mo" />' +
+            '</form>'
   );
   App('run', {'dom-change': true});
   spec_dom().find('button').click();
