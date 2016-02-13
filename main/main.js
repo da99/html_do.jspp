@@ -437,10 +437,9 @@ function is_anything(v) {
 
 spec(is_function_name, ['is_function'], true);
 spec(is_function_name, ['none none'], false);
-spec_throws(is_function_name, [is_function_name], "Value: " + to_string(is_function_name) + ' !== is_string');
+spec(is_function_name, [is_function_name], false);
 function is_function_name(v) {
-  should_be(v, is_string);
-  return is_function(window[v]);
+  return is_string(v) && is_function(window[v]);
 }
 
 function is_function(v) {
@@ -1641,9 +1640,26 @@ function template(msg) {
 } // ==== funcs: template ==========
 
 function on_click(msg) {
-  log(msg);
-  throw new Error('not ready');
+  if (!msg_match({dom_id: is_string}, msg))
+    return;
+  if (!msg.args || !is_function_name(msg.args[0]))
+    return;
+
+  var dom_id = msg.dom_id;
+  var func = window[msg.args[0]];
+
+  if (!on_click.processed)
+    on_click.processed = {};
+  if (on_click.processed[dom_id])
+    throw new Error('#' + dom_id + ' already processed by on_click');
+  on_click.processed[dom_id] = true;
+
+  $('#' + msg.dom_id).on("click", function (e) {
+    e.stopPropagation();
+    func({dom_id: dom_id});
+  });
 }
+
 function submit_form(o) {
   log(o);
   // the form_id
@@ -1652,7 +1668,7 @@ function submit_form(o) {
   //   -- standardize response
   //   -- send to Computer/App
   // Send to ajax w/callback
-  throw new Error('not ready');
+  throw new Error('submit_form: not ready');
 } // === function submit_form
 
 // ==== Integration tests =====================================================
