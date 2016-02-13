@@ -1632,6 +1632,10 @@ function template(msg) {
   App('push', _template_);
 } // ==== funcs: template ==========
 
+function on_click(msg) {
+  log(msg);
+  throw new Error('not ready');
+}
 function submit_form(o) {
   log(o);
   // the form_id
@@ -1650,7 +1654,7 @@ spec_returns('yo mo', function button_submit(fin) {
     '<form id="the_form" action="/repeat">' +
       '<script type="application/template" data-do="template the_form.ok replace">' +
         html_escape('<div>{{val1}} {{val2}}</div>') +
-          '</script><button data-do="submit_form click">Submit</button></form>'
+          '</script><button data-do="on_click submit_form">Submit</button></form>'
   );
   App('run', {'dom-change': true});
   spec_dom().find('button').click();

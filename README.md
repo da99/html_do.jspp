@@ -69,7 +69,12 @@ DSL to associate messages w/functions.
 Current Design:
 =================
 
-MOPs - Message Oriented Pipelines
+MOPs - Message Oriented Pipelines - If you do not like this (or find
+    it confusing) then just read about: 
+Alan Kay's Real OOP, Erlang Process/Message/OTP, and biological systems.
+MOPs is focused on experiments, recovering from those failed experiments,
+     and flexibility. I should be able to create a Ruby Rack, Elixir Plug,
+     or GUI-interaction system with just a few concepts.
 
 ![Message Oriented Pipelines](./docs/MOPs.png?raw=true)
 
