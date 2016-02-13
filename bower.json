@@ -17,6 +17,6 @@
     "tests"
   ],
   "dependencies": {
-    "jshint": "~2.9.0"
+    "form-to-obj": "chrisdavies/form-to-obj#^0.0.3"
   }
 }

@@ -141,6 +141,10 @@ case $action in
     $0 watch $THE_ARGS
     ;;
 
+  update|upgrade)
+    bower update --force-latest
+    ;;
+
   *)
     echo "Unknown option: $action" 1>&2
     exit 1
