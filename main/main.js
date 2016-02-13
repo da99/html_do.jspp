@@ -435,6 +435,14 @@ function is_anything(v) {
   return true;
 }
 
+spec(is_function_name, ['is_function'], true);
+spec(is_function_name, ['none none'], false);
+spec_throws(is_function_name, [is_function_name], "Value: " + to_string(is_function_name) + ' !== is_string');
+function is_function_name(v) {
+  should_be(v, is_string);
+  return is_function(window[v]);
+}
+
 function is_function(v) {
   if (arguments.length !== 1)
     throw new Error("Invalid: arguments.length must === 1");
