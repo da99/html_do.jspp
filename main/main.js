@@ -832,29 +832,8 @@ function is_specs(specs) {
   return true;
 }
 
-// === Arguments:
-// spec_run()
-// spec_run({list: [], i:"init"|0|positive});
-//
-function spec_run() {
-  if (!spec.specs || is_empty(spec.specs))
-    throw new Error('No specs found.');
-
-  if (is_empty(arguments) || is_function(arguments[0])) {
-    var on_fin = arguments[0] || function (msg) {
-      console.log("Specs finished: " + to_string(msg.total));
-    };
-
-    return spec_run({
-      i : 'init',
-      list: spec.specs.slice(0),
-      dones: {},
-      on_finish: on_fin,
-      total: 0
-    });
-  } // == if
-
-  var specs = should_be(arguments[0], is_specs);
+function spec_next(specs) {
+  should_be(specs, is_specs);
 
   if (specs.i === 'init') {
       specs.i = 0;
@@ -890,7 +869,7 @@ function spec_run() {
     }, 2500);
     func(function () {
       specs.dones[i] = true;
-      spec_run(specs);
+      spec_next(specs);
     });
     return false;
   }
@@ -899,10 +878,41 @@ function spec_run() {
   if (l(func) === 0) {
     func();
     specs.dones[i] = true;
-    return spec_run(specs);
+    return spec_next(specs);
   }
 
   throw new Error('Function has invalid arguments: ' + to_string(func));
+}
+
+// === Arguments:
+// spec_run()
+// spec_run(function (msg) { log('Finished specs: ' + msg.total); })
+//
+// === Used by other functions to continue running specs:
+// spec_run({
+//    list: [],
+//    i:"init"|0|positive,
+//    on_finish: my_callback
+// });
+//
+function spec_run() {
+  if (!spec.specs || is_empty(spec.specs))
+    throw new Error('No specs found.');
+
+  if (is_empty(arguments) || is_function(arguments[0])) {
+    var on_fin = arguments[0] || function (msg) {
+      console.log("Specs finished: " + to_string(msg.total));
+    };
+
+    return spec_next({
+      i : 'init',
+      list: spec.specs.slice(0),
+      dones: {},
+      on_finish: on_fin,
+      total: 0
+    });
+  } // == if
+
 } // function spec_run
 
 // Specification function:
