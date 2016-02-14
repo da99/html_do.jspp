@@ -683,14 +683,30 @@ function spec_returns(expect, f) {
   if (!_.isFunction(f))
     throw new Error('Invalid value for func: ' + to_string(f));
 
-  spec_push(function () {
+  if (l(f) === 0) {
+    spec_push(function () {
+      var sig = function_to_name(f);
+      var actual = f();
+      var msg = to_match_string(actual, expect);
+      if (!_.isEqual(actual,expect))
+        throw new Error("!!! Failed: " + sig + ' -> ' + msg);
+      log('=== Passed: ' + sig + ' -> ' + msg);
+      return true;
+    });
+    return;
+  } // if f.length === 0
+
+  // === Async func:
+  spec_push(function (fin) {
     var sig = function_to_name(f);
-    var actual = f();
-    var msg = to_match_string(actual, expect);
-    if (!_.isEqual(actual,expect))
-      throw new Error("!!! Failed: " + sig + ' -> ' + msg);
-    log('=== Passed: ' + sig + ' -> ' + msg);
-    return true;
+    f(function (actual) {
+      var msg = to_match_string(actual, expect);
+      if (!_.isEqual(actual,expect))
+        throw new Error("!!! Failed: " + sig + ' -> ' + msg);
+      log('=== Passed: ' + sig + ' -> ' + msg);
+      fin();
+      return true;
+    });
   });
 } // === spec_returns
 
@@ -824,11 +840,17 @@ function spec_run() {
   if (!spec.specs || is_empty(spec.specs))
     throw new Error('No specs found.');
 
-  if (is_empty(arguments)) {
+  if (is_empty(arguments) || is_function(arguments[0])) {
+    var on_fin = arguments[0] || function (msg) {
+      console.log("Specs finished: " + to_string(msg.total));
+    };
+
     return spec_run({
       i : 'init',
       list: spec.specs.slice(0),
-      dones: {}
+      dones: {},
+      on_finish: on_fin,
+      total: 0
     });
   } // == if
 
@@ -848,6 +870,10 @@ function spec_run() {
 
   // === Are all specs finished?
   if (!func && i >= l(specs.list)) {
+    specs.total = i;
+    if (specs.total !== specs.list.length)
+      throw new Error('Not all specs finished: ' + to_string(specs.total) + ' !== ' + to_string(specs.list.length));
+    specs.on_finish(specs);
     return l(specs.list);
   }
 
@@ -1711,16 +1737,18 @@ spec_returns('yo mo', function button_submit(fin) {
   );
   App('run', {'dom-change': true});
   spec_dom().find('button').click();
+  setTimeout(function () { fin(spec_dom().find('div').html()); } , 1000);
 });
 
 
 // ==== Run all the tests =====================================================
 (function () {
   if (is_localhost()) {
-    var total = spec_run();
-    log('      ======================================');
-    log('      Specs Finish: ' + to_string(total) + ' tests');
-    log('      ======================================');
+    spec_run(function (msg) {
+      log('      ======================================');
+      log('      Specs Finish: ' + to_string(msg.total) + ' tests');
+      log('      ======================================');
+    });
   }
 })();
 
