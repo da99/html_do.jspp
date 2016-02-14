@@ -899,21 +899,34 @@ function spec_run() {
   if (!spec.specs || is_empty(spec.specs))
     throw new Error('No specs found.');
 
-  if (is_empty(arguments) || is_function(arguments[0])) {
-    var on_fin = arguments[0] || function (msg) {
-      console.log("Specs finished: " + to_string(msg.total));
-    };
+  var on_fin = arguments[0] || function (msg) {
+    console.log("Specs finished: " + to_string(msg.total));
+  };
 
-    return spec_next({
-      i : 'init',
-      list: spec.specs.slice(0),
-      dones: {},
-      on_finish: on_fin,
-      total: 0
-    });
-  } // == if
-
+  return spec_next({
+    i : 'init',
+    list: spec.specs.slice(0),
+    dones: {},
+    on_finish: on_fin,
+    total: 0
+  });
 } // function spec_run
+
+function wait_max(seconds, func) {
+  var ms = seconds * 1000;
+  var total = 0;
+  var interval = 100;
+  function reloop() {
+    total = total + interval;
+    if (func())
+      return true;
+    if (total > ms)
+      throw new Error('Timeout exceeded: ' + to_string(func) );
+    else
+      setTimeout(reloop, interval);
+  }
+  setTimeout(reloop, interval);
+}
 
 // Specification function:
 function spec(f, args, expect) {
@@ -1747,7 +1760,13 @@ spec_returns('yo mo', function button_submit(fin) {
   );
   App('run', {'dom-change': true});
   spec_dom().find('button').click();
-  setTimeout(function () { fin(spec_dom().find('div').html()); } , 1000);
+  wait_max(1.5, function () {
+    var html = spec_dom().find('div').html();
+    if (!html)
+      return false;
+    fin(html);
+    return true;
+  });
 });
 
 
