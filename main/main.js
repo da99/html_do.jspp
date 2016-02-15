@@ -900,7 +900,7 @@ function spec_run() {
     throw new Error('No specs found.');
 
   var on_fin = arguments[0] || function (msg) {
-    console.log("Specs finished: " + to_string(msg.total));
+    log("Specs finished: " + to_string(msg.total));
   };
 
   return spec_next({
