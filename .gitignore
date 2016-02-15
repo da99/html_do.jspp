@@ -32,3 +32,4 @@ build/Release
 /scripts
 tags
 /www/bower_components
+/npm-shrinkwrap.json
