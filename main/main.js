@@ -1727,21 +1727,37 @@ function submit_form(msg) {
   // Send to ajax w/callback
   alite({url: form.attr('action'), method: 'POST', data: formToObj(raw_form)}).then(
     function (result) {
-      if (!result.ok)
-        return;
-      if (!result.data)
-        return;
+      // At this point, we don't know if it's success or err:
       var data = {
         ajax_response : true,
         result: result,
-        data : result.data
+        data: result.data || {}
       };
+
+      // === If err:
+      if (!is_plain_object(result) || !result.ok) {
+        data.msg = result.msg || "Computer error. Try again later.";
+        data['err_' + form_dom_id] = true;
+        App('run', data);
+        return;
+      }
+
+      // === else success:
       data['ok_' + form_dom_id] = true;
       App('run', data);
     }
   ).catch(
     function (err) {
       log(err);
+      var data = { ajax_err : true };
+      if (is_string(err)) {
+        if (is_blank_string(err))
+          data.msg = "Network error.";
+        else
+          data.msg = err;
+      }
+      data['err_' + form_dom_id] = true;
+      App('run', data);
     }
   );
 } // === function submit_form
