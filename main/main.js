@@ -15,26 +15,16 @@ if (_.last(process.argv) === 'clear!') {
   templates = {};
 }
 
-var files = _.uniq(
-  _.compact(
-    _.map(
-      process.argv,
-      function (f) {
-        if (f.indexOf('.mustache') > 0)
-          return path.resolve(f);
-      }
-    )
-  )
-);
+var files = _.uniq( _.compact( _.map(
+  process.argv, function (f) {
+    if (f.indexOf('.mustache') > 0)
+      return path.resolve(f);
+  }
+)));
 
 if (_.isEmpty(files)) {
   console.error("No .mustache files found.");
   process.exit(1);
-}
-
-function show_err(err) {
-  console.error(err.stack);
-  console.log('done');
 }
 
 function get_comments(original_html) {
@@ -64,7 +54,7 @@ function get_attrs(html) {
   return(attrs);
 }
 
-var compiled_to_compiler = function (code) {
+function compiled_to_compiler(code) {
   var f = new Function('Hogan', 'return new Hogan.Template(' + code + ');' );
   return f(Hogan);
 };
@@ -131,13 +121,6 @@ _.each(templates, function (files) {
       $(raw).attr('type', "text/mustache");
       $(raw).text(he.encode($(raw).html() || ''));
     });
-
-
-    if (meta.attrs['PUBLIC FILE']) {
-      console.log('Public' + meta.attrs['PUBLIC FILE']);
-    } else {
-      console.log(meta.file_name);
-    }
 
     console.log(q.html());
   });
