@@ -82,24 +82,9 @@ case $action in
 
   watch)
     cmd () {
-      if [[ -z "$@" ]]; then
-        path="$main_js"
-      else
-        path="$1"
-        shift
-      fi
+      path="$1"; shift
 
-      stamp="$(date '+%r')"
-
-      is_fine=""
-      {
-        echo -e "=== jshint ${Bold}${path}${Reset}: " \
-          && jshint $path && is_fine="yes" \
-          && tput cuu1                     \
-          && echo -e "=== jshint ${Bold}${path}${Reset} ${Bold}${Green}@${Reset} $stamp"; \
-        } \
-        || \
-        { stat=$?; echo -e "${Red}Failed${Reset}"; return $stat; }
+      js_setup jshint "$path"
 
       if [[ "$path" =~ "server.js" && -n "$is_fine" ]]; then
           shutdown_server
