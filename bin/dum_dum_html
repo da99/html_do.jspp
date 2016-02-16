@@ -49,6 +49,10 @@ case $action in
     bash_setup print_help $0
     ;;
 
+  upgrade)
+    js_setup upgrade
+    ;;
+
   *)
     $action $THE_ARGS
     ;;

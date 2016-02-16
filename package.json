@@ -7,12 +7,16 @@
     "dum_dum_html": "dum_dum_html"
   },
   "dependencies": {
+    "cheerio": "^0.20.0",
+    "hogan.js": "git+https://github.com/twitter/hogan.js.git",
+    "lodash": "^4.4.0",
+    "stylus": "^0.53.0"
   },
   "devDependencies": {
-    "cheerio": "^0.19.0",
+    "cheerio": "latest",
     "hogan.js": "git+https://github.com/twitter/hogan.js.git",
-    "lodash": "^3.10.0",
-    "stylus": "^0.51.1",
+    "lodash": "latest",
+    "stylus": "latest",
     "he": ">0.0"
   },
   "scripts": {
