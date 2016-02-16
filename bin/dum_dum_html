@@ -13,46 +13,6 @@ fi
 
 set -u -e -o pipefail
 
-watch () {
-  cmd () {
-    path="$1"; shift
-    bash_setup is_same_file "$path"
-    js_setup   jshint       "$path"
-  }
-
-  for FILE in main/*.js; do
-    cmd "$FILE" || :
-  done
-
-  echo -e "\n=== Watching: $files"
-  while read -r CHANGE; do
-    dir=$(echo "$CHANGE" | cut -d' ' -f 1)
-    path="${dir}$(echo "$CHANGE" | cut -d' ' -f 3)"
-    file="$(basename $path)"
-
-    # Make sure this is not a temp/swap file:
-    { [[ ! -f "$path" ]] && continue; } || :
-
-    # Check if file has changed:
-    if bash_setup is_same_file "$path"; then
-      echo "=== No change: $CHANGE"
-      continue
-    fi
-
-    # File has changed:
-    echo -e "\n=== $CHANGE ($path)"
-    if [[ "$path" =~ "$0" ]]; then
-      echo "=== Reloading..."
-      break
-    fi
-
-    if [[ "$file" =~ ".js" ]]; then
-      cmd $path
-    fi
-  done < <(inotifywait --quiet --monitor --event close_write -r main/ "$0") || exit 1
-  $0 watch $THE_ARGS
-}
-
 case $action in
   help|--help)
     bash_setup print_help $0
@@ -60,6 +20,46 @@ case $action in
 
   upgrade)
     js_setup upgrade
+    ;;
+
+  watch)
+    cmd () {
+      path="$1"; shift
+      bash_setup is_same_file "$path"
+      js_setup   jshint       "$path"
+    }
+
+    for FILE in main/*.js; do
+      cmd "$FILE" || :
+    done
+
+    echo -e "\n=== Watching:"
+    while read -r CHANGE; do
+      dir=$(echo "$CHANGE" | cut -d' ' -f 1)
+      path="${dir}$(echo "$CHANGE" | cut -d' ' -f 3)"
+      file="$(basename $path)"
+
+      # Make sure this is not a temp/swap file:
+      { [[ ! -f "$path" ]] && continue; } || :
+
+      # Check if file has changed:
+      if bash_setup is_same_file "$path"; then
+        echo "=== No change: $CHANGE"
+        continue
+      fi
+
+      # File has changed:
+      echo -e "\n=== $CHANGE ($path)"
+      if [[ "$path" =~ "$0" ]]; then
+        echo "=== Reloading..."
+        break
+      fi
+
+      if [[ "$file" =~ ".js" ]]; then
+        cmd $path
+      fi
+    done < <(inotifywait --quiet --monitor --event close_write -r main/ -r bin/) || exit 1
+    $0 watch $THE_ARGS
     ;;
 
   *)
