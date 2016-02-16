@@ -5,8 +5,7 @@
 var $         = require('cheerio');
 var _         = require('lodash');
 var Hogan     = require('hogan.js');
-var co        = require('co');
-var co_fs     = require('co-fs');
+var fs        = require('fs');
 var path      = require('path');
 var templates = {};
 var layout    = null;
@@ -28,6 +27,10 @@ var files = _.uniq(
   )
 );
 
+if (_.isEmpty(files)) {
+  console.error("No .mustache files found.");
+  process.exit(1);
+}
 
 function show_err(err) {
   console.error(err.stack);
@@ -61,97 +64,81 @@ function get_attrs(html) {
   return(attrs);
 }
 
-
 var compiled_to_compiler = function (code) {
   var f = new Function('Hogan', 'return new Hogan.Template(' + code + ');' );
   return f(Hogan);
 };
 
-co(function *() {
+_.each(files, function (raw_file_name, i) {
+  if (raw_file_name.indexOf('.mustache') < 1)
+    return;
+  var v = fs.readFileSync(raw_file_name);
+  var string = v.toString();
+  var pieces  = files[i].split('/');
+  var dir    = pieces[pieces.length-2];
+  var raw    = pieces[pieces.length-1].split('.');
+  raw.pop();
+  var name   = raw.join('.');
 
-  var contents = yield _.compact(
-    _.map(
-      files,
-      function (v) {
-        if (v.indexOf('.mustache') < 1)
-          return;
-        return co_fs.readFile(v);
-      }
-    ) // map
+
+  var attrs = get_attrs(string);
+
+  var mustache = Hogan.compile(string, {asString: 1, delimiters: '[[ ]]'});
+
+  if (!templates[dir])
+    templates[dir] = {};
+
+  if (!templates[dir][name])
+    templates[dir][name] = {};
+  templates[dir][name] = _.extend(
+    templates[dir][name],
+    {
+      attrs     : (attrs || {}),
+      dir       : dir,
+      source    : string,
+      name      : name,
+      code      : mustache,
+      file_name : files[i]
+    }
   );
 
+  if (name === 'layout')
+    layout = templates[dir][name];
+}); // === each contents
 
-  _.each(contents, function (v, i) {
-    var string = v.toString();
-    var pieces  = files[i].split('/');
-    var dir    = pieces[pieces.length-2];
-    var raw    = pieces[pieces.length-1].split('.');
-    raw.pop();
-    var name   = raw.join('.');
+// var new_files = [];
+// === Render templates to html files:
+_.each(templates, function (files) {
+  _.each(files, function (meta, name) {
+    if (name === 'layout')
+      return;
 
+    var final_html = (layout) ?
+        compiled_to_compiler(layout.code).render(meta.attrs, {markup: compiled_to_compiler(meta.code)}) :
+        compiled_to_compiler(meta.code).render(meta.attrs) ;
 
-    var attrs = get_attrs(string);
-
-    var mustache = Hogan.compile(string, {asString: 1, delimiters: '[[ ]]'});
-
-    if (!templates[dir])
-      templates[dir] = {};
-
-    if (!templates[dir][name])
-      templates[dir][name] = {};
-    templates[dir][name] = _.extend(
-      templates[dir][name],
-      {
-        attrs     : (attrs || {}),
-        dir       : dir,
-        source    : string,
-        name      : name,
-        code      : mustache,
-        file_name : files[i]
+    var q = $.load(
+      final_html, {
+        decodeEntities: false // === Prevents &apos; to be used.
+                              //     Cheerio sets it to true to fix some other bug.
       }
     );
 
-    if (name === 'layout')
-      layout = templates[dir][name];
-  }); // === each contents
+    let mustaches = q('mustache');
 
-  // var new_files = [];
-  // === Render templates to html files:
-  _.each(templates, function (files) {
-    _.each(files, function (meta, name) {
-      if (name === 'layout')
-        return;
-
-
-      var final_html = compiled_to_compiler(layout.code).render(meta.attrs, {markup: compiled_to_compiler(meta.code)});
-
-      var q = $.load(
-        final_html, {
-          decodeEntities: false // === Prevents &apos; to be used.
-                                //     Cheerio sets it to true to fix some other bug.
-        }
-      );
-
-      let mustaches = q('mustache');
-
-      _.each(mustaches, function (raw) {
-        raw.name = "script";
-        $(raw).attr('type', "text/mustache");
-        $(raw).text(he.encode($(raw).html() || ''));
-      });
-
-
-      if (meta.attrs['PUBLIC FILE']) {
-        console.log('Public' + meta.attrs['PUBLIC FILE']);
-      } else {
-        console.log(meta.file_name);
-      }
-
-      console.log(q.html());
+    _.each(mustaches, function (raw) {
+      raw.name = "script";
+      $(raw).attr('type', "text/mustache");
+      $(raw).text(he.encode($(raw).html() || ''));
     });
+
+
+    if (meta.attrs['PUBLIC FILE']) {
+      console.log('Public' + meta.attrs['PUBLIC FILE']);
+    } else {
+      console.log(meta.file_name);
+    }
+
+    console.log(q.html());
   });
-
-
-
-}).catch(show_err);
-
+});
