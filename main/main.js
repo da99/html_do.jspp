@@ -1,6 +1,6 @@
+"use strict";
 /* jshint evil : true, esnext: true, undef: true, unused: true */
 /* global $ : true, _ : true, require, process  */
-"use strict";
 
 var $         = require('cheerio');
 var _         = require('lodash');
