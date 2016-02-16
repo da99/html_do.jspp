@@ -13,12 +13,23 @@ fi
 
 set -u -e -o pipefail
 
+Color_Off='\e[0m'
+Bold="$(tput bold)"
+Reset='\e[0m'
+BRed='\e[1;31m'
+Red='\e[0;31m'
+Green='\e[0;32m'
+BGreen='\e[1;32m'
+Orange='\e[0;33m'
+BOrange='\e[1;33m'
+
 case $action in
   help|--help)
     bash_setup print_help $0
     ;;
 
   upgrade)
+    cd "$THIS_DIR"
     js_setup upgrade
     ;;
 
@@ -32,6 +43,7 @@ case $action in
     for FILE in main/*.js; do
       cmd "$FILE" || :
     done
+    $0 test || :
 
     echo -e "\n=== Watching:"
     while read -r CHANGE; do
@@ -56,13 +68,40 @@ case $action in
       fi
 
       if [[ "$file" =~ ".js" ]]; then
-        cmd $path
+        cmd $path || continue
+      fi
+
+      if [[ "$file" =~ "main.js" ]]; then
+        $0 test || continue
       fi
     done < <(inotifywait --quiet --monitor --event close_write -r main/ -r bin/) || exit 1
     $0 watch $THE_ARGS
     ;;
 
+  test)
+    for FILE in specs/*.html; do
+      if [[ "$FILE" != *mustache.html ]]; then
+        continue
+      fi
+
+      actual="$($0 $FILE | tail -n+2)"
+      expect="$(cat "${FILE/mustache.html/out.html}")"
+      if [[ "$actual" != "$expect" ]]; then
+        echo "=== Failed: $FILE" 1>&2
+        diff <(echo "$actual") <(echo "$expect")
+        exit 1
+      fi
+
+      echo -e "=== $Green$FILE$Reset"
+    done
+    ;;
+
   *)
+    if [[ -f "$action" ]]; then
+      node $THIS_DIR/main/main.js $THE_ARGS
+      exit 0
+    fi
+
     $action $THE_ARGS
     ;;
 
