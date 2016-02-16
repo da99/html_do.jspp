@@ -57,7 +57,7 @@ function get_attrs(html) {
 function compiled_to_compiler(code) {
   var f = new Function('Hogan', 'return new Hogan.Template(' + code + ');' );
   return f(Hogan);
-};
+}
 
 _.each(files, function (raw_file_name, i) {
   if (raw_file_name.indexOf('.mustache') < 1)
