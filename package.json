@@ -1,0 +1,28 @@
+{
+  "name": "dum_dum_html",
+  "version": "0.0.0",
+  "description": "Personal way of creating HTML templates",
+  "main": "main/main.js",
+  "bin": {
+    "dum_dum_html": "dum_dum_html"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+    "cheerio": "^0.19.0",
+    "hogan.js": "git+https://github.com/twitter/hogan.js.git",
+    "lodash": "^3.10.0",
+    "stylus": "^0.51.1",
+    "he": ">0.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:da99/dum_dum_html.git"
+  },
+  "keywords": [],
+  "author": "da99",
+  "license": "MIT"
+}
