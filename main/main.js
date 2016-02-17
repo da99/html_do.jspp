@@ -7,44 +7,32 @@ var _         = require('lodash');
 var Hogan     = require('hogan.js');
 var fs        = require('fs');
 var path      = require('path');
-var templates = {};
+var templates = [];
 var layout    = null;
 var he        = require('he');
 
-// === Turn each argv into a data structure
-// and store it inside templates (object):
+// === Filter :layout from :templates:
 _.each(process.argv, function (raw_file_name, i) {
   if (raw_file_name.indexOf('.mustache.html') < 1)
     return;
-  var string = fs.readFileSync(raw_file_name).toString();
-  var name   = path.basename(raw_file_name, '.mustache.html');
-  var attrs  = get_attrs(string);
 
-  var mustache = Hogan.compile(string, {asString: 1, delimiters: '[[ ]]'});
+  if ('layout' === path.basename(raw_file_name, '.mustache.html')) {
+    layout = template_to_meta(raw_file_name);
+    return;
+  }
 
-  if (!templates[raw_file_name])
-    templates[raw_file_name] = {};
-
-  templates[raw_file_name] = {
-    attrs     : (attrs || {}),
-    source    : string,
-    code      : mustache,
-    file_name : raw_file_name
-  };
-
-  if (name === 'layout')
-    layout = templates[raw_file_name];
+  templates.push(raw_file_name);
 }); // === each contents
 
+// === Something went wrong if there are not templates found:
 if (_.isEmpty(templates)) {
   console.error("No .mustache.html files found.");
   process.exit(1);
 }
 
 // === Render templates to html files:
-_.each(templates, function (meta, name) {
-  if (name === 'layout')
-    return;
+_.each(templates, function (raw_file_name) {
+  var meta = template_to_meta(raw_file_name);
 
   var final_html = (layout) ?
       compiled_to_compiler(layout.code).render(meta.attrs, {markup: compiled_to_compiler(meta.code)}) :
@@ -67,6 +55,25 @@ _.each(templates, function (meta, name) {
 
   console.log(q.html());
 });
+
+function template_to_meta(raw_file_name) {
+  var string = fs.readFileSync(raw_file_name).toString();
+  var name   = path.basename(raw_file_name, '.mustache.html');
+  var attrs  = get_attrs(string);
+
+  var mustache = Hogan.compile(string, {asString: 1, delimiters: '[[ ]]'});
+
+  if (!templates[raw_file_name])
+    templates[raw_file_name] = {};
+
+  return {
+    attrs     : (attrs || {}),
+    source    : string,
+    code      : mustache,
+    file_name : raw_file_name
+  };
+} // === function template_to_meta
+
 
 function get_comments(original_html) {
   var html;
