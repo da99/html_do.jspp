@@ -11,38 +11,29 @@ var templates = {};
 var layout    = null;
 var he        = require('he');
 
+// === Turn each argv into a data structure
+// and store it inside templates (object):
 _.each(process.argv, function (raw_file_name, i) {
   if (raw_file_name.indexOf('.mustache.html') < 1)
     return;
   var string = fs.readFileSync(raw_file_name).toString();
-  var pieces = raw_file_name.split('/');
-  var dir    = pieces[pieces.length-2];
-  var raw    = pieces[pieces.length-1].split('.');
-  raw.pop();
-  var name   = raw.join('.');
-  var attrs = get_attrs(string);
+  var name   = path.basename(raw_file_name, '.mustache.html');
+  var attrs  = get_attrs(string);
 
   var mustache = Hogan.compile(string, {asString: 1, delimiters: '[[ ]]'});
 
-  if (!templates[dir])
-    templates[dir] = {};
+  if (!templates[raw_file_name])
+    templates[raw_file_name] = {};
 
-  if (!templates[dir][name])
-    templates[dir][name] = {};
-  templates[dir][name] = _.extend(
-    templates[dir][name],
-    {
-      attrs     : (attrs || {}),
-      dir       : dir,
-      source    : string,
-      name      : name,
-      code      : mustache,
-      file_name : raw_file_name
-    }
-  );
+  templates[raw_file_name] = {
+    attrs     : (attrs || {}),
+    source    : string,
+    code      : mustache,
+    file_name : raw_file_name
+  };
 
   if (name === 'layout')
-    layout = templates[dir][name];
+    layout = templates[raw_file_name];
 }); // === each contents
 
 if (_.isEmpty(templates)) {
@@ -50,36 +41,32 @@ if (_.isEmpty(templates)) {
   process.exit(1);
 }
 
-// var new_files = [];
 // === Render templates to html files:
-_.each(templates, function (files) {
-  _.each(files, function (meta, name) {
-    if (name === 'layout')
-      return;
+_.each(templates, function (meta, name) {
+  if (name === 'layout')
+    return;
 
-    var final_html = (layout) ?
-        compiled_to_compiler(layout.code).render(meta.attrs, {markup: compiled_to_compiler(meta.code)}) :
-        compiled_to_compiler(meta.code).render(meta.attrs) ;
+  var final_html = (layout) ?
+      compiled_to_compiler(layout.code).render(meta.attrs, {markup: compiled_to_compiler(meta.code)}) :
+      compiled_to_compiler(meta.code).render(meta.attrs) ;
 
-    var q = $.load(
-      final_html, {
-        decodeEntities: false // === Prevents &apos; to be used.
-                              //     Cheerio sets it to true to fix some other bug.
-      }
-    );
+  var q = $.load(
+    final_html, {
+      decodeEntities: false // === Prevents &apos; to be used.
+                            //     Cheerio sets it to true to fix some other bug.
+    }
+  );
 
-    let mustaches = q('mustache');
+  let mustaches = q('mustache');
 
-    _.each(mustaches, function (raw) {
-      raw.name = "script";
-      $(raw).attr('type', "text/mustache");
-      $(raw).text(he.encode($(raw).html() || ''));
-    });
-
-    console.log(q.html());
+  _.each(mustaches, function (raw) {
+    raw.name = "script";
+    $(raw).attr('type', "text/mustache");
+    $(raw).text(he.encode($(raw).html() || ''));
   });
-});
 
+  console.log(q.html());
+});
 
 function get_comments(original_html) {
   var html;
