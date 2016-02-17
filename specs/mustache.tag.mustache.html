@@ -1,5 +1,19 @@
 
 <html>
 <head></head>
-  <body></body>
+  <body>
+    <template>
+      <div>{{is_happy}}</div>
+    </template>
+  </body>
+</html>
+<!-- EXPECT: -->
+
+<html>
+<head></head>
+  <body>
+    <script type="application/template">
+      &#x3C;div&#x3E;{{is_happy}}&#x3C;/div&#x3E;
+    </script>
+  </body>
 </html>

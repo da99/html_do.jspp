@@ -32,25 +32,29 @@ if (_.isEmpty(templates)) {
 
 // === Render templates to html files:
 _.each(templates, function (raw_file_name) {
-  var meta = template_to_meta(raw_file_name);
+  let meta = template_to_meta(raw_file_name);
 
-  var final_html = (layout) ?
+  let final_html = (layout) ?
       compiled_to_compiler(layout.code).render(meta.attrs, {markup: compiled_to_compiler(meta.code)}) :
       compiled_to_compiler(meta.code).render(meta.attrs) ;
 
-  var q = $.load(
+  let q = $.load(
     final_html, {
       decodeEntities: false // === Prevents &apos; to be used.
                             //     Cheerio sets it to true to fix some other bug.
     }
   );
 
-  let mustaches = q('mustache');
+  let template_tags = q('template');
 
-  _.each(mustaches, function (raw) {
+  _.each(template_tags, function (raw) {
     raw.name = "script";
-    $(raw).attr('type', "text/mustache");
-    $(raw).text(he.encode($(raw).html() || ''));
+    let type = ( $(raw).attr() || {}).type;
+    if (_.trim(type || '') === '')
+      $(raw).attr('type', "application/template");
+    $(raw).text(he.encode($(raw).html() || '', {
+      useNamedReferences: false
+    }));
   });
 
   console.log(q.html());
