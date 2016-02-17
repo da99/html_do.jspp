@@ -11,21 +11,75 @@ var templates = {};
 var layout    = null;
 var he        = require('he');
 
-if (_.last(process.argv) === 'clear!') {
-  templates = {};
-}
+_.each(process.argv, function (raw_file_name, i) {
+  if (raw_file_name.indexOf('.mustache.html') < 1)
+    return;
+  var string = fs.readFileSync(raw_file_name).toString();
+  var pieces = raw_file_name.split('/');
+  var dir    = pieces[pieces.length-2];
+  var raw    = pieces[pieces.length-1].split('.');
+  raw.pop();
+  var name   = raw.join('.');
+  var attrs = get_attrs(string);
 
-var files = _.uniq( _.compact( _.map(
-  process.argv, function (f) {
-    if (f.indexOf('.mustache') > 0)
-      return path.resolve(f);
-  }
-)));
+  var mustache = Hogan.compile(string, {asString: 1, delimiters: '[[ ]]'});
 
-if (_.isEmpty(files)) {
-  console.error("No .mustache files found.");
+  if (!templates[dir])
+    templates[dir] = {};
+
+  if (!templates[dir][name])
+    templates[dir][name] = {};
+  templates[dir][name] = _.extend(
+    templates[dir][name],
+    {
+      attrs     : (attrs || {}),
+      dir       : dir,
+      source    : string,
+      name      : name,
+      code      : mustache,
+      file_name : raw_file_name
+    }
+  );
+
+  if (name === 'layout')
+    layout = templates[dir][name];
+}); // === each contents
+
+if (_.isEmpty(templates)) {
+  console.error("No .mustache.html files found.");
   process.exit(1);
 }
+
+// var new_files = [];
+// === Render templates to html files:
+_.each(templates, function (files) {
+  _.each(files, function (meta, name) {
+    if (name === 'layout')
+      return;
+
+    var final_html = (layout) ?
+        compiled_to_compiler(layout.code).render(meta.attrs, {markup: compiled_to_compiler(meta.code)}) :
+        compiled_to_compiler(meta.code).render(meta.attrs) ;
+
+    var q = $.load(
+      final_html, {
+        decodeEntities: false // === Prevents &apos; to be used.
+                              //     Cheerio sets it to true to fix some other bug.
+      }
+    );
+
+    let mustaches = q('mustache');
+
+    _.each(mustaches, function (raw) {
+      raw.name = "script";
+      $(raw).attr('type', "text/mustache");
+      $(raw).text(he.encode($(raw).html() || ''));
+    });
+
+    console.log(q.html());
+  });
+});
+
 
 function get_comments(original_html) {
   var html;
@@ -59,69 +113,3 @@ function compiled_to_compiler(code) {
   return f(Hogan);
 }
 
-_.each(files, function (raw_file_name, i) {
-  if (raw_file_name.indexOf('.mustache') < 1)
-    return;
-  var v = fs.readFileSync(raw_file_name);
-  var string = v.toString();
-  var pieces  = files[i].split('/');
-  var dir    = pieces[pieces.length-2];
-  var raw    = pieces[pieces.length-1].split('.');
-  raw.pop();
-  var name   = raw.join('.');
-
-
-  var attrs = get_attrs(string);
-
-  var mustache = Hogan.compile(string, {asString: 1, delimiters: '[[ ]]'});
-
-  if (!templates[dir])
-    templates[dir] = {};
-
-  if (!templates[dir][name])
-    templates[dir][name] = {};
-  templates[dir][name] = _.extend(
-    templates[dir][name],
-    {
-      attrs     : (attrs || {}),
-      dir       : dir,
-      source    : string,
-      name      : name,
-      code      : mustache,
-      file_name : files[i]
-    }
-  );
-
-  if (name === 'layout')
-    layout = templates[dir][name];
-}); // === each contents
-
-// var new_files = [];
-// === Render templates to html files:
-_.each(templates, function (files) {
-  _.each(files, function (meta, name) {
-    if (name === 'layout')
-      return;
-
-    var final_html = (layout) ?
-        compiled_to_compiler(layout.code).render(meta.attrs, {markup: compiled_to_compiler(meta.code)}) :
-        compiled_to_compiler(meta.code).render(meta.attrs) ;
-
-    var q = $.load(
-      final_html, {
-        decodeEntities: false // === Prevents &apos; to be used.
-                              //     Cheerio sets it to true to fix some other bug.
-      }
-    );
-
-    let mustaches = q('mustache');
-
-    _.each(mustaches, function (raw) {
-      raw.name = "script";
-      $(raw).attr('type', "text/mustache");
-      $(raw).text(he.encode($(raw).html() || ''));
-    });
-
-    console.log(q.html());
-  });
-});
