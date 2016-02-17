@@ -82,7 +82,7 @@ case $action in
       fi
 
       if [[ "$path" == *specs/*.html ]]; then
-        $0 test "${path/out.html/mustache.html}"
+        $0 test "$path"
       fi
     done < <(inotifywait --quiet --monitor --event close_write -r specs/ -r main/ -r bin/) || exit 1
     $0 watch $THE_ARGS
@@ -90,14 +90,14 @@ case $action in
 
   test)
     mkdir -p /tmp/dum_dum_html
-    TEMP="$(mktemp /tmp/dum_dum_html/tmp.XXXXXXXXX.mustache.html)"
+    TEMP="$(mktemp /tmp/dum_dum_html/tmp.XXXXXXXXX.template.html)"
     if [[ -z "$@" ]]; then
       $0 test specs/*.html
       exit 0
     fi
 
     for FILE in "$@"; do
-      if [[ "$FILE" != *mustache.html ]]; then
+      if [[ "$FILE" != *.template.html ]]; then
         continue
       fi
 
