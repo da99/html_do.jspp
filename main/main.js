@@ -10,13 +10,14 @@ var path      = require('path');
 var templates = [];
 var layout    = null;
 var he        = require('he');
+const EXT       = '.template.html';
 
 // === Filter :layout from :templates:
 _.each(process.argv, function (raw_file_name, i) {
-  if (raw_file_name.indexOf('.mustache.html') < 1)
+  if (raw_file_name.indexOf(EXT) < 1)
     return;
 
-  if ('layout' === path.basename(raw_file_name, '.mustache.html')) {
+  if ('layout' === path.basename(raw_file_name, EXT)) {
     layout = template_to_meta(raw_file_name);
     return;
   }
@@ -26,7 +27,7 @@ _.each(process.argv, function (raw_file_name, i) {
 
 // === Something went wrong if there are not templates found:
 if (_.isEmpty(templates)) {
-  console.error("No .mustache.html files found.");
+  console.error("No " + EXT + " files found.");
   process.exit(1);
 }
 

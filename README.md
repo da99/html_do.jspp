@@ -5,7 +5,7 @@ dum\_dum\_html
 Specs
 =====
 
-Create a `.mustache.html` file in specs:
+Create a `.template.html` file in specs:
 ```html
 
   <div>my input</div>
