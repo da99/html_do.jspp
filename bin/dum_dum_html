@@ -58,7 +58,7 @@ case $action in
     bash_setup is_same_file "$0" || :
     # === watch
     cmd () {
-      path="$1"; shift
+      let path="$1"; shift
       js_setup   jshint "$path" && { bash_setup is_same_file "$path" || : ; }
     }
 
@@ -113,6 +113,10 @@ case $action in
       $0 test specs/*.html
       exit 0
     fi
+
+    for JS in main/*.js; do
+      js_setup   jshint "$JS"
+    done
 
     for FILE in "$@"; do
       if [[ "$FILE" != *.template.html ]]; then
