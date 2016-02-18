@@ -88,25 +88,32 @@ function compiled_to_compiler(code) {
   return f(Hogan);
 }
 
+// ===  "template" tags can be deeply nested,
+// so we process the inner-most ones first,
+// then move on to the outer ones.
 function tag_template_to_script(html) {
   let $    = cheerio.load(html);
   let tags = $('template');
 
+  // === If no tags, we are done processing:
   if (tags.length === 0)
     return html;
 
+  // === Find the inner-most (ie nested) template
+  // tag and process it:
   let raw = _.find(tags, function (r) {
     return $('template', r).length === 0;
   });
 
-  let type = ( $(raw).attr() || {}).type;
-  if (_.trim(type || '') === '')
+  let type = $(raw).attr('type');
+  if (!type || _.trim(type) === '')
     $(raw).attr('type', "application/template");
-  let original = $(raw).html() || '';
-  let escaped = he.encode(original, { useNamedReferences: false });
+  let escaped = he.encode($(raw).html() || '', { useNamedReferences: false });
   $(raw).text(escaped);
 
   raw.name = "script";
+
+  // === Recurse to handle outer template tags:
   return tag_template_to_script($.html());
 }
 
