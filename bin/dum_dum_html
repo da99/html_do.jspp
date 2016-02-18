@@ -109,7 +109,6 @@ case $action in
 
   test)
     mkdir -p /tmp/dum_dum_html
-    TEMP="$(mktemp /tmp/dum_dum_html/tmp.XXXXXXXXX.template.html)"
     if [[ -z "$@" ]]; then
       $0 test specs/*.html
       exit 0
@@ -123,6 +122,7 @@ case $action in
       split_on="$(cat "$FILE" -n | grep -i --extended-regexp '<!--\ +EXPECT.?\ +-->' | cut -f 1 | head -n 1)"
       expect="$(cat "$FILE" | tail -n +$((split_on + 1)))"
 
+      TEMP="$(mktemp /tmp/dum_dum_html/XXXXXXXXXXXX.$(basename "$FILE"))"
       cat "$FILE" | head -n $((split_on - 1)) > "$TEMP"
       actual="$($0 $TEMP)"
       if [[ "$actual" != "$expect" ]]; then
@@ -137,7 +137,15 @@ case $action in
 
   *)
     if [[ -f "$action" ]]; then
-      node $THIS_DIR/main/main.js $THE_ARGS
+      vnu="$(echo tmp/validator/*/dist/vnu.jar)"
+      final="$(node $THIS_DIR/main/main.js $THE_ARGS)"
+
+      # === If <body is found, validate whole document:
+      if echo "$final" | grep -i '<body' &>/dev/null; then
+        echo "$final" | java -jar "$vnu" - || { stat="$?"; echo $action 1>&2; exit $stat; }
+      fi
+
+      echo "$final"
       exit 0
     fi
 

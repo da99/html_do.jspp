@@ -1,6 +1,7 @@
 
+<!DOCTYPE html>
 <html>
-<head></head>
+  <head><title>Nested Templates</title></head>
   <body>
     <template data-if="template something replace">
       <div>{{is_happy}}</div>
@@ -12,8 +13,9 @@
 </html>
 <!-- EXPECT: -->
 
+<!DOCTYPE html>
 <html>
-<head></head>
+  <head><title>Nested Templates</title></head>
   <body>
     <script data-if="template something replace" type="application/template">
       &#x3C;div&#x3E;{{is_happy}}&#x3C;/div&#x3E;

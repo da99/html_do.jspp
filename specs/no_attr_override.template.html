@@ -1,6 +1,7 @@
 
+<!DOCTYPE html>
 <html>
-<head></head>
+  <head><title>No Attr Override</title></head>
   <body>
     <template type="text/mustache">
       <div>{{is_happy}}</div>
@@ -9,8 +10,9 @@
 </html>
 <!-- EXPECT: -->
 
+<!DOCTYPE html>
 <html>
-<head></head>
+  <head><title>No Attr Override</title></head>
   <body>
     <script type="text/mustache">
       &#x3C;div&#x3E;{{is_happy}}&#x3C;/div&#x3E;
