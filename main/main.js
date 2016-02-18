@@ -2,15 +2,16 @@
 /* jshint evil : true, esnext: true, globalstrict: true, undef: true */
 /* global $ : true, _ : true, console, require, process  */
 
-var $         = require('cheerio');
-var _         = require('lodash');
-var Hogan     = require('hogan.js');
-var fs        = require('fs');
-var path      = require('path');
-var templates = [];
-var layout    = null;
-var he        = require('he');
-const EXT       = '.template.html';
+const cheerio = require('cheerio');
+const _       = require('lodash');
+const Hogan   = require('hogan.js');
+const fs      = require('fs');
+const path    = require('path');
+const he      = require('he');
+const EXT     = '.template.html';
+
+var template;
+var layout;
 
 // === Filter :layout from :templates:
 _.each(process.argv, function (raw_file_name, i) {
@@ -18,87 +19,62 @@ _.each(process.argv, function (raw_file_name, i) {
     return;
 
   if ('layout' === path.basename(raw_file_name, EXT)) {
-    layout = template_to_meta(raw_file_name);
+    layout = raw_file_name;
     return;
   }
 
-  templates.push(raw_file_name);
+  if (!template) {
+    template = raw_file_name;
+    return;
+  }
+
+  console.error("!!! Too many templates: " + raw_file_name);
+  process.exit(1);
 }); // === each contents
 
 // === Something went wrong if there are not templates found:
-if (_.isEmpty(templates)) {
+if (!template) {
   console.error("No " + EXT + " files found.");
   process.exit(1);
 }
 
-// === Render templates to html files:
-_.each(templates, function (raw_file_name) {
-  let meta = template_to_meta(raw_file_name);
+var raw_html        = fs.readFileSync(template).toString();
+var name            = path.basename(template, '.mustache.html');
+var mustache        = to_mustache(raw_html);
+var inline_vars     = {};
 
-  let final_html = (layout) ?
-      compiled_to_compiler(layout.code).render(meta.attrs, {markup: compiled_to_compiler(meta.code)}) :
-      compiled_to_compiler(meta.code).render(meta.attrs) ;
+var layout_html     = layout && fs.readFileSync(layout).toString();
+var layout_mustache = layout && to_mustache(layout_html);
 
-  let q = $.load(
-    final_html, {
-      decodeEntities: false // === Prevents &apos; to be used.
-                            //     Cheerio sets it to true to fix some other bug.
-    }
-  );
+if (layout_html)
+  inline_vars = _.extend(inline_vars, get_inline_vars(layout_html));
+inline_vars = _.extend(inline_vars, get_inline_vars(raw_html));
 
-  let template_tags = q('template');
+var final_html;
+if (layout)
+  final_html = compiled_to_compiler(layout_mustache).render(inline_vars, {markup: compiled_to_compiler(mustache)});
+else
+  final_html = compiled_to_compiler(mustache).render(inline_vars) ;
 
-  _.each(template_tags, function (raw) {
-    raw.name = "script";
-    let type = ( $(raw).attr() || {}).type;
-    if (_.trim(type || '') === '')
-      $(raw).attr('type', "application/template");
-    $(raw).text(he.encode($(raw).html() || '', {
-      useNamedReferences: false
-    }));
-  });
+final_html = tag_template_to_script(final_html);
+console.log(final_html);
 
-  console.log(q.html());
-});
-
-function template_to_meta(raw_file_name) {
-  var string = fs.readFileSync(raw_file_name).toString();
-  var name   = path.basename(raw_file_name, '.mustache.html');
-  var attrs  = get_attrs(string);
-
-  var mustache = Hogan.compile(string, {asString: 1, delimiters: '[[ ]]'});
-
-  if (!templates[raw_file_name])
-    templates[raw_file_name] = {};
-
-  return {
-    attrs     : (attrs || {}),
-    source    : string,
-    code      : mustache,
-    file_name : raw_file_name
-  };
-} // === function template_to_meta
+function to_mustache(html) {
+  return Hogan.compile(html, {asString: 1, delimiters: '[[ ]]'});
+}
 
 
-function get_comments(original_html) {
-  var html;
-  var has_body = original_html.match(/<body/i);
-
-  if (!has_body)
-    html = "<html><body>" + original_html + "</body></html>";
-  else
-    html = original_html;
-
-
-  return _.compact(_.map($('body', html).contents(), function (node) {
+function get_comments($_) {
+  return _.compact(_.map($_.contents(), function (node) {
     if (node.type === 'comment')
       return node.data;
   }));
 }
 
-function get_attrs(html) {
+function get_inline_vars(html) {
+  var $ = cheerio(html);
   var attrs = {};
-  _.each(get_comments(html), function (data) {
+  _.each(get_comments($), function (data) {
     var lines  = data.split("\n");
     var key    = _.trim(lines.shift());
     attrs[key] = _.trim(lines.join("\n"));
@@ -111,4 +87,27 @@ function compiled_to_compiler(code) {
   var f = new Function('Hogan', 'return new Hogan.Template(' + code + ');' );
   return f(Hogan);
 }
+
+function tag_template_to_script(html) {
+  let $    = cheerio.load(html);
+  let tags = $('template');
+
+  if (tags.length === 0)
+    return html;
+
+  let raw = _.find(tags, function (r) {
+    return $('template', r).length === 0;
+  });
+
+  let type = ( $(raw).attr() || {}).type;
+  if (_.trim(type || '') === '')
+    $(raw).attr('type', "application/template");
+  let original = $(raw).html() || '';
+  let escaped = he.encode(original, { useNamedReferences: false });
+  $(raw).text(escaped);
+
+  raw.name = "script";
+  return tag_template_to_script($.html());
+}
+
 

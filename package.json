@@ -8,17 +8,12 @@
   },
   "dependencies": {
     "cheerio": "^0.20.0",
-    "hogan.js": "git+https://github.com/twitter/hogan.js.git",
-    "lodash": "^4.4.0",
-    "stylus": "^0.53.0"
-  },
-  "devDependencies": {
-    "cheerio": "latest",
+    "he": ">0.0",
     "hogan.js": "git+https://github.com/twitter/hogan.js.git",
     "lodash": "latest",
-    "stylus": "latest",
-    "he": ">0.0"
+    "stylus": "latest"
   },
+  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
