@@ -25,3 +25,8 @@ Create a `.template.html` file in specs:
   <div>my expected output</div>
 
 ```
+
+Links:
+=====
+
+* Uses `he`. Alternative encode/decode of html entities: https://github.com/substack/node-ent
