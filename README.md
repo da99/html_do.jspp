@@ -4,6 +4,8 @@ dum\_dum\_html
 
 `cheerio` is used instead of `jsdom\jquery` because it is a lot
 easier to use despite its incompatibility w/ jQuery.
+`whacko` was considered, but it was harder to use when it came to
+changing non-standard tags (e.g. `template`) to `script` tags.
 
 Specs
 =====
