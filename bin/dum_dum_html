@@ -55,20 +55,13 @@ case $action in
     ;;
 
   watch)
-    bash_setup is_same_file "$0" || :
     # === watch
-    cmd () {
-      let path="$1"; shift
-      js_setup   jshint "$path" && { bash_setup is_same_file "$path" || : ; }
-    }
 
-    failed=""
-    for FILE in main/*.js; do
-      cmd "$FILE" || failed="yes"
+    for FILE in $(git ls-files | grep --extended-regexp '.js|.html|bin'); do
+      bash_setup is_same_file "$FILE" || :
     done
-    if [[ -z "$failed" ]]; then
-      $0 test || :
-    fi
+
+    $0 test || :
 
     echo -e "\n=== Watching:"
     while read -r CHANGE; do
@@ -93,7 +86,7 @@ case $action in
       fi
 
       if [[ "$file" =~ ".js" ]]; then
-        cmd $path || continue
+        js_setup jshint $path || continue
       fi
 
       if [[ "$file" =~ "main.js" ]]; then
