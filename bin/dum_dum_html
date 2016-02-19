@@ -157,6 +157,13 @@ case $action in
     done
     ;;
 
+  section)
+    # === __    section   STYLE|FOOT|...   path/to/file
+    # === cat path/to/file | __  section   STYLE|FOOT|...
+    section="$1"; shift
+    grep  -Pzo '(?s)^\<!--\s+'$section'\s+-->\s?\n\K(.+?)(?=<!--|\Z)' $@
+    ;;
+
   *)
     if [[ -f "$action" ]]; then
       vnu="$(echo tmp/validator/*/dist/vnu.jar)"
