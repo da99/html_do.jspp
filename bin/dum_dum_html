@@ -92,13 +92,26 @@ case $action in
         js_setup jshint $path || continue
       fi
 
-      if [[ "$file" =~ "main.js" ]]; then
-        $0 test || continue
+      if [[ "$path" =~ "/main.js" || "$path" == *specs/main.js/*.html ]]; then
+        $0 test-main.js || continue
       fi
 
-      if [[ "$path" == *specs/*.html ]]; then
-        $0 test "$path"
+      if [[ "$path" =~ "/main.js" ]]; then
+        $0 test-main.js || continue
       fi
+
+      if [[ "$path" == *specs/main.js/*.html ]]; then
+        $0 test-main.js "$path" || continue
+      fi
+
+      if [[ "$path" =~ "/split.js" ]]; then
+        $0 test-split.js || continue
+      fi
+
+      if [[ "$path" == *specs/split.js/*.html ]]; then
+        $0 test-split.js "$path" || continue
+      fi
+
     done < <(inotifywait --quiet --monitor --event close_write -r specs/ -r main/ -r bin/) || exit 1
     $0 watch $THE_ARGS
     ;;
@@ -117,27 +130,61 @@ case $action in
     ;;
 
   test)
+    $0 test-split.js
+    $0 test-main.js
+    ;;
+
+  test-split.js)
     if [[ -z "$@" ]]; then
-      $0 test specs/splits/*.html specs/*.html
+      $0 test-split.js specs/split.js/*.html
       exit 0
     fi
 
-    for JS in main/*.js; do
-      js_setup   jshint "$JS"
+    js_setup  jshint "main/split.js"
+    for FILE in "$@"; do
+      echo "=== Splitting: $FILE"
+      rm -rf "$TEMP_SPLITS"
+      mkdir -p "$TEMP_SPLITS"
+      $0 split "$FILE" "$TEMP_SPLITS"
+      original="$($0 no-section "$FILE")"
+      css="$($0 section "STYLE" "$FILE" || :)"
+      head="$($0 section "HEAD" "$FILE" || :)"
+      js="$($0 section "SCRIPT" "$FILE" || :)"
+      html="$($0 section "HTML" "$FILE" || :)"
+      tput cuu1; tput el
+      if [[ -n "$head" ]] && ! dif <(echo "$head") "$TEMP_SPLITS/head.html"; then
+        echo -e "=== HEAD Failed: $Red$FILE${Color_Off}"
+        exit 1
+      fi
+
+      if [[ -n "$css" ]] && ! diff <(echo "$css") "$TEMP_SPLITS/style.css"; then
+        echo -e "=== CSS Failed: $Red$FILE${Color_Off}"
+        exit 1
+      fi
+
+      if [[ -n "$js" ]] && ! diff <(echo "$js") "$TEMP_SPLITS/script.css"; then
+        echo -e "=== JS Failed: $Red$FILE${Color_Off}"
+        exit 1
+      fi
+
+      if ! diff <(echo "$html") "$TEMP_SPLITS/markup.html"; then
+        echo -e "=== HTML Failed: $Red$FILE${Color_Off}"
+        exit 1
+      fi
+
+      echo -e "=== split: $Green$FILE$Reset"
     done
+    ;;
+
+  test-main.js)
+    if [[ -z "$@" ]]; then
+      $0 test-main.js specs/main.js/*.html
+      exit 0
+    fi
+
+    js_setup  jshint "main/main.js"
 
     for FILE in "$@"; do
-      if [[ "$FILE" == */splits/*.html ]]; then
-        echo "=== Splitting: $FILE"
-        $0 split "$FILE" "$TEMP_SPLITS"
-        continue
-      fi
-
-      if [[ "$FILE" != *.template.html ]]; then
-        echo "=== Skipping: $FILE" 1>&2
-        continue
-      fi
-
       echo -e "=== Waiting on: $FILE"
       split_on="$(cat "$FILE" -n | grep -i --extended-regexp '<!--\ +EXPECT.?\ +-->' | cut -f 1 | head -n 1)"
       expect="$(cat "$FILE" | tail -n +$((split_on + 1)))"
