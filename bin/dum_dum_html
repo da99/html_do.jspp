@@ -4,6 +4,9 @@
 THE_ARGS="$@"
 THIS_DIR="$(bash_setup dirname_of_bin "$0")"
 
+TEMP_SPLITS="/tmp/dum_dum_html/splits"
+mkdir -p $TEMP_SPLITS
+
 if [[ -z "$@" ]]; then
   action="watch"
 else
@@ -100,10 +103,22 @@ case $action in
     $0 watch $THE_ARGS
     ;;
 
-  test)
-    mkdir -p /tmp/dum_dum_html
+  split)
+    file="$1"; shift
     if [[ -z "$@" ]]; then
-      $0 test specs/*.html
+      dir="$(dirname "$file")"
+    else
+      dir="$1"; shift
+    fi
+
+    touch "$dir/style.css"
+    touch "$dir/markup.html"
+    touch "$dir/script.js"
+    ;;
+
+  test)
+    if [[ -z "$@" ]]; then
+      $0 test specs/splits/*.html specs/*.html
       exit 0
     fi
 
@@ -112,16 +127,26 @@ case $action in
     done
 
     for FILE in "$@"; do
-      if [[ "$FILE" != *.template.html ]]; then
+      if [[ "$FILE" == */splits/*.html ]]; then
+        echo "=== Splitting: $FILE"
+        $0 split "$FILE" "$TEMP_SPLITS"
         continue
       fi
 
+      if [[ "$FILE" != *.template.html ]]; then
+        echo "=== Skipping: $FILE" 1>&2
+        continue
+      fi
+
+      echo -e "=== Waiting on: $FILE"
       split_on="$(cat "$FILE" -n | grep -i --extended-regexp '<!--\ +EXPECT.?\ +-->' | cut -f 1 | head -n 1)"
       expect="$(cat "$FILE" | tail -n +$((split_on + 1)))"
 
       TEMP="$(mktemp /tmp/dum_dum_html/XXXXXXXXXXXX.$(basename "$FILE"))"
       cat "$FILE" | head -n $((split_on - 1)) > "$TEMP"
       actual="$($0 $TEMP)"
+
+      tput cuu1; tput el
       if [[ "$actual" != "$expect" ]]; then
         echo -e "=== Failed: ${Red}${FILE}${Color_Off}" 1>&2
         diff <(echo "$actual") <(echo "$expect")
