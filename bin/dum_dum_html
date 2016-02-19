@@ -59,8 +59,7 @@ case $action in
 
   watch)
     # === watch
-
-    for FILE in $(git ls-files | grep --extended-regexp '.js|.html|bin'); do
+    for FILE in $(git ls-files --cached --others --exclude-standard | grep --extended-regexp '.js|.html|bin'); do
       bash_setup is_same_file "$FILE" || :
     done
 
@@ -88,28 +87,13 @@ case $action in
         break
       fi
 
-      if [[ "$file" =~ ".js" ]]; then
-        js_setup jshint $path || continue
+      if [[ "$path" == */main/*.js ]]; then
+        base="$(basename "$path")"
+        $0 test-$base || continue
       fi
 
-      if [[ "$path" =~ "/main.js" || "$path" == *specs/main.js/*.html ]]; then
-        $0 test-main.js || continue
-      fi
-
-      if [[ "$path" =~ "/main.js" ]]; then
-        $0 test-main.js || continue
-      fi
-
-      if [[ "$path" == *specs/main.js/*.html ]]; then
-        $0 test-main.js "$path" || continue
-      fi
-
-      if [[ "$path" =~ "/split.js" ]]; then
-        $0 test-split.js || continue
-      fi
-
-      if [[ "$path" == *specs/split.js/*.html ]]; then
-        $0 test-split.js "$path" || continue
+      if [[ "$path" == *specs/*.js/*.html ]]; then
+        $0 test-$(basename $(dirname "$path")) "$path" || continue
       fi
 
     done < <(inotifywait --quiet --monitor --event close_write -r specs/ -r main/ -r bin/) || exit 1
