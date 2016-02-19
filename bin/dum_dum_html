@@ -157,9 +157,9 @@ case $action in
     done
     ;;
 
-  top-section)
-    # === __   top-section     path/to/file
-    # === cat path/to/file | __  top-section
+  no-section)
+    # === __   no-section     path/to/file
+    # === cat path/to/file | __  no-section
     grep  -Pzo '(?s)(\A.+?)(?=\<!--)' $@
     ;;
 
