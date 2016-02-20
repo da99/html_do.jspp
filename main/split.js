@@ -39,6 +39,7 @@ function section_to_file(tag, $, file_path) {
   var target = targets[0];
   var contents = $(target).html();
   $(target).remove();
-  fs.writeFileSync(file_path, contents);
+  fs.writeFileSync(file_path, contents.replace(/^\n/, ""));
   return true;
 }
+

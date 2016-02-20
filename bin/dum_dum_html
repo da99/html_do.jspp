@@ -63,8 +63,9 @@ case $action in
     NAME="$1"; shift
     FILE1="$1"; shift
     FILE2="$1"; shift
-    if [[ -s "$FILE1" ]] && ! diff "$FILE1" "$FILE2"; then
-      echo -e "=== $NAME Failed:"
+    # if [[ -s "$FILE1" ]] && ! diff <(bash_setup trim-file "$FILE1") <(bash_setup trim-file "$FILE2"); then
+    if [[ -s "$FILE1" ]] && ! diff <(bash_setup trim-file "$FILE1") <(bash_setup trim-file "$FILE2"); then
+      echo -e "=== $NAME ${Red}Failed${Color_Off}:"
       echo -e "${Bold}      === Actual: =====${Color_Off} $FILE2"
       cat "$FILE2"
       echo -e "${Bold}      === Expected: ===${Color_Off} $FILE1"
@@ -134,10 +135,10 @@ case $action in
 
     js_setup  jshint "main/split.js"
     for FILE in "$@"; do
-      css="$TEMP/css.section";   $0 section "STYLE" "$FILE"  | bash_setup trim-file > "$css" || :
-      head="$TEMP/head.section"; $0 section "HEAD" "$FILE"   | bash_setup trim-file > "$head" || :
-      js="$TEMP/js.section";     $0 section "SCRIPT" "$FILE" | bash_setup trim-file > "$js" || :
-      html="$TEMP/html.section"; $0 section "HTML" "$FILE"   | bash_setup trim-file > "$html" || :
+      css="$TEMP/css.section";   $0 section "STYLE" "$FILE"  > "$css" || :
+      head="$TEMP/head.section"; $0 section "HEAD" "$FILE"   > "$head" || :
+      js="$TEMP/js.section";     $0 section "SCRIPT" "$FILE" > "$js" || :
+      html="$TEMP/html.section"; $0 section "HTML" "$FILE"   > "$html" || :
 
       temp_file="$TEMP/split.html"
       $0 no-section "$FILE" > "$temp_file"
@@ -147,14 +148,7 @@ case $action in
       $0 split "$temp_file" "$TEMP_SPLITS"
       tput cuu1; tput el
 
-      # === Trim output files before comparison:
-      for FILE in "$TEMP_SPLITS"/* ; do
-        bash_setup trim-file "$FILE" > "$TEMP/output"
-        mv -f "$TEMP/output" "$FILE"
-      done
-
       # === Compare files:
-
       $0 must-be-same "HEAD" "$head" "$TEMP_SPLITS/head.html"
       $0 must-be-same "CSS"  "$css"  "$TEMP_SPLITS/style.css"
       $0 must-be-same "JS"   "$js"   "$TEMP_SPLITS/script.js"
@@ -195,14 +189,14 @@ case $action in
   no-section)
     # === __   no-section     path/to/file
     # === cat path/to/file | __  no-section
-    grep  -Pzo '(?s)(\A.+?)(?=\<!--)' $@
+    grep  -Pzo '(?s)(\A.+?)(?=\n\<!--)' $@
     ;;
 
   section)
     # === __    section   STYLE|FOOT|...   path/to/file
     # === cat path/to/file | __  section   STYLE|FOOT|...
     section="$1"; shift
-    grep  -Pzo '(?s)^\<!--\s+'$section'\s+-->\s?\n\K(.+?)(?=<!--|\Z)' $@
+    grep  -Pzo '(?s)^\<!--\s+'$section'\s+-->\s?\n\K(.+?)(?=\n<!--|\Z)' $@
     ;;
 
   *)
