@@ -58,6 +58,22 @@ case $action in
     js_setup upgrade
     ;;
 
+  must-be-same)
+    # === __ must-be-same  NAME  "file1"  "file2"
+    NAME="$1"; shift
+    FILE1="$1"; shift
+    FILE2="$1"; shift
+    if [[ -s "$FILE1" ]] && ! diff "$FILE1" "$FILE2"; then
+      echo -e "=== $NAME Failed:"
+      echo -e "${Bold}      === Actual: =====${Color_Off} $FILE2"
+      cat "$FILE2"
+      echo -e "${Bold}      === Expected: ===${Color_Off} $FILE1"
+      cat "$FILE1"
+      echo -e "${Bold}      =================${Color_Off}"
+      exit 1
+    fi
+    ;;
+
   watch)
     # === watch
     for FILE in $(git ls-files --cached --others --exclude-standard | grep --extended-regexp '.js|.html|bin'); do
@@ -131,40 +147,18 @@ case $action in
       $0 split "$temp_file" "$TEMP_SPLITS"
       tput cuu1; tput el
 
+      # === Trim output files before comparison:
       for FILE in "$TEMP_SPLITS"/* ; do
         bash_setup trim-file "$FILE" > "$TEMP/output"
         mv -f "$TEMP/output" "$FILE"
       done
 
-      if [[ -s "$head" ]] && ! diff "$head"  "$TEMP_SPLITS/head.html"; then
-        echo -e "=== HEAD Failed: $Red$FILE${Color_Off}"
-        exit 1
-      fi
+      # === Compare files:
 
-      if [[ -s "$css" ]] && ! diff "$css" "$TEMP_SPLITS/style.css"; then
-        echo -e "=== CSS Failed: $Red$FILE${Color_Off} ($TEMP_SPLITS)"
-        echo -e "${Bold}      === Actual: =====${Color_Off}"
-        cat "$TEMP_SPLITS/style.css"
-        echo -e "${Bold}      === Expected: ===${Color_Off}"
-        cat "$css"
-        echo -e "${Bold}      =================${Color_Off}"
-        exit 1
-      fi
-
-      if [[ -s "$js" ]] && ! diff "$js" "$TEMP_SPLITS/script.js"; then
-        echo -e "=== JS Failed: $Red$FILE${Color_Off} ($TEMP_SPLITS)"
-        echo -e "${Bold}      === Actual: =====${Color_Off}"
-        cat "$TEMP_SPLITS/script.js"
-        echo -e "${Bold}      === Expected: ===${Color_Off}"
-        cat "$js"
-        echo -e "${Bold}      =================${Color_Off}"
-        exit 1
-      fi
-
-      if ! diff "$html" "$TEMP_SPLITS/markup.html"; then
-        echo -e "=== HTML Failed: $Red$FILE${Color_Off} ($TEMP_SPLITS)"
-        exit 1
-      fi
+      $0 must-be-same "HEAD" "$head" "$TEMP_SPLITS/head.html"
+      $0 must-be-same "CSS"  "$css"  "$TEMP_SPLITS/style.css"
+      $0 must-be-same "JS"   "$js"   "$TEMP_SPLITS/script.js"
+      $0 must-be-same "HTML" "$html" "$TEMP_SPLITS/markup.html"
 
       echo -e "=== split: $Green$FILE$Reset"
     done
