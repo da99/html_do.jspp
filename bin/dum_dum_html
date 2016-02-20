@@ -4,7 +4,8 @@
 THE_ARGS="$@"
 THIS_DIR="$(bash_setup dirname_of_bin "$0")"
 
-TEMP_SPLITS="/tmp/dum_dum_html/splits"
+TEMP="/tmp/dum_dum_html"
+TEMP_SPLITS="$TEMP/splits"
 mkdir -p $TEMP_SPLITS
 
 if [[ -z "$@" ]]; then
@@ -87,12 +88,12 @@ case $action in
         break
       fi
 
-      if [[ "$path" == */main/*.js ]]; then
+      if [[ "$path" == main/*.js ]]; then
         base="$(basename "$path")"
         $0 test-$base || continue
       fi
 
-      if [[ "$path" == *specs/*.js/*.html ]]; then
+      if [[ "$path" == specs/*.js/*.html ]]; then
         $0 test-$(basename $(dirname "$path")) "$path" || continue
       fi
 
@@ -101,16 +102,7 @@ case $action in
     ;;
 
   split)
-    file="$1"; shift
-    if [[ -z "$@" ]]; then
-      dir="$(dirname "$file")"
-    else
-      dir="$1"; shift
-    fi
-
-    touch "$dir/style.css"
-    touch "$dir/markup.html"
-    touch "$dir/script.js"
+    node "$THIS_DIR/main/split.js" $@
     ;;
 
   test)
@@ -126,33 +118,51 @@ case $action in
 
     js_setup  jshint "main/split.js"
     for FILE in "$@"; do
-      echo "=== Splitting: $FILE"
-      rm -rf "$TEMP_SPLITS"
-      mkdir -p "$TEMP_SPLITS"
-      $0 split "$FILE" "$TEMP_SPLITS"
-      original="$($0 no-section "$FILE")"
-      css="$($0 section "STYLE" "$FILE" || :)"
-      head="$($0 section "HEAD" "$FILE" || :)"
-      js="$($0 section "SCRIPT" "$FILE" || :)"
-      html="$($0 section "HTML" "$FILE" || :)"
+      css="$TEMP/css.section";   $0 section "STYLE" "$FILE"  | bash_setup trim-file > "$css" || :
+      head="$TEMP/head.section"; $0 section "HEAD" "$FILE"   | bash_setup trim-file > "$head" || :
+      js="$TEMP/js.section";     $0 section "SCRIPT" "$FILE" | bash_setup trim-file > "$js" || :
+      html="$TEMP/html.section"; $0 section "HTML" "$FILE"   | bash_setup trim-file > "$html" || :
+
+      temp_file="$TEMP/split.html"
+      $0 no-section "$FILE" > "$temp_file"
+
+      echo "=== Splitting: $FILE to $TEMP_SPLITS"
+      rm -rf "$TEMP_SPLITS"; mkdir -p "$TEMP_SPLITS"
+      $0 split "$temp_file" "$TEMP_SPLITS"
       tput cuu1; tput el
-      if [[ -n "$head" ]] && ! dif <(echo "$head") "$TEMP_SPLITS/head.html"; then
+
+      for FILE in "$TEMP_SPLITS"/* ; do
+        bash_setup trim-file "$FILE" > "$TEMP/output"
+        mv -f "$TEMP/output" "$FILE"
+      done
+
+      if [[ -s "$head" ]] && ! diff "$head"  "$TEMP_SPLITS/head.html"; then
         echo -e "=== HEAD Failed: $Red$FILE${Color_Off}"
         exit 1
       fi
 
-      if [[ -n "$css" ]] && ! diff <(echo "$css") "$TEMP_SPLITS/style.css"; then
-        echo -e "=== CSS Failed: $Red$FILE${Color_Off}"
+      if [[ -s "$css" ]] && ! diff "$css" "$TEMP_SPLITS/style.css"; then
+        echo -e "=== CSS Failed: $Red$FILE${Color_Off} ($TEMP_SPLITS)"
+        echo -e "${Bold}      === Actual: =====${Color_Off}"
+        cat "$TEMP_SPLITS/style.css"
+        echo -e "${Bold}      === Expected: ===${Color_Off}"
+        cat "$css"
+        echo -e "${Bold}      =================${Color_Off}"
         exit 1
       fi
 
-      if [[ -n "$js" ]] && ! diff <(echo "$js") "$TEMP_SPLITS/script.css"; then
-        echo -e "=== JS Failed: $Red$FILE${Color_Off}"
+      if [[ -s "$js" ]] && ! diff "$js" "$TEMP_SPLITS/script.js"; then
+        echo -e "=== JS Failed: $Red$FILE${Color_Off} ($TEMP_SPLITS)"
+        echo -e "${Bold}      === Actual: =====${Color_Off}"
+        cat "$TEMP_SPLITS/script.js"
+        echo -e "${Bold}      === Expected: ===${Color_Off}"
+        cat "$js"
+        echo -e "${Bold}      =================${Color_Off}"
         exit 1
       fi
 
-      if ! diff <(echo "$html") "$TEMP_SPLITS/markup.html"; then
-        echo -e "=== HTML Failed: $Red$FILE${Color_Off}"
+      if ! diff "$html" "$TEMP_SPLITS/markup.html"; then
+        echo -e "=== HTML Failed: $Red$FILE${Color_Off} ($TEMP_SPLITS)"
         exit 1
       fi
 
