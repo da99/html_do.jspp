@@ -82,7 +82,7 @@ case $action in
       bash_setup is_same_file "$FILE" || :
     done
 
-    $0 test || :
+    # $0 test || :
 
     echo -e "\n=== Watching:"
     while read -r CHANGE; do
@@ -105,6 +105,13 @@ case $action in
         echo "=== Reloading..."
         break
       fi
+
+      if [[ "$path" == main/*.js ]]; then
+        js_setup jshint "$path" || :
+      fi
+
+      continue # === for now
+
 
       if [[ "$path" == main/*.js ]]; then
         base="$(basename "$path")"

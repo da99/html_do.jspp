@@ -25,8 +25,29 @@ Create a `.template.html` file in specs:
   <div>my expected output</div>
 
 ```
+Layout:
+========
+
+* /layouts
+* /pages
+* /snippets
+
+Output Dir:
+* /
+  * page-name-of-file.html
+  * page-name-of-file.markup.html (including head, tail, etc.)
+  * page-name-of-file.style.css
+  * page-name-of-file.script.css
+  * snippet-name-of-file.html
+  * snippet-name-of-file.markup.html (including head, tail, etc.)
+  * snippet-name-of-file.style.css
+  * snippet-name-of-file.script.css
+
+
 
 Links:
 =====
 
 * Uses `he`. Alternative encode/decode of html entities: https://github.com/substack/node-ent
+
+
