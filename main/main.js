@@ -1,6 +1,6 @@
 "use strict";
 /* jshint evil : true, esnext: true, globalstrict: true, undef: true */
-/* global $ : true, _ : true, console, require, process  */
+/* global _ : true, console, require, process  */
 
 const cheerio = require('cheerio');
 const _       = require('lodash');
@@ -8,61 +8,92 @@ const Hogan   = require('hogan.js');
 const fs      = require('fs');
 const path    = require('path');
 const he      = require('he');
-const EXT     = '.template.html';
+const SNIPPET_REUSE_TAGS = ['head', 'tail', 'top', 'bottom'];
+const FILES_USED = [];
 
-var template;
-var layout;
+var args     = process.argv.slice(2);
+var dir      = args.pop() || error('!!! Output dir not specified.');
+var template = args.pop() || error('!!! Template not specified.');
+var layout   = args.pop();
 
-// === Filter :layout from :templates:
-_.each(process.argv, function (raw_file_name, i) {
-  if (raw_file_name.indexOf(EXT) < 1)
-    return;
+var name              = path.basename(template, '.html');
+var template_contents = read_and_cache_file_name(template);
+var layout_contents   = fs.readFileSync(layout).toString();
+var $layout           = layout && cheerio.load(layout_contents);
+var $template         = cheerio.load(template_contents);
 
-  if ('layout' === path.basename(raw_file_name, EXT)) {
-    layout = raw_file_name;
-    return;
+$template = var_pipeline(
+  $template,
+  scripts_to_tag,
+  styles_to_tag,
+  markup_to_file,
+  to_func(merge_with_layout, $layout)
+);
+
+// === Finish writing file.
+var page_file_path = ABOUT('new-file', name + '.html');
+fs.writeFileSync(page_file_path, $template.to_html());
+log(page_file_path);
+
+
+function ABOUT(key) { // === Function that returns state.
+  switch (key) {
+    case 'name':
+      return name;
+    case 'dir':
+      return dir;
+    case 'new-file':
+      return dir + '/page-' + name + '-' + arguments[1];
+    case 'layout':
+      return $layout;
+    default:
+      error("!!! Unknown key: " + key);
   }
-
-  if (!template) {
-    template = raw_file_name;
-    return;
-  }
-
-  console.error("!!! Too many templates: " + raw_file_name);
-  process.exit(1);
-}); // === each contents
-
-// === Something went wrong if there are not templates found:
-if (!template) {
-  console.error("No " + EXT + " files found.");
-  process.exit(1);
 }
 
-var raw_html        = fs.readFileSync(template).toString();
-var name            = path.basename(template, '.mustache.html');
-var mustache        = to_mustache(raw_html);
-var inline_vars     = {};
 
-var layout_html     = layout && fs.readFileSync(layout).toString();
-var layout_mustache = layout && to_mustache(layout_html);
+function merge_with_layout($layout, $template) {
+  if (!ABOUT('layout'))
+    return $template;
+  if ($template('html').length === 0)
+    return $template;
 
-if (layout_html)
-  inline_vars = _.extend(inline_vars, get_inline_vars(layout_html));
-inline_vars = _.extend(inline_vars, get_inline_vars(raw_html));
+  _.each($template.children(), function (raw) {
+    switch (raw.name) {
+      case 'head':
+        $layout('head').append($template(raw).html());
+        $template(raw).remove();
+        break;
 
-var final_html;
-if (layout)
-  final_html = compiled_to_compiler(layout_mustache).render(inline_vars, {markup: compiled_to_compiler(mustache)});
-else
-  final_html = compiled_to_compiler(mustache).render(inline_vars) ;
+      case 'tail':
+        $layout('body').after($template(raw).html());
+        $template(raw).remove();
+        break;
 
-final_html = tag_template_to_script(final_html);
-console.log(final_html);
+      case 'top':
+        $layout('body').prepend($template(raw).html());
+        $template(raw).remove();
+        break;
+
+      case 'bottom':
+        $layout('body').append($template(raw).html());
+        $template(raw).remove();
+        break;
+    } // == switch
+  });
+
+  $layout('markup').replaceWith($template.html());
+  return $layout;
+} // === merge_markup
+
+function error(msg) {
+  console.error(msg);
+  process.exit(1);
+}
 
 function to_mustache(html) {
   return Hogan.compile(html, {asString: 1, delimiters: '[[ ]]'});
 }
-
 
 function get_comments($_) {
   return _.compact(_.map($_.contents(), function (node) {
@@ -87,6 +118,16 @@ function compiled_to_compiler(code) {
   var f = new Function('Hogan', 'return new Hogan.Template(' + code + ');' );
   return f(Hogan);
 }
+
+function cheerio_to_mustache_to_html($) {
+  var mustache        = to_mustache($.html());
+  var inline_vars     = _.extend({}, get_inline_vars(raw_html));
+
+  return tag_template_to_script(
+    compiled_to_compiler(mustache).render(inline_vars)
+  );
+} // === mustache_to_html
+
 
 // ===  "template" tags can be deeply nested,
 // so we process the inner-most ones first,
@@ -116,5 +157,93 @@ function tag_template_to_script(html) {
   // === Recurse to handle outer template tags:
   return tag_template_to_script($.html());
 }
+
+function styles_to_tag($) {
+  var rel_path = ABOUT('new-file', 'style.css');
+  var contents = to_html_and_remove($, $('style'));
+  fs.writeFileSync(rel_path, contents);
+
+  return append_to_tag(
+    'head',
+    $,
+    '<link rel="stylesheet" type="text/css" href="' + rel_path + '" />'
+  );
+}
+
+function scripts_to_tag($) {
+  var rel_path = ABOUT('new-file', 'script.js');
+  var contents = to_html_and_remove($, $('script'));
+
+  fs.writeFileSync(rel_path, contents);
+
+  return append_to_tag(
+    'bottom',
+    $,
+    '<script type="application/javascript" src="' + rel_path  + '"></script>'
+  );
+} // === scripts_to_tag
+
+function to_html_and_remove($, coll) {
+  return _.compact(_.map(coll, function (raw) {
+    var html = $(raw).html();
+    $(raw).remove();
+    return html;
+  })).join("\n");
+}
+
+function append_to_tag(tag_name, $, html) {
+  var target = $(tag_name);
+  if (!target[0]) {
+    $('<' + tag_name + '></' + tag_name + '>').appendTo($);
+    target = $(tag_name);
+  }
+  target.append(html);
+  return $;
+} // === append_to_tag
+
+function markup_to_file($) {
+  fs.writeFileSync(
+    ABOUT('new-file', 'markup.html'),
+    $.html()
+  );
+  return $;
+}
+
+// === Used to help other functions check if
+// file has already been used before. Counterpart
+// is `read_and_cache_file_name`.
+function is_file_loaded(file) {
+  return _.includes(FILES_USED, fs.realpathSync(file));
+}
+
+function read_and_cache_file_name(file) {
+  let canon = fs.realpathSync(file);
+  if (!_.includes(FILES_USED, canon))
+    FILES_USED.push(canon);
+  return fs.readFileSync(file).toString();
+}
+
+function var_pipeline() {
+  var funcs = _.toArray(arguments);
+  var v     = funcs.shift();
+
+  return _.reduce(funcs, function (acc, f) {
+    return f(acc);
+  }, v);
+}
+
+function log(_args) {
+  return console.log.apply(console, arguments);
+}
+
+function to_func() {
+  var args = _.toArray(arguments);
+  var func = args.shift();
+
+  return function () {
+    return func.apply(null, [].concat(args).concat(arguments));
+  };
+}
+
 
 
