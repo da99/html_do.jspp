@@ -1,6 +1,6 @@
 "use strict";
 /* jshint evil : true, esnext: true, globalstrict: true, undef: true */
-/* global $ : true, _ : true, console, require, process  */
+/* global _ : true, console, require, process  */
 
 const cheerio = require('cheerio');
 const _       = require('lodash');
@@ -22,11 +22,21 @@ var layout_contents   = fs.readFileSync(layout).toString();
 var $layout           = layout && cheerio.load(layout_contents);
 var $template         = cheerio.load(template_contents);
 
-var script_js = section_to_file('script', $, 'script.js');
-var style_css = section_to_file('style',  $, 'style.css');
-fs.writeFileSync(ABOUT('new-file', 'markup.html'), $.html());
+$template = var_pipeline(
+  $template,
+  scripts_to_tag,
+  styles_to_tag,
+  markup_to_file,
+  to_func(merge_with_layout, $layout)
+);
 
-function ABOUT(key) {
+// === Finish writing file.
+var page_file_path = ABOUT('new-file', name + '.html');
+fs.writeFileSync(page_file_path, $template.to_html());
+log(page_file_path);
+
+
+function ABOUT(key) { // === Function that returns state.
   switch (key) {
     case 'name':
       return name;
@@ -34,47 +44,47 @@ function ABOUT(key) {
       return dir;
     case 'new-file':
       return dir + '/page-' + name + '-' + arguments[1];
+    case 'layout':
+      return $layout;
     default:
       error("!!! Unknown key: " + key);
   }
 }
 
-_.each($template.children(), function (raw) {
-  switch (raw.name) {
-    case 'head':
-      $layout('head').append($template(raw).html());
-      $template(raw).remove();
-      break;
 
-    case 'tail':
-      $layout('body').after($template(raw).html());
-      $template(raw).remove();
-      break;
+function merge_with_layout($layout, $template) {
+  if (!ABOUT('layout'))
+    return $template;
+  if ($template('html').length === 0)
+    return $template;
 
-    case 'top':
-      $layout('body').prepend($template(raw).html());
-      $template(raw).remove();
-      break;
+  _.each($template.children(), function (raw) {
+    switch (raw.name) {
+      case 'head':
+        $layout('head').append($template(raw).html());
+        $template(raw).remove();
+        break;
 
-    case 'bottom':
-      $layout('body').append($template(raw).html());
-      $template(raw).remove();
-      break;
-  } // == switch
-});
+      case 'tail':
+        $layout('body').after($template(raw).html());
+        $template(raw).remove();
+        break;
 
-_.each($layout('file'), function (raw) {
-  if (_.isEmpty($layout(raw).attr())) {
-    $layout(raw).replace($template);
-    return true;
-  }
-});
+      case 'top':
+        $layout('body').prepend($template(raw).html());
+        $template(raw).remove();
+        break;
 
-log(process_file_tags($layout).html());
+      case 'bottom':
+        $layout('body').append($template(raw).html());
+        $template(raw).remove();
+        break;
+    } // == switch
+  });
 
-function log(_args) {
-  return console.log.apply(console, arguments);
-}
+  $layout('markup').replaceWith($template.html());
+  return $layout;
+} // === merge_markup
 
 function error(msg) {
   console.error(msg);
@@ -138,43 +148,55 @@ function tag_template_to_script(html) {
   return tag_template_to_script($.html());
 }
 
-function process_file_tags($) {
-  var tags = $('file');
-  if (tags.length === 0)
-    return $;
-  _.each(tags, function (raw) {
-    var src = _.trim($(raw).attr('src') || '');
-    if (_.isEmpty(src)) {
-      console.error('!!! No src for file tags');
-      process.exit(1);
-    }
-    var new$ = cheerio.load(fs.readFileSync(src));
-    $(raw).replace(new$);
-  });
+function styles_to_tag($) {
+  var rel_path = ABOUT('new-file', 'style.css');
+  var contents = to_html_and_remove($, $('style'));
+  fs.writeFileSync(rel_path, contents);
 
-  return process_file_tags(4);
+  return append_to_tag(
+    'head',
+    $,
+    '<link rel="stylesheet" type="text/css" href="' + rel_path + '" />'
+  );
 }
 
-function log(_args) {
-  return console.log.apply(console, arguments);
+function scripts_to_tag($) {
+  var rel_path = ABOUT('new-file', 'script.js');
+  var contents = to_html_and_remove($, $('script'));
+
+  fs.writeFileSync(rel_path, contents);
+
+  return append_to_tag(
+    'bottom',
+    $,
+    '<script type="application/javascript" src="' + rel_path  + '"></script>'
+  );
+} // === scripts_to_tag
+
+function to_html_and_remove($, coll) {
+  return _.compact(_.map(coll, function (raw) {
+    var html = $(raw).html();
+    $(raw).remove();
+    return html;
+  })).join("\n");
 }
 
-function section_to_file(tag, $, file_name) {
-  var targets = $(tag);
-
-  if (targets.length === 0)
-    return false;
-
-  if (targets.length > 1) {
-    console.error("!!! Too many tags for: " + tag);
-    process.exit(1);
+function append_to_tag(tag_name, $, html) {
+  var target = $(tag_name);
+  if (!target[0]) {
+    $('<' + tag_name + '></' + tag_name + '>').appendTo($);
+    target = $(tag_name);
   }
+  target.append(html);
+  return $;
+} // === append_to_tag
 
-  var target = targets[0];
-  var contents = $(target).html();
-  $(target).remove();
-  fs.writeFileSync(ABOUT('new-file', file_name), contents.replace(/^\n/, ""));
-  return true;
+function markup_to_file($) {
+  fs.writeFileSync(
+    ABOUT('new-file', 'markup.html'),
+    $.html()
+  );
+  return $;
 }
 
 // === Used to help other functions check if
@@ -189,6 +211,28 @@ function read_and_cache_file_name(file) {
   if (!_.includes(FILES_USED, canon))
     FILES_USED.push(canon);
   return fs.readFileSync(file).toString();
+}
+
+function var_pipeline() {
+  var funcs = _.toArray(arguments);
+  var v     = funcs.shift();
+
+  return _.reduce(funcs, function (acc, f) {
+    return f(acc);
+  }, v);
+}
+
+function log(_args) {
+  return console.log.apply(console, arguments);
+}
+
+function to_func() {
+  var args = _.toArray(arguments);
+  var func = args.shift();
+
+  return function () {
+    return func.apply(null, [].concat(args).concat(arguments));
+  };
 }
 
 
