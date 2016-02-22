@@ -6,21 +6,39 @@ const cheerio = require('cheerio');
 const _       = require('lodash');
 const Hogan   = require('hogan.js');
 const fs      = require('fs');
+const util    = require('util');
 const path    = require('path');
 const he      = require('he');
 const SNIPPET_REUSE_TAGS = ['head', 'tail', 'top', 'bottom'];
 const FILES_USED = [];
 
 var args     = process.argv.slice(2);
-var dir      = args.pop() || error('!!! Output dir not specified.');
-var template = args.pop() || error('!!! Template not specified.');
+
+switch (args.length) {
+  case 3: break;
+  case 4: break;
+  default:
+    console.error(to_string(args));
+    console.error("!!! arguments.length incorrect. Try: [layout]  template_file  output_dir  public_path");
+    process.exit(1);
+}
+
+var public_dir=args.pop();
+var dir      = args.pop();
+var template = args.pop();
 var layout   = args.pop();
+
+should_be(public_dir, is_string);
+should_be(dir,        is_dir);
+should_be(template,   is_file);
+if (layout)
+  should_be(layout,  is_file);
 
 var name              = path.basename(template, '.html');
 var template_contents = read_and_cache_file_name(template);
 var layout_contents   = layout && fs.readFileSync(layout).toString();
-var $layout           = layout && cheerio.load(layout_contents);
-var $template         = cheerio.load(template_contents);
+var $layout           = layout && cheerio.load(layout_contents, {xmlMode: true});
+var $template         = cheerio.load(template_contents, {xmlMode: true});
 
 $template = var_pipeline(
   $template,
@@ -45,7 +63,9 @@ function ABOUT(key) { // === Function that returns state.
     case 'dir':
       return dir;
     case 'new-file':
-      return dir + '/page-' + name + '-' + arguments[1];
+      return dir + '/' + name + '-' + arguments[1];
+    case 'public-dir':
+      return public_dir;
     case 'layout':
       return $layout;
     default:
@@ -163,22 +183,26 @@ function tag_template_to_script(html) {
   return tag_template_to_script($.html());
 }
 
+function rel_path(file) {
+  var public_dir = path.resolve(ABOUT('public-dir'));
+  var full       = path.resolve(file);
+  return full.replace(public_dir, '');
+}
+
 function styles_to_tag($) {
   var new_path = ABOUT('new-file', 'style.css');
-  var rel_path = path.relative(ABOUT('dir'), new_path);
   var contents = to_html_and_remove($, $('style'));
   fs.writeFileSync(new_path, contents);
 
   return append_to_tag(
     'head',
     $,
-    '<link rel="stylesheet" type="text/css" href="' + rel_path + '" />'
+    '<link rel="stylesheet" type="text/css" href="' + rel_path(new_path) + '" />'
   );
 }
 
 function scripts_to_tag($) {
   var new_path = ABOUT('new-file', 'script.js');
-  var rel_path = path.relative(ABOUT('dir'), new_path);
   var contents = to_html_and_remove($, $('script'));
 
   if (is_blank_string(contents))
@@ -189,7 +213,7 @@ function scripts_to_tag($) {
   return append_to_tag(
     'bottom',
     $,
-    '<script type="application/javascript" src="' + rel_path  + '"></script>'
+    '<script type="application/javascript" src="' + rel_path(new_path)  + '"></script>'
   );
 } // === scripts_to_tag
 
@@ -204,7 +228,7 @@ function to_html_and_remove($, coll) {
 function append_to_tag(tag_name, $, html) {
   var target = $(tag_name);
   if (!target[0]) {
-    $('<' + tag_name + '></' + tag_name + '>').appendTo($);
+    $.root().prepend('<' + tag_name + '></' + tag_name + '>');
     target = $(tag_name);
   }
   target.append(html);
@@ -270,6 +294,43 @@ function identity(v) {
 function is_blank_string(str) {
   return _.trim(str).length === 0;
 }
+
+function should_be(val, _funcs) {
+  _funcs = _.toArray(arguments);
+  val    = _funcs.shift();
+
+  _.each(_funcs, function (f) {
+    if (!f(val)) {
+      console.error("!!! " + to_string(val) + ' should be: ' + to_string(f));
+      process.exit(1);
+    }
+  });
+}
+
+function to_string(v) {
+  if (v === undefined)
+    return 'undefined';
+  if (v === null)
+    return 'null';
+  if (v === false)
+    return 'false';
+  if (v === true)
+    return 'true';
+  if (_.isFunction(v))
+    return (v.name) ? v.name + ' (function)' : v.toString();
+  if (_.isString(v))
+    return '"' + v + '"';
+  if (_.isArray(v))
+    return '[' + _.map(_.toArray(v), to_string).join(', ') + '] (Array)';
+  if (v.constructor === arguments.constructor)
+    return '[' + _.map(_.toArray(v), to_string).join(', ') + '] (arguments)';
+  return util.inspect(v);
+}
+
+function is_string(v) { return _.isString(v); }
+function is_dir(v) { return fs.lstatSync(v).isDirectory(); }
+function is_file(v) { return fs.lstatSync(v).isFile(); }
+
 
 
 
