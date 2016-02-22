@@ -59,7 +59,16 @@ case $action in
     js_setup upgrade
     ;;
 
+  new-spec)
+    # === __ new-spec  name-of-dir
+    mkdir specs/$1
+    mkdir specs/$1/input
+    mkdir specs/$1/expect
+    ;;
+
   test)
+    # === __   test
+    # ==  __   spec/dir
     if [[ -z "$@" ]]; then
       js_setup jshint main/main.js
       while read DIR; do
