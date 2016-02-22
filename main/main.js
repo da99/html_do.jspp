@@ -44,6 +44,8 @@ $template = var_pipeline(
   $template,
   scripts_to_tag,
   styles_to_tag,
+  tag_template_to_script,
+  conditionals_to_files,
   markup_to_file,
   layout ? to_func(merge_with_layout, $layout) : identity
 );
@@ -111,6 +113,12 @@ function merge_with_layout($layout, $template) {
   return $layout;
 } // === merge_markup
 
+function conditionals_to_files($) {
+  var whens = $('when');
+  if (whens.length === 0)
+    return $;
+}
+
 function error(msg) {
   console.error(msg);
   process.exit(1);
@@ -157,13 +165,12 @@ function cheerio_to_mustache_to_html($) {
 // ===  "template" tags can be deeply nested,
 // so we process the inner-most ones first,
 // then move on to the outer ones.
-function tag_template_to_script(html) {
-  let $    = cheerio.load(html);
+function tag_template_to_script($) {
   let tags = $('template');
 
   // === If no tags, we are done processing:
   if (tags.length === 0)
-    return html;
+    return $;
 
   // === Find the inner-most (ie nested) template
   // tag and process it:
@@ -180,7 +187,7 @@ function tag_template_to_script(html) {
   raw.name = "script";
 
   // === Recurse to handle outer template tags:
-  return tag_template_to_script($.html());
+  return tag_template_to_script($);
 }
 
 function rel_path(file) {
