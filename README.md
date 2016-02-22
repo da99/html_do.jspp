@@ -40,7 +40,7 @@ Message Standardization:
 The previous designs were prone to creating matching DSLs on messages.
 Anytime you have to introduce mini-languages/DSLs and clever tricks, you are limiting
 flexibility and creating future dead-ends. It adds more things to learn and more complexity
-to the implementation of `dum_dum_boom_boom`.
+to the implementation of `dum_dum_js`.
 
 
 2 - Previous design:

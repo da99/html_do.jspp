@@ -1,12 +1,12 @@
 {
-  "name": "dum_dum_boom_boom",
+  "name": "dum_dum_js",
   "version": "0.0.0",
   "description": "Logic-less templates to a new level",
   "main": "main/main.js",
   "scripts": {},
   "repository": {
     "type": "git",
-    "url": "git@github:da99/dum_dum_boom_boom.git"
+    "url": "git@github:da99/dum_dum_js.git"
   },
   "keywords": [],
   "author": "da99",
