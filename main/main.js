@@ -186,7 +186,10 @@ function tag_template_to_script(html) {
 function rel_path(file) {
   var public_dir = path.resolve(ABOUT('public-dir'));
   var full       = path.resolve(file);
-  return full.replace(public_dir, '');
+  var fin        = full.replace(public_dir, '');
+  if (fin.indexOf('/') !== 0)
+    fin = '/' + fin;
+  return fin;
 }
 
 function styles_to_tag($) {
