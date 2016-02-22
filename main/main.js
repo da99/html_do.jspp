@@ -37,8 +37,8 @@ if (layout)
 var name              = path.basename(template, '.html');
 var template_contents = read_and_cache_file_name(template);
 var layout_contents   = layout && fs.readFileSync(layout).toString();
-var $layout           = layout && cheerio.load(layout_contents, {xmlMode: true});
-var $template         = cheerio.load(template_contents, {xmlMode: true});
+var $layout           = layout && cheerio.load(layout_contents, {recognizeSelfClosing: true});
+var $template         = cheerio.load(template_contents, {recognizeSelfClosing: true});
 
 $template = var_pipeline(
   $template,
@@ -192,6 +192,10 @@ function rel_path(file) {
 function styles_to_tag($) {
   var new_path = ABOUT('new-file', 'style.css');
   var contents = to_html_and_remove($, $('style'));
+
+  if (is_blank_string(contents))
+    return $;
+
   fs.writeFileSync(new_path, contents);
 
   return append_to_tag(

@@ -62,7 +62,9 @@ case $action in
   test)
     if [[ -z "$@" ]]; then
       js_setup jshint main/main.js
-      find specs/ -maxdepth 1 -mindepth 1 -type d | xargs -I DIR $0 test DIR
+      while read DIR; do
+        $0 test "$DIR"
+      done < <(find specs/ -maxdepth 1 -mindepth 1 -type d)
       exit 0
     fi
 
