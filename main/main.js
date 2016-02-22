@@ -18,7 +18,7 @@ var layout   = args.pop();
 
 var name              = path.basename(template, '.html');
 var template_contents = read_and_cache_file_name(template);
-var layout_contents   = fs.readFileSync(layout).toString();
+var layout_contents   = layout && fs.readFileSync(layout).toString();
 var $layout           = layout && cheerio.load(layout_contents);
 var $template         = cheerio.load(template_contents);
 
@@ -27,13 +27,15 @@ $template = var_pipeline(
   scripts_to_tag,
   styles_to_tag,
   markup_to_file,
-  to_func(merge_with_layout, $layout)
+  layout ? to_func(merge_with_layout, $layout) : identity
 );
 
 // === Finish writing file.
-var page_file_path = ABOUT('new-file', name + '.html');
-fs.writeFileSync(page_file_path, $template.to_html());
-log(page_file_path);
+if (layout) {
+  var page_file_path = ABOUT('new-file', '.html');
+  fs.writeFileSync(page_file_path, $template.html());
+  log(page_file_path);
+}
 
 
 function ABOUT(key) { // === Function that returns state.
@@ -53,7 +55,10 @@ function ABOUT(key) { // === Function that returns state.
 
 
 function merge_with_layout($layout, $template) {
-  if (!ABOUT('layout'))
+    log(arguments[1].html);
+  if (!$layout)
+    log(arguments.length, $template.html);
+  if (!$layout)
     return $template;
   if ($template('html').length === 0)
     return $template;
@@ -121,7 +126,7 @@ function compiled_to_compiler(code) {
 
 function cheerio_to_mustache_to_html($) {
   var mustache        = to_mustache($.html());
-  var inline_vars     = _.extend({}, get_inline_vars(raw_html));
+  var inline_vars     = _.extend({}, get_inline_vars($.html()));
 
   return tag_template_to_script(
     compiled_to_compiler(mustache).render(inline_vars)
@@ -159,9 +164,10 @@ function tag_template_to_script(html) {
 }
 
 function styles_to_tag($) {
-  var rel_path = ABOUT('new-file', 'style.css');
+  var new_path = ABOUT('new-file', 'style.css');
+  var rel_path = path.relative(ABOUT('dir'), new_path);
   var contents = to_html_and_remove($, $('style'));
-  fs.writeFileSync(rel_path, contents);
+  fs.writeFileSync(new_path, contents);
 
   return append_to_tag(
     'head',
@@ -171,10 +177,14 @@ function styles_to_tag($) {
 }
 
 function scripts_to_tag($) {
-  var rel_path = ABOUT('new-file', 'script.js');
+  var new_path = ABOUT('new-file', 'script.js');
+  var rel_path = path.relative(ABOUT('dir'), new_path);
   var contents = to_html_and_remove($, $('script'));
 
-  fs.writeFileSync(rel_path, contents);
+  if (is_blank_string(contents))
+    return $;
+
+  fs.writeFileSync(new_path, contents);
 
   return append_to_tag(
     'bottom',
@@ -236,13 +246,29 @@ function log(_args) {
   return console.log.apply(console, arguments);
 }
 
+function log_and_return(v) {
+  log(v);
+  return v;
+}
+
 function to_func() {
   var args = _.toArray(arguments);
   var func = args.shift();
 
   return function () {
-    return func.apply(null, [].concat(args).concat(arguments));
+    return func.apply(
+      null,
+      [].concat(args).concat(_.toArray(arguments))
+    );
   };
+}
+
+function identity(v) {
+  return v;
+}
+
+function is_blank_string(str) {
+  return _.trim(str).length === 0;
 }
 
 

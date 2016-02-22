@@ -59,30 +59,39 @@ case $action in
     js_setup upgrade
     ;;
 
-  must-be-same)
-    # === __ must-be-same  NAME  "file1"  "file2"
-    NAME="$1"; shift
-    FILE1="$1"; shift
-    FILE2="$1"; shift
-    # if [[ -s "$FILE1" ]] && ! diff <(bash_setup trim-file "$FILE1") <(bash_setup trim-file "$FILE2"); then
-    if [[ -s "$FILE1" ]] && ! diff <(bash_setup trim-file "$FILE1") <(bash_setup trim-file "$FILE2"); then
-      echo -e "=== $NAME ${Red}Failed${Color_Off}:"
-      echo -e "${Bold}      === Actual: =====${Color_Off} $FILE2"
-      cat "$FILE2"
-      echo -e "${Bold}      === Expected: ===${Color_Off} $FILE1"
-      cat "$FILE1"
-      echo -e "${Bold}      =================${Color_Off}"
-      exit 1
+  test)
+    if [[ -z "$@" ]]; then
+      find specs/ -maxdepth 1 -mindepth 1 -type d | xargs -I DIR $0 test DIR
+      exit 0
     fi
+
+    DIR="$1"; shift
+    ACTUAL="$TEMP/actual"
+      echo -e "=== Testing: ${Bold}$DIR${Color_Off}"
+
+      for FILE in "$DIR/input"/*.html; do
+        { [[ ! -f "$FILE" ]] && echo "=== No html files." && exit 1; } || :
+
+        # === Set sandbox:
+        rm -rf "$ACTUAL"; mkdir -p "$ACTUAL"
+
+        EXPECT="$DIR/expect"
+        { $0 "$FILE" "$ACTUAL"; tput cuu1; tput el; echo -e "=== ${Green}$DIR${Color_Off}"; } || { stat=$?; echo -e "=== ${Red}Failed${Color_Off} ($stat)"; }
+        if ! bash_setup dirs-are-equal "$ACTUAL" "$EXPECT"; then
+          exit 1
+        fi
+      done
+
+      # echo -e "=== split: $Green$FILE$Reset"
     ;;
 
   watch)
     # === watch
     for FILE in $(git ls-files --cached --others --exclude-standard | grep --extended-regexp '.js|.html|bin'); do
-      bash_setup is_same_file "$FILE" || :
+      [[ -f "$FILE" ]] && bash_setup is_same_file "$FILE" || :
     done
 
-    # $0 test || :
+    $0 test || :
 
     echo -e "\n=== Watching:"
     while read -r CHANGE; do
@@ -107,91 +116,22 @@ case $action in
       fi
 
       if [[ "$path" == main/*.js ]]; then
-        js_setup jshint "$path" || :
+        if [[ "$path" == main/main.js ]]; then
+          { js_setup jshint "$path" && $0 test; } || :
+        else
+          js_setup jshint "$path" || :
+        fi
       fi
 
-      continue # === for now
-
-
-      if [[ "$path" == main/*.js ]]; then
-        base="$(basename "$path")"
-        $0 test-$base || continue
+      if [[ "$path" == specs/* ]]; then
+        $0 test specs/"$(echo "$path" | cut -d'/' -f2)"
       fi
-
-      if [[ "$path" == specs/*.js/*.html ]]; then
-        $0 test-$(basename $(dirname "$path")) "$path" || continue
-      fi
-
     done < <(inotifywait --quiet --monitor --event close_write -r specs/ -r main/ -r bin/) || exit 1
     $0 watch $THE_ARGS
     ;;
 
   split)
     node "$THIS_DIR/main/split.js" $@
-    ;;
-
-  test)
-    $0 test-split.js
-    $0 test-main.js
-    ;;
-
-  test-split.js)
-    if [[ -z "$@" ]]; then
-      $0 test-split.js specs/split.js/*.html
-      exit 0
-    fi
-
-    js_setup  jshint "main/split.js"
-    for FILE in "$@"; do
-      css="$TEMP/css.section";   $0 section "STYLE" "$FILE"  > "$css" || :
-      head="$TEMP/head.section"; $0 section "HEAD" "$FILE"   > "$head" || :
-      js="$TEMP/js.section";     $0 section "SCRIPT" "$FILE" > "$js" || :
-      html="$TEMP/html.section"; $0 section "HTML" "$FILE"   > "$html" || :
-
-      temp_file="$TEMP/split.html"
-      $0 no-section "$FILE" > "$temp_file"
-
-      echo "=== Splitting: $FILE to $TEMP_SPLITS"
-      rm -rf "$TEMP_SPLITS"; mkdir -p "$TEMP_SPLITS"
-      $0 split "$temp_file" "$TEMP_SPLITS"
-      tput cuu1; tput el
-
-      # === Compare files:
-      $0 must-be-same "HEAD" "$head" "$TEMP_SPLITS/head.html"
-      $0 must-be-same "CSS"  "$css"  "$TEMP_SPLITS/style.css"
-      $0 must-be-same "JS"   "$js"   "$TEMP_SPLITS/script.js"
-      $0 must-be-same "HTML" "$html" "$TEMP_SPLITS/markup.html"
-
-      echo -e "=== split: $Green$FILE$Reset"
-    done
-    ;;
-
-  test-main.js)
-    if [[ -z "$@" ]]; then
-      $0 test-main.js specs/main.js/*.html
-      exit 0
-    fi
-
-    js_setup  jshint "main/main.js"
-
-    for FILE in "$@"; do
-      echo -e "=== Waiting on: $FILE"
-      split_on="$(cat "$FILE" -n | grep -i --extended-regexp '<!--\ +EXPECT.?\ +-->' | cut -f 1 | head -n 1)"
-      expect="$(cat "$FILE" | tail -n +$((split_on + 1)))"
-
-      TEMP="$(mktemp /tmp/dum_dum_html/XXXXXXXXXXXX.$(basename "$FILE"))"
-      cat "$FILE" | head -n $((split_on - 1)) > "$TEMP"
-      actual="$($0 $TEMP)"
-
-      tput cuu1; tput el
-      if [[ "$actual" != "$expect" ]]; then
-        echo -e "=== Failed: ${Red}${FILE}${Color_Off}" 1>&2
-        diff <(echo "$actual") <(echo "$expect")
-        exit 1
-      fi
-
-      echo -e "=== $Green$FILE$Reset"
-    done
     ;;
 
   no-section)
@@ -209,15 +149,16 @@ case $action in
 
   *)
     if [[ -f "$action" ]]; then
-      vnu="$(echo tmp/validator/*/dist/vnu.jar)"
-      final="$(node $THIS_DIR/main/main.js $THE_ARGS)"
+      node $THIS_DIR/main/main.js $THE_ARGS
+      # vnu="$(echo tmp/validator/*/dist/vnu.jar)"
+      # final="$(node $THIS_DIR/main/main.js $THE_ARGS)"
 
-      # === If <body is found, validate whole document:
-      if echo "$final" | grep -i '<body' &>/dev/null; then
-        echo "$final" | java -jar "$vnu" - || { stat="$?"; echo $action 1>&2; exit $stat; }
-      fi
+      # # === If <body is found, validate whole document:
+      # if echo "$final" | grep -i '<body' &>/dev/null; then
+      #   echo "$final" | java -jar "$vnu" - || { stat="$?"; echo $action 1>&2; exit $stat; }
+      # fi
 
-      echo "$final"
+      # echo "$final"
       exit 0
     fi
 
