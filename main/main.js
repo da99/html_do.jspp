@@ -52,7 +52,7 @@ $template = var_pipeline(
 
 // === Finish writing file.
 if (layout) {
-  var page_file_path = ABOUT('new-file', '.html');
+  var page_file_path = ABOUT('new-file') + '.html';
   fs.writeFileSync(page_file_path, $template.html());
   log(page_file_path);
 }
@@ -65,7 +65,7 @@ function ABOUT(key) { // === Function that returns state.
     case 'dir':
       return dir;
     case 'new-file':
-      return dir + '/' + name + '-' + arguments[1];
+      return dir + '/' + _.compact([name, arguments[1]]).join('-');
     case 'public-dir':
       return public_dir;
     case 'has-conditionals':
@@ -126,7 +126,7 @@ function conditionals_to_files($) {
     var $no_whens = $.load($.html());
     $no_whens('when').remove();
 
-    var new_file_name = ABOUT('new-file', (is_partial($)) ? 'markup.' : '.') + conds.name + '.html';
+    var new_file_name = ABOUT('new-file') + (is_partial($) ? 'markup.' : '.') + conds.name + '.html';
     fs.writeFileSync( new_file_name, $no_whens.html());
   });
 
@@ -268,7 +268,7 @@ function markup_to_file($) {
     return $;
 
   fs.writeFileSync(
-    ABOUT('new-file', (is_partial($)) ? 'markup.html' : '.html'),
+    ABOUT('new-file') + (is_partial($) ? '-markup.html' : '.html'),
     $.html()
   );
   return $;
@@ -373,7 +373,7 @@ function tag_when_to_object($, raw) {
     return acc;
   }, {});
 
-  return {conditions: conds, name: when_name}
+  return {conditions: conds, name: when_name};
 }
 
 function should_be(val, _funcs) {
