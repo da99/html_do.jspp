@@ -126,7 +126,7 @@ function conditionals_to_files($) {
     var $no_whens = $.load($.html());
     $no_whens('when').remove();
 
-    var new_file_name = ABOUT('new-file') + (is_partial($) ? 'markup.' : '.') + conds.name + '.html';
+    var new_file_name = ABOUT('new-file') + (is_partial($) ? '-markup.' : '.') + conds.name + '.html';
     fs.writeFileSync( new_file_name, $no_whens.html());
   });
 

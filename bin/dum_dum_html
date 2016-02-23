@@ -151,7 +151,7 @@ case $action in
       fi
 
       if [[ "$path" == specs/* ]]; then
-        $0 test specs/"$(echo "$path" | cut -d'/' -f2)" || :
+        { $0 test specs/"$(echo "$path" | cut -d'/' -f2)" && $0 test; } || :
       fi
     done < <(inotifywait --quiet --monitor --event close_write -r specs/ -r main/ -r bin/) || exit 1
     $0 $THE_ARGS
