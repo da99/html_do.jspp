@@ -7,9 +7,9 @@
     "dum_dum_html": "dum_dum_html"
   },
   "dependencies": {
-    "cheerio": "^0.20.0",
-    "he": ">0.0",
-    "hogan.js": "git+https://github.com/twitter/hogan.js.git",
+    "cheerio": "latest",
+    "he": "latest",
+    "hogan.js": "latest",
     "lodash": "latest",
     "stylus": "latest"
   },
