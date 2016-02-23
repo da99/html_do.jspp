@@ -39,7 +39,7 @@ var template_contents = read_and_cache_file_name(template);
 var layout_contents   = layout && fs.readFileSync(layout).toString();
 var $layout           = layout && cheerio.load(layout_contents, {recognizeSelfClosing: true});
 var $template         = cheerio.load(template_contents, {recognizeSelfClosing: true});
-
+var has_conditionals  = $template('when').length > 0;
 $template = var_pipeline(
   $template,
   scripts_to_tag,
@@ -68,6 +68,10 @@ function ABOUT(key) { // === Function that returns state.
       return dir + '/' + name + '-' + arguments[1];
     case 'public-dir':
       return public_dir;
+    case 'has-conditionals':
+      return has_conditionals;
+    case 'json-file':
+      return path.join(ABOUT('dir'), "conditions.json");
     case 'layout':
       return $layout;
     default:
@@ -114,10 +118,27 @@ function merge_with_layout($layout, $template) {
 } // === merge_markup
 
 function conditionals_to_files($) {
-  var whens = $('when');
-  if (whens.length === 0)
-    return $;
-}
+  _.each($('when'), function (raw_when) {
+    var name = var_pipeline(
+      $(raw_when).attr('name'),
+      to_func_first(should_be, is_non_blank_string),
+      _.trim
+    );
+
+    merge_and_write_conds(tag_when_to_object($, raw_when));
+    $(raw_when).remove();
+
+    var $no_whens = $.load($.html());
+    $no_whens('when').remove();
+
+    fs.writeFileSync(
+      ABOUT('new-file', (is_partial($)) ? 'markup.' : '.') + name + '.html',
+      $no_whens.html()
+    );
+  });
+
+  return $;
+} // === conditionals_to_files
 
 function error(msg) {
   console.error(msg);
@@ -250,8 +271,11 @@ function append_to_tag(tag_name, $, html) {
 } // === append_to_tag
 
 function markup_to_file($) {
+  if (ABOUT('has-conditionals'))
+    return $;
+
   fs.writeFileSync(
-    ABOUT('new-file', 'markup.html'),
+    ABOUT('new-file', (is_partial($)) ? 'markup.html' : '.html'),
     $.html()
   );
   return $;
@@ -289,6 +313,15 @@ function log_and_return(v) {
   return v;
 }
 
+function to_func_first() {
+  var args = _.toArray(arguments);
+  var func = args.shift();
+
+  return function () {
+    return func.apply( null, _.toArray(arguments).concat(args));
+  };
+}
+
 function to_func() {
   var args = _.toArray(arguments);
   var func = args.shift();
@@ -301,12 +334,42 @@ function to_func() {
   };
 }
 
-function identity(v) {
-  return v;
+
+function read_conds() {
+  var file = ABOUT('json-file');
+  if (!is_file(file))
+    return {};
+  var raw = fs.readFileSync(file).toString();
+  if (is_blank_string(raw))
+    return {};
+  return JSON.parse(raw);
 }
 
-function is_blank_string(str) {
-  return _.trim(str).length === 0;
+function merge_and_write_conds(new_conds) {
+  var conds = read_conds();
+  if (!conds[ABOUT('name')])
+    conds[ABOUT('name')] = [];
+  conds[ABOUT('name')].push(new_conds);
+  fs.writeFileSync(ABOUT('json-file'), JSON.stringify(conds));
+}
+
+function tag_when_to_object($, raw) {
+  return _.reduce($('val', raw), function (acc, raw_val) {
+    var name = var_pipeline(
+      $(raw_val).attr('name'),
+      to_func_first(should_be, is_string),
+      _.trim
+    );
+
+    var val  = var_pipeline(
+      $(raw_val).attr('val'),
+      to_func_first(should_be, is_string),
+      _.trim
+    );
+
+    should_be(acc[name], is_null_or_undefined);
+    acc[name] = val;
+  }, {});
 }
 
 function should_be(val, _funcs) {
@@ -319,6 +382,8 @@ function should_be(val, _funcs) {
       process.exit(1);
     }
   });
+
+  return val;
 }
 
 function to_string(v) {
@@ -342,9 +407,13 @@ function to_string(v) {
 }
 
 function is_string(v) { return _.isString(v); }
-function is_dir(v) { return fs.lstatSync(v).isDirectory(); }
-function is_file(v) { return fs.lstatSync(v).isFile(); }
-
+function is_dir(v) { try { return fs.lstatSync(v).isDirectory(); } catch (e) { return false; } }
+function is_file(v) { try { return fs.lstatSync(v).isFile(); } catch (e) { return false; } }
+function is_blank_string(str) { return _.trim(str).length === 0; }
+function is_non_blank_string(str) { return is_string(str) && !is_blank_string(str); }
+function identity(v) { return v; }
+function is_null_or_undefined(v) { return v === null || v === undefined; }
+function is_partial($) { return $('html').length === 0; }
 
 
 

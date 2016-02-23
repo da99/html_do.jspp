@@ -107,7 +107,12 @@ case $action in
       [[ -f "$FILE" ]] && bash_setup is_same_file "$FILE" || :
     done
 
-    $0 test || :
+    cmd="$@"
+    if [[ -z "$cmd" ]]; then
+      $0 test || :
+    else
+      $cmd || :
+    fi
 
     echo -e "\n=== Watching:"
     while read -r CHANGE; do
@@ -126,9 +131,15 @@ case $action in
 
       # File has changed:
       echo -e "\n=== $CHANGE ($path)"
+
       if [[ "$path" =~ "$0" ]]; then
         echo "=== Reloading..."
         break
+      fi
+
+      if [[ -n "$cmd" ]]; then
+        $cmd || :
+        continue
       fi
 
       if [[ "$path" == main/*.js ]]; then
@@ -143,7 +154,7 @@ case $action in
         $0 test specs/"$(echo "$path" | cut -d'/' -f2)" || :
       fi
     done < <(inotifywait --quiet --monitor --event close_write -r specs/ -r main/ -r bin/) || exit 1
-    $0 watch $THE_ARGS
+    $0 $THE_ARGS
     ;;
 
   split)
