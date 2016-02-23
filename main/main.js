@@ -342,7 +342,9 @@ function merge_and_write_conds(new_conds) {
   var conds = read_conds();
   if (!conds[ABOUT('name')])
     conds[ABOUT('name')] = [];
-  conds[ABOUT('name')].push(new_conds);
+  conds[ABOUT('name')] = [].concat(conds[ABOUT('name')]).concat([new_conds]).sort(function (a,b) {
+    return to_length(a.conditions) - to_length(b.conditions);
+  });
   fs.writeFileSync(ABOUT('json-file'), JSON.stringify(conds));
 }
 
@@ -416,6 +418,24 @@ function is_non_blank_string(str) { return is_string(str) && !is_blank_string(st
 function identity(v) { return v; }
 function is_null_or_undefined(v) { return v === null || v === undefined; }
 function is_partial($) { return $('html').length === 0; }
+function is_array(v) { return _.isArray(v); }
+
+function sort_by_length(arr) {
+  return arr.sort(function (a,b) {
+    return to_length(a) - to_length(b);
+  });
+}
+
+function to_length(v) {
+  if (is_string(v) || is_array(v))
+    return v.length;
+  if (_.isPlainObject(v))
+    return _.keys(v).length;
+
+  console.error("!!! Invalid value: " + to_string(v));
+  process.exit(1);
+}
+
 
 
 
