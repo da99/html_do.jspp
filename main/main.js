@@ -16,28 +16,22 @@ var args     = process.argv.slice(2);
 
 switch (args.length) {
   case 3: break;
-  case 4: break;
   default:
     console.error(to_string(args));
-    console.error("!!! arguments.length incorrect. Try: [layout]  template_file  output_dir  public_path");
+    console.error("!!! arguments.length incorrect. Try: template_file  output_dir  public_path");
     process.exit(1);
 }
 
 var public_dir=args.pop();
 var dir      = args.pop();
 var template = args.pop();
-var layout   = args.pop();
 
 should_be(public_dir, is_string);
 should_be(dir,        is_dir);
 should_be(template,   is_file);
-if (layout)
-  should_be(layout,  is_file);
 
 var name              = path.basename(template, '.html');
 var template_contents = read_and_cache_file_name(template);
-var layout_contents   = layout && fs.readFileSync(layout).toString();
-var $layout           = layout && cheerio.load(layout_contents, {recognizeSelfClosing: true});
 var $template         = cheerio.load(template_contents, {recognizeSelfClosing: true});
 var has_conditionals  = $template('when').length > 0;
 $template = var_pipeline(
@@ -46,16 +40,10 @@ $template = var_pipeline(
   styles_to_tag,
   tag_template_to_script,
   conditionals_to_files,
-  markup_to_file,
-  layout ? to_func(merge_with_layout, $layout) : identity
+  markup_to_file
 );
 
 // === Finish writing file.
-if (layout) {
-  var page_file_path = ABOUT('new-file') + '.html';
-  fs.writeFileSync(page_file_path, $template.html());
-  log(page_file_path);
-}
 
 
 function ABOUT(key) { // === Function that returns state.
@@ -72,50 +60,11 @@ function ABOUT(key) { // === Function that returns state.
       return has_conditionals;
     case 'json-file':
       return path.join(ABOUT('dir'), "conditions.json");
-    case 'layout':
-      return $layout;
     default:
       error("!!! Unknown key: " + key);
   }
 }
 
-
-function merge_with_layout($layout, $template) {
-    log(arguments[1].html);
-  if (!$layout)
-    log(arguments.length, $template.html);
-  if (!$layout)
-    return $template;
-  if ($template('html').length === 0)
-    return $template;
-
-  _.each($template.children(), function (raw) {
-    switch (raw.name) {
-      case 'head':
-        $layout('head').append($template(raw).html());
-        $template(raw).remove();
-        break;
-
-      case 'tail':
-        $layout('body').after($template(raw).html());
-        $template(raw).remove();
-        break;
-
-      case 'top':
-        $layout('body').prepend($template(raw).html());
-        $template(raw).remove();
-        break;
-
-      case 'bottom':
-        $layout('body').append($template(raw).html());
-        $template(raw).remove();
-        break;
-    } // == switch
-  });
-
-  $layout('markup').replaceWith($template.html());
-  return $layout;
-} // === merge_markup
 
 function conditionals_to_files($) {
   _.each($('when'), function (raw_when) {
