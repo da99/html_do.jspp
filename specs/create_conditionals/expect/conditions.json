@@ -1,6 +1,4 @@
 {
-  "conditionals": [
-    {"conditions": {"screen_size":"1920x1080"}, "name": "big_screen"},
-    {"conditions": {"screen_size":"800x600"}, "name": "small_screen"}
-  ]
+  "conditionals.big_screen": {"screen_size":"1920x1080"},
+  "conditionals.small_screen": {"screen_size":"800x600"}
 }

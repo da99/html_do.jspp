@@ -340,11 +340,7 @@ function read_conds() {
 
 function merge_and_write_conds(new_conds) {
   var conds = read_conds();
-  if (!conds[ABOUT('name')])
-    conds[ABOUT('name')] = [];
-  conds[ABOUT('name')] = [].concat(conds[ABOUT('name')]).concat([new_conds]).sort(function (a,b) {
-    return to_length(a.conditions) - to_length(b.conditions);
-  });
+  conds[ABOUT('name') + '.' + new_conds.name] = new_conds.conditions;
   fs.writeFileSync(ABOUT('json-file'), JSON.stringify(conds));
 }
 
