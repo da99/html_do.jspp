@@ -119,22 +119,15 @@ function merge_with_layout($layout, $template) {
 
 function conditionals_to_files($) {
   _.each($('when'), function (raw_when) {
-    var name = var_pipeline(
-      $(raw_when).attr('name'),
-      to_func_first(should_be, is_non_blank_string),
-      _.trim
-    );
-
-    merge_and_write_conds(tag_when_to_object($, raw_when));
+    var conds = tag_when_to_object($, raw_when);
+    merge_and_write_conds(conds);
     $(raw_when).remove();
 
     var $no_whens = $.load($.html());
     $no_whens('when').remove();
 
-    fs.writeFileSync(
-      ABOUT('new-file', (is_partial($)) ? 'markup.' : '.') + name + '.html',
-      $no_whens.html()
-    );
+    var new_file_name = ABOUT('new-file', (is_partial($)) ? 'markup.' : '.') + conds.name + '.html';
+    fs.writeFileSync( new_file_name, $no_whens.html());
   });
 
   return $;
@@ -354,7 +347,13 @@ function merge_and_write_conds(new_conds) {
 }
 
 function tag_when_to_object($, raw) {
-  return _.reduce($('val', raw), function (acc, raw_val) {
+  var when_name = var_pipeline(
+    $(raw).attr('name'),
+    to_func_first(should_be, is_non_blank_string),
+    _.trim
+  );
+
+  var conds = _.reduce($('val', raw), function (acc, raw_val) {
     var name = var_pipeline(
       $(raw_val).attr('name'),
       to_func_first(should_be, is_string),
@@ -369,7 +368,10 @@ function tag_when_to_object($, raw) {
 
     should_be(acc[name], is_null_or_undefined);
     acc[name] = val;
+    return acc;
   }, {});
+
+  return {conditions: conds, name: when_name}
 }
 
 function should_be(val, _funcs) {
