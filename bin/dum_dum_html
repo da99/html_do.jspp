@@ -79,24 +79,24 @@ case $action in
 
     DIR="$1"; shift
     ACTUAL="$TEMP/actual"
-      echo -e "=== Testing: ${Bold}$DIR${Color_Off}"
+    echo -e "=== Testing: ${Bold}$DIR${Color_Off}"
 
-      for FILE in "$DIR/input"/*.html; do
-        { [[ ! -f "$FILE" ]] && echo "=== No html files." && exit 1; } || :
+    for FILE in "$DIR/input"/*.html; do
+      { [[ ! -f "$FILE" ]] && echo "=== No html files." && exit 1; } || :
 
-        # === Set sandbox:
-        rm -rf "$ACTUAL"; mkdir -p "$ACTUAL"
+      # === Set sandbox:
+      rm -rf "$ACTUAL"; mkdir -p "$ACTUAL"
 
-        EXPECT="$DIR/expect"
-        { $0 "$FILE" "$ACTUAL" "$TEMP"; } || { stat=$?; echo -e "=== ${Red}Failed${Color_Off} ($stat)"; exit $?; }
-        if ! bash_setup dirs-are-equal "$ACTUAL" "$EXPECT"; then
-          echo -e "=== ${Red}Failed${Color_Off}"
-          exit 1
-        else
-          tput cuu1; tput el
-          echo -e "=== ${Green}$DIR${Color_Off}"
-        fi
-      done
+      EXPECT="$DIR/expect"
+      { $0 "$FILE" "$ACTUAL" "$TEMP"; } || { stat=$?; echo -e "=== ${Red}Failed${Color_Off} ($stat)"; exit $stat; }
+      if ! bash_setup dirs-are-equal "$ACTUAL" "$EXPECT"; then
+        echo -e "=== ${Red}Failed${Color_Off}"
+        exit 1
+      else
+        tput cuu1; tput el
+        echo -e "=== ${Green}$DIR${Color_Off}"
+      fi
+    done
 
       # echo -e "=== split: $Green$FILE$Reset"
     ;;
@@ -140,7 +140,7 @@ case $action in
       fi
 
       if [[ "$path" == specs/* ]]; then
-        $0 test specs/"$(echo "$path" | cut -d'/' -f2)"
+        $0 test specs/"$(echo "$path" | cut -d'/' -f2)" || :
       fi
     done < <(inotifywait --quiet --monitor --event close_write -r specs/ -r main/ -r bin/) || exit 1
     $0 watch $THE_ARGS
