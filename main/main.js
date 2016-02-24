@@ -37,18 +37,22 @@ var template_contents = read_and_cache_file_name(template);
 var $template         = cheerio.load(template_contents, {recognizeSelfClosing: true});
 var has_conditionals  = $template('when').length > 0;
 $template = var_pipeline(
+
   $template,
   tag_snippet_to_markup,
   scripts_to_tag,
   styles_to_tag,
   tag_template_to_script,
+
   to_func(merge_tags,'head'),
   to_func(merge_tags,'tail'),
   to_func(merge_tags,'top'),
   to_func(merge_tags,'bottom'),
+
   to_func(remove_duplicate_tag,'link'),
   to_func(remove_duplicate_tag,'script'),
   to_func(remove_duplicate_tag,'meta'),
+
   conditionals_to_files,
   markup_to_file
 );
@@ -450,10 +454,11 @@ function merge_tags(tag, $) {
   if (tags.length === 0)
     return $;
 
+  var $first = $($('head').first());
   _.each(tags, function (raw, i) {
     if (i === 0) return;
     var html = $(raw).html();
-    $($('head').first()).append(html);
+    $first.append(html);
     $(raw).remove();
   });
 
