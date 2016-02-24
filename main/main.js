@@ -461,4 +461,24 @@ function merge_tags(tag, $) {
 } // === function merge_tags
 
 
+function remove_duplicate_tag(tag, $) {
+  var tags = $(tag);
+  if (is_empty(tags)) return $;
+  var cache = [];
+  function to_o(raw) {
+    return [raw.name, $(raw).attr(), _.trim($(raw).html() || "")];
+  }
+  _.each(tags, function (raw, i) {
+    var o = to_o(raw);
+    if (_.find(cache, function (oo) { return _.isEqual(oo, o); })) {
+      $(raw).remove();
+    } else {
+      cache.push(o);
+    }
+  });
+  return $;
+} // === function
+
+
+
 
