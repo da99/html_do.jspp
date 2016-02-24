@@ -2,8 +2,8 @@
 /* jshint evil : true, esnext: true, globalstrict: true, undef: true */
 /* global _ : true, console, require, process  */
 
-const cheerio = require('cheerio');
 const _       = require('lodash');
+const cheerio = require('cheerio');
 const Hogan   = require('hogan.js');
 const fs      = require('fs');
 const util    = require('util');
@@ -22,13 +22,15 @@ switch (args.length) {
     process.exit(1);
 }
 
-var public_dir=args.pop();
-var dir      = args.pop();
-var template = args.pop();
+var public_dir = should_be(args.pop(), is_string);
+var dir        = should_be(args.pop(), is_dir);
+var template   = should_be(args.pop(), is_file);
 
-should_be(public_dir, is_string);
-should_be(dir,        is_dir);
-should_be(template,   is_file);
+if (path.basename(template).match(/^_+\./)) {
+  console.error('!!! Template is a partial: ' + template);
+  process.exit(1);
+}
+
 
 var name              = path.basename(template, '.html');
 var template_contents = read_and_cache_file_name(template);
@@ -36,6 +38,7 @@ var $template         = cheerio.load(template_contents, {recognizeSelfClosing: t
 var has_conditionals  = $template('when').length > 0;
 $template = var_pipeline(
   $template,
+  tag_snippet_to_markup,
   scripts_to_tag,
   styles_to_tag,
   tag_template_to_script,
@@ -48,18 +51,15 @@ $template = var_pipeline(
 
 function ABOUT(key) { // === Function that returns state.
   switch (key) {
-    case 'name':
-      return name;
-    case 'dir':
-      return dir;
-    case 'new-file':
-      return dir + '/' + _.compact([name, arguments[1]]).join('-');
-    case 'public-dir':
-      return public_dir;
-    case 'has-conditionals':
-      return has_conditionals;
-    case 'json-file':
-      return path.join(ABOUT('dir'), "conditions.json");
+    case 'template':         return template;
+    case 'template-path':    return template;
+    case 'name':             return name;
+    case 'dir':              return dir;
+    case 'new-file':         return dir + '/' + _.compact([name, arguments[1]]).join('-');
+    case 'public-dir':       return public_dir;
+    case 'has-conditionals': return has_conditionals;
+    case 'json-file':        return path.join(ABOUT('dir'), "conditions.json");
+
     default:
       error("!!! Unknown key: " + key);
   }
@@ -364,11 +364,24 @@ function identity(v) { return v; }
 function is_null_or_undefined(v) { return v === null || v === undefined; }
 function is_partial($) { return $('html').length === 0; }
 function is_array(v) { return _.isArray(v); }
+function is_plain_object(v) { return _.isPlainObject(v); }
 
 function sort_by_length(arr) {
   return arr.sort(function (a,b) {
     return to_length(a) - to_length(b);
   });
+}
+
+function is_empty(v) {
+  if (is_array(v))
+    return v.length === 0;
+  if (is_plain_object(v))
+    return _.keys(v).length === 0;
+  if (v.hasOwnProperty('length') && _.isFinite(v.length))
+    return v.length === 0;
+
+  console.error("!!! Unknown .length for: " + to_string(v));
+  process.exit(1);
 }
 
 function to_length(v) {
@@ -380,6 +393,49 @@ function to_length(v) {
   console.error("!!! Invalid value: " + to_string(v));
   process.exit(1);
 }
+
+function tag_snippet_to_markup($) {
+  var snippets = $('snippet');
+  if (is_empty(snippets))
+    return $;
+
+  _.each($('snippet'), function (raw) {
+    var src      = should_be($(raw).attr('src'), is_non_blank_string);
+    var contents = read_file(src);
+    $(raw).replaceWith(contents);
+  });
+
+  return tag_snippet_to_markup($);
+} // === function tag_snippet_to_markup
+
+
+function read_file(file_path) {
+  function read(src) {
+    try {
+      return fs.readFileSync(src).toString();
+    } catch (e) {
+      return null;
+    }
+  } // === function
+
+  var contents;
+  var paths = [
+    path.join(process.cwd(), file_path),
+    path.join(path.dirname(ABOUT('template-path')), file_path),
+    path.join(path.dirname(ABOUT('new-file')), file_path)
+  ];
+  var efforts = paths.slice(0);
+
+  while (!is_string(contents) && !is_empty(paths)) {
+    contents = read(paths.shift());
+  }
+
+  if (contents)
+    return contents;
+
+  console.error('!!! File not found: ' + file_path + ' in: ' + to_string(efforts));
+  process.exit(1);
+} // === function read_file
 
 
 

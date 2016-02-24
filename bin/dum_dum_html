@@ -82,6 +82,7 @@ case $action in
     echo -e "=== Testing: ${Bold}$DIR${Color_Off}"
 
     for FILE in "$DIR/input"/*.html; do
+      [[ "$(basename "$FILE")" == _.* ]] && continue || :
       { [[ ! -f "$FILE" ]] && echo "=== No html files." && exit 1; } || :
 
       # === Set sandbox:
