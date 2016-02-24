@@ -178,6 +178,7 @@ case $action in
   *)
     if [[ -f "$action" ]]; then
       node $THIS_DIR/main/main.js $THE_ARGS
+      # TODO: remove duplicate nodes: link, src, meta
       # vnu="$(echo tmp/validator/*/dist/vnu.jar)"
       # final="$(node $THIS_DIR/main/main.js $THE_ARGS)"
 
