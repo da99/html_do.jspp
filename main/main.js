@@ -42,6 +42,13 @@ $template = var_pipeline(
   scripts_to_tag,
   styles_to_tag,
   tag_template_to_script,
+  to_func(merge_tags,'head'),
+  to_func(merge_tags,'tail'),
+  to_func(merge_tags,'top'),
+  to_func(merge_tags,'bottom'),
+  to_func(remove_duplicate_tag,'link'),
+  to_func(remove_duplicate_tag,'script'),
+  to_func(remove_duplicate_tag,'meta'),
   conditionals_to_files,
   markup_to_file
 );
@@ -164,7 +171,7 @@ function rel_path(file) {
 
 function styles_to_tag($) {
   var new_path = ABOUT('new-file', 'style.css');
-  var contents = to_html_and_remove($, $('style'));
+  var contents = map_to_html_and_remove($, $('style'));
 
   if (is_blank_string(contents))
     return $;
@@ -180,7 +187,7 @@ function styles_to_tag($) {
 
 function scripts_to_tag($) {
   var new_path = ABOUT('new-file', 'script.js');
-  var contents = to_html_and_remove($, $('script'));
+  var contents = map_to_html_and_remove($, $('script'));
 
   if (is_blank_string(contents))
     return $;
@@ -194,7 +201,7 @@ function scripts_to_tag($) {
   );
 } // === scripts_to_tag
 
-function to_html_and_remove($, coll) {
+function map_to_html_and_remove($, coll) {
   return _.compact(_.map(coll, function (raw) {
     var html = $(raw).html();
     $(raw).remove();
@@ -437,6 +444,21 @@ function read_file(file_path) {
   process.exit(1);
 } // === function read_file
 
+
+function merge_tags(tag, $) {
+  var tags = $(tag);
+  if (tags.length === 0)
+    return $;
+
+  _.each(tags, function (raw, i) {
+    if (i === 0) return;
+    var html = $(raw).html();
+    $($('head').first()).append(html);
+    $(raw).remove();
+  });
+
+  return $;
+} // === function merge_tags
 
 
 
