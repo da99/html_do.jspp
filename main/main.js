@@ -80,23 +80,18 @@ function ABOUT(key) { // === Function that returns state.
 
 
 function conditionals_to_files($) {
-  var names = _.uniq(
-    _.map($('when'), function (v) {
-      return _.trim(should_be($(v).attr('name'), is_non_blank_string));
-    }));
+  let conds = tag_when_to_object($);
+  if (is_empty(conds))
+    return $;
 
-  _.each(names, function (name) {
+  merge_and_write_conds(conds);
+  conds.$whens.remove();
 
-    let conds = tag_when_to_object($, name);
-    merge_and_write_conds(conds);
-    conds.$whens.remove();
+  var $no_whens = $.load($.html());
+  $no_whens('when').remove();
 
-    var $no_whens = $.load($.html());
-    $no_whens('when').remove();
-
-    var new_file_name = ABOUT('new-file') + (is_partial($) ? '-markup.' : '.') + name + '.html';
-    fs.writeFileSync( new_file_name, $no_whens.html());
-  });
+  var new_file_name = ABOUT('new-file') + '.html';
+  fs.writeFileSync( new_file_name, $no_whens.html());
 
   return $;
 } // === conditionals_to_files
@@ -236,7 +231,7 @@ function markup_to_file($) {
     return $;
 
   fs.writeFileSync(
-    ABOUT('new-file') + (is_partial($) ? '-markup.html' : '.html'),
+    ABOUT('new-file') + '.html',
     $.html()
   );
   return $;
@@ -308,28 +303,25 @@ function read_conds() {
 
 function merge_and_write_conds(new_conds) {
   var conds = read_conds();
-  conds[ABOUT('name') + '.' + new_conds.name] = new_conds.conditions;
+  conds[ABOUT('name')] = new_conds.conditions;
   fs.writeFileSync(ABOUT('json-file'), JSON.stringify(conds));
 }
 
-function tag_when_to_object($, raw_name) {
-    let conds = {};
-    let name = conds.name = should_be(
-      _.trim(raw_name),
-      is_non_blank_string
-    );
+function tag_when_to_object($) {
+  let conds = {};
+  let $whens = conds.$whens = $('when');
+  if (is_empty($whens))
+    return {};
 
-    let $whens = conds.$whens = $('when[name='+name+']');
+  conds.conditions = _.reduce($('val', $whens), function (vals, raw_val) {
+    let $val = $(raw_val);
+    var name = should_be(_.trim($val.attr('name')), is_non_blank_string);
+    var val  = should_be(_.trim($val.attr('val')), is_non_blank_string);
+    vals[name] = val;
+    return vals;
+  }, {});
 
-    conds.conditions = _.reduce($('val', $whens), function (vals, raw_val) {
-      let $val = $(raw_val);
-      var name = should_be(_.trim($val.attr('name')), is_non_blank_string);
-      var val  = should_be(_.trim($val.attr('val')), is_non_blank_string);
-      vals[name] = val;
-      return vals;
-    }, {});
-
-    return conds;
+  return conds;
 }
 
 
