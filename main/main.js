@@ -44,6 +44,7 @@ $template = var_pipeline(
 
   scripts_to_tag,
   styles_to_tag,
+  copy_files_to_public, // .css, .js files
   tag_template_to_script,
 
   to_func(merge_tags,'head'),
@@ -65,6 +66,7 @@ $template = var_pipeline(
 function ABOUT(key) { // === Function that returns state.
   switch (key) {
     case 'template':         return template;
+    case 'template-dir':     return path.dirname(template);
     case 'template-path':    return template;
     case 'name':             return name;
     case 'dir':              return dir;
@@ -466,6 +468,25 @@ function remove_duplicate_tag(tag, $) {
   });
   return $;
 } // === function
+
+function copy_files_to_public($) {
+  let files = filter_files(ABOUT('template-dir'), /(.+)(\.css|\.js)$/);
+  _.each(files, function (orig) {
+    fs.writeFileSync(
+      ABOUT('new-file') + '.' + path.basename(orig),
+      fs.readFileSync(orig)
+    );
+  });
+  return $;
+} // === function copy_files_to_public
+
+function filter_files(dir, pattern) {
+  let files = _.map(
+    fs.readdirSync(dir),
+    function (f) { return path.join(dir, f); }
+  );
+  return _.filter(files, function (f) { return f.match(pattern); } );
+}
 
 
 
