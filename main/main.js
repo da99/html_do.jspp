@@ -36,6 +36,7 @@ var name              = path.basename(template, '.html');
 var template_contents = read_and_cache_file_name(template);
 var $template         = cheerio.load(template_contents, {recognizeSelfClosing: true});
 var has_conditionals  = $template('when').length > 0;
+var vars = {};
 $template = var_pipeline(
 
   $template,
@@ -63,8 +64,6 @@ $template = var_pipeline(
 // === Finish writing file.
 
 
-var vars = {};
-
 function ABOUT(key) { // === Function that returns state.
   switch (key) {
     case 'template':         return template;
@@ -79,7 +78,7 @@ function ABOUT(key) { // === Function that returns state.
     case 'new-var':
       let k = _.trim(
         should_be(arguments[1], is_string)
-      );
+      ).replace(/\./g, '_');
       vars[k] = should_be(arguments[2], is_something);
       return ABOUT('vars');
 
@@ -206,7 +205,10 @@ function styles_to_tag($) {
 
 function scripts_to_tag($) {
   var new_path = ABOUT('new-file', 'script.js');
-  var contents = map_to_html_and_remove($, $('script'));
+  let scripts  = _.filter( $('script'), function (raw) {
+    return is_blank_string($(raw).attr('src') || '');
+  });
+  var contents = map_to_html_and_remove($, scripts);
 
   if (is_blank_string(contents))
     return $;
@@ -241,9 +243,15 @@ function append_to_tag(tag_name, $, html) {
 function markup_to_file($) {
   fs.writeFileSync(
     ABOUT('new-file') + '.html',
-    $.html()
+    cheerio_to_mustache_to_html($)
   );
   return $;
+}
+
+function cheerio_to_mustache_to_html($) {
+  let must = Hogan.compile($.html(), {asString: 1, delimiters: '[[ ]]'});
+  let f = new Function('Hogan', 'return new Hogan.Template(' + must + ');' );
+  return f(Hogan).render(ABOUT('vars'));
 }
 
 // === Used to help other functions check if
@@ -484,10 +492,10 @@ function remove_duplicate_tag(tag, $) {
 function copy_files_to_public($) {
   let files = filter_files(ABOUT('template-dir'), /(.+)(\.css|\.js)$/);
   _.each(files, function (orig) {
-    fs.writeFileSync(
-      ABOUT('new-file') + '.' + path.basename(orig),
-      fs.readFileSync(orig)
-    );
+    let file_name = path.basename(orig);
+    let new_file = ABOUT('new-file') + '.' + file_name;
+    fs.writeFileSync( new_file, fs.readFileSync(orig));
+    ABOUT('new-var', file_name, rel_path(new_file));
   });
   return $;
 } // === function copy_files_to_public
