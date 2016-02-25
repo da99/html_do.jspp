@@ -152,7 +152,9 @@ function tag_template_to_script($) {
   let type = $(raw).attr('type');
   if (!type || _.trim(type) === '')
     $(raw).attr('type', "application/template");
-  let escaped = he.encode($(raw).html() || '', { useNamedReferences: false });
+  let escaped = he.encode(
+    $(raw).html() || '', { useNamedReferences: false }
+  ).replace(/\{/g, '&#123;').replace(/\}/g, '&#125;');
   $(raw).text(escaped);
 
   raw.name = "script";
