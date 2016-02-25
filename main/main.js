@@ -69,10 +69,10 @@ function ABOUT(key) { // === Function that returns state.
     case 'template-dir':     return path.dirname(template);
     case 'template-path':    return template;
     case 'name':             return name;
-    case 'dir':              return dir;
+    case 'out-dir':          return dir;
     case 'new-file':         return dir + '/' + _.compact([name, arguments[1]]).join('-');
     case 'public-dir':       return public_dir;
-    case 'json-file':        return path.join(ABOUT('dir'), "conditions.json");
+    case 'json-file':        return path.join(ABOUT('out-dir'), "conditions.json");
 
     default:
       error("!!! Unknown key: " + key);
