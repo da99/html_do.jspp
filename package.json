@@ -8,8 +8,8 @@
   },
   "dependencies": {
     "cheerio": "latest",
+    "handlebars": "^4.0.5",
     "he": "latest",
-    "hogan.js": "latest",
     "lodash": "latest",
     "stylus": "latest"
   },

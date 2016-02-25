@@ -2,15 +2,15 @@
 /* jshint evil : true, esnext: true, globalstrict: true, undef: true */
 /* global _ : true, console, require, process  */
 
-const _       = require('lodash');
-const cheerio = require('cheerio');
-const Hogan   = require('hogan.js');
-const fs      = require('fs');
-const util    = require('util');
-const path    = require('path');
-const he      = require('he');
+const _                  = require('lodash');
+const cheerio            = require('cheerio');
+const Handlebars         = require('handlebars');
+const fs                 = require('fs');
+const util               = require('util');
+const path               = require('path');
+const he                 = require('he');
 const SNIPPET_REUSE_TAGS = ['head', 'tail', 'top', 'bottom'];
-const FILES_USED = [];
+const FILES_USED         = [];
 
 var args     = process.argv.slice(2);
 
@@ -112,10 +112,6 @@ function error(msg) {
   process.exit(1);
 }
 
-function to_mustache(html) {
-  return Hogan.compile(html, {asString: 1, delimiters: '[[ ]]'});
-}
-
 function get_comments($_) {
   return _.compact(_.map($_.contents(), function (node) {
     if (node.type === 'comment')
@@ -135,19 +131,6 @@ function get_inline_vars(html) {
   return(attrs);
 }
 
-function compiled_to_compiler(code) {
-  var f = new Function('Hogan', 'return new Hogan.Template(' + code + ');' );
-  return f(Hogan);
-}
-
-function cheerio_to_mustache_to_html($) {
-  var mustache        = to_mustache($.html());
-  var inline_vars     = _.extend({}, get_inline_vars($.html()));
-
-  return tag_template_to_script(
-    compiled_to_compiler(mustache).render(inline_vars)
-  );
-} // === mustache_to_html
 
 
 // ===  "template" tags can be deeply nested,
@@ -249,9 +232,8 @@ function markup_to_file($) {
 }
 
 function cheerio_to_mustache_to_html($) {
-  let must = Hogan.compile($.html(), {asString: 1, delimiters: '[[ ]]'});
-  let f = new Function('Hogan', 'return new Hogan.Template(' + must + ');' );
-  return f(Hogan).render(ABOUT('vars'));
+  let compiler = Handlebars.compile($.html(), {strict: true});
+  return compiler(ABOUT('vars'));
 }
 
 // === Used to help other functions check if
