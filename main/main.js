@@ -39,7 +39,9 @@ var has_conditionals  = $template('when').length > 0;
 $template = var_pipeline(
 
   $template,
+
   tag_snippet_to_markup,
+
   scripts_to_tag,
   styles_to_tag,
   tag_template_to_script,
@@ -78,15 +80,21 @@ function ABOUT(key) { // === Function that returns state.
 
 
 function conditionals_to_files($) {
-  _.each($('when'), function (raw_when) {
-    var conds = tag_when_to_object($, raw_when);
+  var names = _.uniq(
+    _.map($('when'), function (v) {
+      return _.trim(should_be($(v).attr('name'), is_non_blank_string));
+    }));
+
+  _.each(names, function (name) {
+
+    let conds = tag_when_to_object($, name);
     merge_and_write_conds(conds);
-    $(raw_when).remove();
+    conds.$whens.remove();
 
     var $no_whens = $.load($.html());
     $no_whens('when').remove();
 
-    var new_file_name = ABOUT('new-file') + (is_partial($) ? '-markup.' : '.') + conds.name + '.html';
+    var new_file_name = ABOUT('new-file') + (is_partial($) ? '-markup.' : '.') + name + '.html';
     fs.writeFileSync( new_file_name, $no_whens.html());
   });
 
@@ -304,33 +312,26 @@ function merge_and_write_conds(new_conds) {
   fs.writeFileSync(ABOUT('json-file'), JSON.stringify(conds));
 }
 
-function tag_when_to_object($, raw) {
-  var when_name = var_pipeline(
-    $(raw).attr('name'),
-    to_func_first(should_be, is_non_blank_string),
-    _.trim
-  );
-
-  var conds = _.reduce($('val', raw), function (acc, raw_val) {
-    var name = var_pipeline(
-      $(raw_val).attr('name'),
-      to_func_first(should_be, is_string),
-      _.trim
+function tag_when_to_object($, raw_name) {
+    let conds = {};
+    let name = conds.name = should_be(
+      _.trim(raw_name),
+      is_non_blank_string
     );
 
-    var val  = var_pipeline(
-      $(raw_val).attr('val'),
-      to_func_first(should_be, is_string),
-      _.trim
-    );
+    let $whens = conds.$whens = $('when[name='+name+']');
 
-    should_be(acc[name], is_null_or_undefined);
-    acc[name] = val;
-    return acc;
-  }, {});
+    conds.conditions = _.reduce($('val', $whens), function (vals, raw_val) {
+      let $val = $(raw_val);
+      var name = should_be(_.trim($val.attr('name')), is_non_blank_string);
+      var val  = should_be(_.trim($val.attr('val')), is_non_blank_string);
+      vals[name] = val;
+      return vals;
+    }, {});
 
-  return {conditions: conds, name: when_name};
+    return conds;
 }
+
 
 function should_be(val, _funcs) {
   _funcs = _.toArray(arguments);
