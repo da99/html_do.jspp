@@ -56,12 +56,14 @@ $template = var_pipeline(
   to_func(remove_duplicate_tag,'script'),
   to_func(remove_duplicate_tag,'meta'),
 
-  conditionals_to_files,
+  write_conditions_js,
   markup_to_file
 );
 
 // === Finish writing file.
 
+
+var vars = {};
 
 function ABOUT(key) { // === Function that returns state.
   switch (key) {
@@ -73,6 +75,13 @@ function ABOUT(key) { // === Function that returns state.
     case 'new-file':         return dir + '/' + _.compact([name, arguments[1]]).join('-');
     case 'public-dir':       return public_dir;
     case 'json-file':        return path.join(ABOUT('out-dir'), "conditions.json");
+    case 'vars':             return vars;
+    case 'new-var':
+      let k = _.trim(
+        should_be(arguments[1], is_string)
+      );
+      vars[k] = should_be(arguments[2], is_something);
+      return ABOUT('vars');
 
     default:
       error("!!! Unknown key: " + key);
@@ -80,16 +89,24 @@ function ABOUT(key) { // === Function that returns state.
 }
 
 
-function conditionals_to_files($) {
-  let conds = tag_when_to_object($);
-  if (is_empty(conds))
+function write_conditions_js($) {
+  // === Get new conditions:
+  let new_conds = tag_when_to_object($);
+  if (is_empty(new_conds))
     return $;
 
-  merge_and_write_conds(conds);
-  conds.$whens.remove();
+  // === Read:
+  var conds = read_conds();
 
+  // === Merge:
+  conds[ABOUT('name')] = new_conds.conditions;
+
+  // === Write:
+  fs.writeFileSync(ABOUT('json-file'), JSON.stringify(conds));
+
+  new_conds.$whens.remove();
   return $;
-} // === conditionals_to_files
+} // === write_conditions_js
 
 function error(msg) {
   console.error(msg);
@@ -293,12 +310,6 @@ function read_conds() {
   return JSON.parse(raw);
 }
 
-function merge_and_write_conds(new_conds) {
-  var conds = read_conds();
-  conds[ABOUT('name')] = new_conds.conditions;
-  fs.writeFileSync(ABOUT('json-file'), JSON.stringify(conds));
-}
-
 function tag_when_to_object($) {
   let conds = {};
   let $whens = conds.$whens = $('when');
@@ -358,6 +369,7 @@ function is_blank_string(str) { return _.trim(str).length === 0; }
 function is_non_blank_string(str) { return is_string(str) && !is_blank_string(str); }
 function identity(v) { return v; }
 function is_null_or_undefined(v) { return v === null || v === undefined; }
+function is_something(v) { return !is_null_or_undefined(v); }
 function is_partial($) { return $('html').length === 0; }
 function is_array(v) { return _.isArray(v); }
 function is_plain_object(v) { return _.isPlainObject(v); }
