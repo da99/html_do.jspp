@@ -70,7 +70,6 @@ function ABOUT(key) { // === Function that returns state.
     case 'dir':              return dir;
     case 'new-file':         return dir + '/' + _.compact([name, arguments[1]]).join('-');
     case 'public-dir':       return public_dir;
-    case 'has-conditionals': return has_conditionals;
     case 'json-file':        return path.join(ABOUT('dir'), "conditions.json");
 
     default:
@@ -86,12 +85,6 @@ function conditionals_to_files($) {
 
   merge_and_write_conds(conds);
   conds.$whens.remove();
-
-  var $no_whens = $.load($.html());
-  $no_whens('when').remove();
-
-  var new_file_name = ABOUT('new-file') + '.html';
-  fs.writeFileSync( new_file_name, $no_whens.html());
 
   return $;
 } // === conditionals_to_files
@@ -227,9 +220,6 @@ function append_to_tag(tag_name, $, html) {
 } // === append_to_tag
 
 function markup_to_file($) {
-  if (ABOUT('has-conditionals'))
-    return $;
-
   fs.writeFileSync(
     ABOUT('new-file') + '.html',
     $.html()
