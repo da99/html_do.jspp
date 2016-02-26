@@ -69,25 +69,43 @@ case $action in
   test)
     # === __   test
     # ==  __   spec/dir
-    if [[ ! -e "$TEMP/last_failed" ]]; then
-      last_failed=""
-    else
+    if [[ -s "$TEMP/last_failed" ]]; then
       last_failed="$(cat "$TEMP/last_failed")"
+      had_target="yes"
+    else
+      last_failed=""
+      had_target=""
     fi
 
-    if [[ -z "$@" ]]; then
+    if [[ -z "$@" ]]; then # ==================================================
+
       js_setup jshint main/main.js
       while read DIR; do
+
         if [[ -n "$last_failed" && "$last_failed" != "$DIR" ]]; then
           continue
         else
           last_failed=""
         fi
+
         $0 test "$DIR" || { stat="$?"; echo "$DIR" >> "$TEMP/last_failed"; exit $stat; }
+
+        if [[ -n "$had_target" ]]; then
+          rm -f "$TEMP/last_failed"
+          break
+        fi
+
       done < <(find specs/ -maxdepth 1 -mindepth 1 -type d)
-      echo -e "=== All ${BGreen}pass${Color_Off}."
+
+      if [[ -z "$had_target" ]]; then
+        echo -e "=== All ${BGreen}pass${Color_Off}."
+      else
+        echo "=== Starting over all other tests: "
+        $0 test
+      fi
+
       exit 0
-    fi
+    fi # ======================================================================
 
     DIR="$1"; shift
     ACTUAL="$TEMP/actual"
