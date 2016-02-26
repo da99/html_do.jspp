@@ -31,21 +31,22 @@ if (path.basename(template).match(/^_+\./)) {
   process.exit(1);
 }
 
-
 var name              = path.basename(template, '.html');
 var template_contents = read_and_cache_file_name(template);
-var $template         = cheerio.load(template_contents, {recognizeSelfClosing: true});
+var $template         = string_to_$( template_contents );
 var has_conditionals  = $template('when').length > 0;
-var vars = {};
-$template = var_pipeline(
+var vars              = {};
 
+$template = var_pipeline(
   $template,
+
+  copy_files_to_public, // .css, .js files
+  render_locals,
 
   tag_snippet_to_markup,
 
   scripts_to_tag,
   styles_to_tag,
-  copy_files_to_public, // .css, .js files
   tag_template_to_script,
 
   to_func(merge_tags,'head'),
@@ -405,7 +406,12 @@ function tag_snippet_to_markup($) {
     $(raw).replaceWith(contents);
   });
 
-  return tag_snippet_to_markup($);
+
+  return var_pipeline(
+    $,
+    render_locals,
+    tag_snippet_to_markup
+  );
 } // === function tag_snippet_to_markup
 
 
@@ -490,6 +496,39 @@ function filter_files(dir, pattern) {
     function (f) { return path.join(dir, f); }
   );
   return _.filter(files, function (f) { return f.match(pattern); } );
+}
+
+
+function render_locals($) {
+  let o = _.reduce($('local'), function (o, raw) {
+    let k = _.trim(should_be($(raw).attr('name'), is_non_blank_string));
+    let v = _.trim(should_be($(raw).attr('val'), is_non_blank_string));
+    o[k] = v;
+    $(raw).remove();
+    return o;
+  }, {});
+
+  let new_$ = var_pipeline(
+    _.extend({}, ABOUT('vars'), o),
+    Handlebars.compile($.html(), {strict: true}),
+    string_to_$
+  );
+
+  return new_$;
+}
+
+
+function inspect_$($) {
+  log($.html());
+  return $;
+}
+
+
+// === NOTE: `cheerio.load` w/ xmlMode: true is not used because it
+// will remove </script> in <script ...></script>
+function string_to_$(raw_str) {
+  let str = should_be(raw_str, is_string);
+  return cheerio.load(str, {recognizeSelfClosing: true});
 }
 
 
