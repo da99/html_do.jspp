@@ -34,7 +34,6 @@ if (path.basename(template).match(/^_+\./)) {
 var name              = path.basename(template, '.html');
 var template_contents = read_and_cache_file_name(template);
 var $template         = string_to_$( template_contents );
-var has_conditionals  = $template('when').length > 0;
 var vars              = {};
 
 $template = var_pipeline(
@@ -309,12 +308,8 @@ function tag_when_to_object($) {
   if (is_empty($whens))
     return {};
 
-  conds.conditions = _.reduce($('val', $whens), function (vals, raw_val) {
-    let $val = $(raw_val);
-    var name = should_be(_.trim($val.attr('name')), is_non_blank_string);
-    var val  = should_be(_.trim($val.attr('val')), is_non_blank_string);
-    vals[name] = val;
-    return vals;
+  conds.conditions = _.reduce($whens, function (vals, when) {
+    return _.extend(vals, when_tag_contents_to_plain_object($, when));
   }, {});
 
   return conds;
@@ -327,8 +322,7 @@ function should_be(val, _funcs) {
 
   _.each(_funcs, function (f) {
     if (!f(val)) {
-      console.error("!!! " + to_string(val) + ' should be: ' + to_string(f));
-      process.exit(1);
+      throw new Error("!!! " + to_string(val) + ' should be: ' + to_string(f));
     }
   });
 
@@ -498,9 +492,27 @@ function filter_files(dir, pattern) {
   return _.filter(files, function (f) { return f.match(pattern); } );
 }
 
+function when_tag_contents_to_plain_object($, raw) {
+  return _.reduce($(raw).children(), function (o, child) {
+    let $child = $(child);
+    let name = _.trim(should_be(child.name, is_non_blank_string));
+    let val  = var_pipeline(
+      [$child.attr('val'), $child.attr('value'), $child.html()],
+      to_func_first(_.find, function (v) { return is_string(v) && is_non_blank_string(v); }),
+      _.trim,
+      to_func_first(should_be, is_non_blank_string)
+    );
+    o[name] = val;
+    return o;
+  }, {});
+}
 
 function render_locals($, raw_o) {
-  let o = _.reduce($('local'), function (o, raw) {
+  let o = _.reduce($('local, when'), function (o, raw) {
+    if (raw.name === 'when') {
+      return _.extend(o, when_tag_contents_to_plain_object($, raw));
+    }
+
     let k = _.trim(should_be($(raw).attr('name'), is_non_blank_string));
     let v = _.trim(should_be($(raw).attr('val'), is_non_blank_string));
     o[k] = v;
