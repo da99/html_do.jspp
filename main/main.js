@@ -360,6 +360,7 @@ function is_something(v) { return !is_null_or_undefined(v); }
 function is_partial($) { return $('html').length === 0; }
 function is_array(v) { return _.isArray(v); }
 function is_plain_object(v) { return _.isPlainObject(v); }
+function is_true(v) { return v === true; }
 
 function sort_by_length(arr) {
   return arr.sort(function (a,b) {
@@ -494,17 +495,27 @@ function filter_files(dir, pattern) {
 
 function when_tag_contents_to_plain_object($, raw) {
   return _.reduce($(raw).children(), function (o, child) {
-    let $child = $(child);
-    let name = _.trim(should_be(child.name, is_non_blank_string));
+    let name = non_blank_property(child, 'name');
     let val  = var_pipeline(
-      [$child.attr('val'), $child.attr('value'), $child.html()],
-      to_func_first(_.find, function (v) { return is_string(v) && is_non_blank_string(v); }),
-      _.trim,
+      grab_attr_or_html($, 'value', child),
       to_func_first(should_be, is_non_blank_string)
     );
     o[name] = val;
     return o;
   }, {});
+}
+
+function non_blank_property(o, key) {
+  return should_be(o.hasOwnProperty(key), is_true) && _.trim(should_be(o[key], is_non_blank_string));
+}
+
+function grab_attr_or_html($, name, raw) {
+  return var_pipeline(
+    [$(raw).attr(name), $(raw).html()],
+    to_func_first(_.find, function (v) { return is_string(v) && is_non_blank_string(v); }),
+    _.trim,
+    to_func_first(should_be, is_string)
+  );
 }
 
 function render_locals($, raw_o) {
@@ -514,7 +525,7 @@ function render_locals($, raw_o) {
     }
 
     let k = _.trim(should_be($(raw).attr('name'), is_non_blank_string));
-    let v = _.trim(should_be($(raw).attr('val'), is_non_blank_string));
+    let v = _.trim(should_be($(raw).attr('value'), is_non_blank_string));
     o[k] = v;
     $(raw).remove();
     return o;
