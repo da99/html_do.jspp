@@ -84,7 +84,7 @@ case $action in
           continue
         fi
 
-        $0 test "$DIR" || { stat="$?"; echo "$DIR" >> "$TEMP/last_failed"; exit $stat; }
+        $0 test "$DIR" || { stat="$?"; echo "$DIR" > "$TEMP/last_failed"; exit $stat; }
 
         if [[ -n "$last_failed" ]]; then
           rm -f "$TEMP/last_failed"
