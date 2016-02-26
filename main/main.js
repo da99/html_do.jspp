@@ -41,7 +41,7 @@ $template = var_pipeline(
   $template,
 
   copy_files_to_public, // .css, .js files
-  render_locals,
+  function ($) { return render_locals($, ABOUT('vars')); },
 
   tag_snippet_to_markup,
 
@@ -499,7 +499,7 @@ function filter_files(dir, pattern) {
 }
 
 
-function render_locals($) {
+function render_locals($, raw_o) {
   let o = _.reduce($('local'), function (o, raw) {
     let k = _.trim(should_be($(raw).attr('name'), is_non_blank_string));
     let v = _.trim(should_be($(raw).attr('val'), is_non_blank_string));
@@ -509,7 +509,7 @@ function render_locals($) {
   }, {});
 
   let new_$ = var_pipeline(
-    _.extend({}, ABOUT('vars'), o),
+    _.extend({}, should_be(raw_o || {}, is_plain_object), o),
     Handlebars.compile($.html(), {strict: true}),
     string_to_$
   );
