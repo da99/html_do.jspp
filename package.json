@@ -1,0 +1,21 @@
+{
+  "name": "dum_dum_nodejs",
+  "version": "2.0.0",
+  "description": "Personal way of writing nodejs apps",
+  "main": "main/dum_dum_nodejs.js",
+  "bin": {},
+  "dependencies": {
+    "lodash": "^4.5.1"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@github.com:da99/dum_dum_nodejs.git"
+  },
+  "keywords": [],
+  "author": "da99",
+  "license": "MIT"
+}
