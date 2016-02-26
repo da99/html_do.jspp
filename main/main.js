@@ -22,9 +22,9 @@ switch (args.length) {
     process.exit(1);
 }
 
-var public_dir = should_be(args.pop(), is_string);
-var dir        = should_be(args.pop(), is_dir);
-var template   = should_be(args.pop(), is_file);
+var public_dir = reduce(args.pop(), be(is_string), _.trim, be(not(is_length_zero)));
+var dir        = reduce(args.pop(), be(is_dir));
+var template   = reduce(args.pop(), be(is_file));
 
 if (path.basename(template).match(/^_+\./)) {
   console.error('!!! Template is a partial: ' + template);
@@ -76,10 +76,13 @@ function ABOUT(key) { // === Function that returns state.
     case 'json-file':        return path.join(ABOUT('out-dir'), "conditions.json");
     case 'vars':             return vars;
     case 'new-var':
-      let k = _.trim(
-        should_be(arguments[1], is_string)
-      ).replace(/\./g, '_');
-      vars[k] = should_be(arguments[2], is_something);
+      let k = reduce(
+        arguments[1],
+        be(is_string),
+        _.trim,
+        replace(/\./g, '_')
+      );
+      vars[k] = reduce(arguments[2], be(is_something));
       return ABOUT('vars');
 
     default:
@@ -316,19 +319,6 @@ function tag_when_to_object($) {
 }
 
 
-function should_be(val, _funcs) {
-  _funcs = _.toArray(arguments);
-  val    = _funcs.shift();
-
-  _.each(_funcs, function (f) {
-    if (!f(val)) {
-      throw new Error("!!! " + to_string(val) + ' should be: ' + to_string(f));
-    }
-  });
-
-  return val;
-}
-
 function to_string(v) {
   if (v === undefined)
     return 'undefined';
@@ -349,7 +339,11 @@ function to_string(v) {
   return util.inspect(v);
 }
 
+function is_whitespace(v) { return is_string(v) && length(_.trim(v)) === 0; }
+function is(target) { return function (val) { return val === target; }; }
+function is_boolean(v) { return _.isBoolean(v); }
 function is_string(v) { return _.isString(v); }
+function is_length_zero(v) { return length(v) === 0;  }
 function is_dir(v) { try { return fs.lstatSync(v).isDirectory(); } catch (e) { return false; } }
 function is_file(v) { try { return fs.lstatSync(v).isFile(); } catch (e) { return false; } }
 function is_blank_string(str) { return _.trim(str).length === 0; }
@@ -396,7 +390,7 @@ function tag_snippet_to_markup($) {
     return $;
 
   _.each($('snippet'), function (raw) {
-    var src      = should_be($(raw).attr('src'), is_non_blank_string);
+    var src      = reduce($(raw).attr('src'), be(is_string), _.trim, be(not(is_length_zero)));
     var contents = read_file(src);
     $(raw).replaceWith(contents);
   });
@@ -496,9 +490,10 @@ function filter_files(dir, pattern) {
 function when_tag_contents_to_plain_object($, raw) {
   return _.reduce($(raw).children(), function (o, child) {
     let name = non_blank_property(child, 'name');
-    let val  = var_pipeline(
+    let val  = reduce(
       grab_attr_or_html($, 'value', child),
-      to_func_first(should_be, is_non_blank_string)
+      be(is_string),
+      be(not(is_length_zero))
     );
     o[name] = val;
     return o;
@@ -506,15 +501,16 @@ function when_tag_contents_to_plain_object($, raw) {
 }
 
 function non_blank_property(o, key) {
-  return should_be(o.hasOwnProperty(key), is_true) && _.trim(should_be(o[key], is_non_blank_string));
+  return reduce(o.hasOwnProperty(key), be(is_true)) &&
+    reduce(o[key], be(is_string), _.trim, be(not(is_length_zero)));
 }
 
 function grab_attr_or_html($, name, raw) {
-  return var_pipeline(
+  return reduce(
     [$(raw).attr(name), $(raw).html()],
-    to_func_first(_.find, function (v) { return is_string(v) && is_non_blank_string(v); }),
-    _.trim,
-    to_func_first(should_be, is_string)
+    find(is_string, not(is_whitespace)),
+    be(is_string),
+    _.trim
   );
 }
 
@@ -524,15 +520,16 @@ function render_locals($, raw_o) {
       return _.extend(o, when_tag_contents_to_plain_object($, raw));
     }
 
-    let k = _.trim(should_be($(raw).attr('name'), is_non_blank_string));
-    let v = _.trim(should_be($(raw).attr('value'), is_non_blank_string));
+    let k = reduce($(raw).attr('name'), _.trim, be(not(is_length_zero)));
+    let v = reduce($(raw).attr('value'), _.trim, be(not(is_length_zero)));
     o[k] = v;
     $(raw).remove();
     return o;
   }, {});
 
-  let new_$ = var_pipeline(
-    _.extend({}, should_be(raw_o || {}, is_plain_object), o),
+  let old_o = reduce(raw_o, to_default({}), be(is_plain_object));
+  let new_$ = reduce(
+    combine(old_o, o),
     Handlebars.compile($.html(), {strict: true}),
     string_to_$
   );
@@ -550,8 +547,98 @@ function inspect_$($) {
 // === NOTE: `cheerio.load` w/ xmlMode: true is not used because it
 // will remove </script> in <script ...></script>
 function string_to_$(raw_str) {
-  let str = should_be(raw_str, is_string);
+  let str = be(is_string)(raw_str);
   return cheerio.load(str, {recognizeSelfClosing: true});
+}
+
+function replace(pattern, new_value) {
+  if (length(arguments) === 3) {
+    return arguments[2].replace(arguments[0], arguments[1]);
+  }
+
+  return function (v) {
+    return v.replace(pattern, new_value);
+  };
+}
+
+function and(_funcs) {
+  let funcs = _.toArray(arguments);
+  return function (v) {
+    for (var i = 0; i < length(funcs); i++) {
+      if (!funcs[i](v)) return false;
+    }
+    return true;
+  };
+}
+
+function be() {
+  let funcs = _.toArray(arguments);
+  return function (v) {
+    for (var i = 0; i < length(funcs); i++) {
+      if (!funcs[i](v))
+        throw new Error(to_string(v) + ' should be: ' + to_string(funcs[i]));
+    }
+    return v;
+  };
+}
+
+function reduce(value, _functions) {
+  let funcs = _.toArray(arguments);
+  let v     = funcs.shift();
+  return _.reduce(funcs, function (acc, f) { return f(acc); }, v);
+}
+
+function find(_funcs) {
+  let funcs = _.toArray(arguments);
+  return function (v) {
+    return _.find(v, and.apply(null, funcs));
+  };
+}
+
+function not(func) {
+  reduce(arguments, length, be(is(1)));
+  return function (v) {
+    let result = be(is_boolean)(func(v));
+    return !result;
+  };
+}
+
+function length(raw_v) {
+  if (raw_v === null || raw_v === undefined || !_.isFinite(raw_v.length))
+    throw new Error("Invalid value for length: " + to_string(raw_v));
+  return raw_v.length;
+}
+
+function to_default(valid) {
+  if (length(arguments) === 2) {
+    let v = arguments[1];
+    if (v === null || v === undefined)
+      return valid;
+    return v;
+  }
+
+  return function (v) { return to_default(valid, v); };
+}
+
+function all(_funcs) {
+  let _and = and.apply(null, arguments);
+  return function (arr) {
+    for(var i = 0; i < length(arr); i++){
+      if (!_and(arr[i]))
+        return false;
+    }
+    return true;
+  };
+}
+
+function combine(_vals) {
+  let vals = _.toArray(arguments);
+  if (all(is_plain_object)(vals)) {
+    return _.extend.apply(null, [{}].concat(vals));
+  }
+  if (all(is_array)(vals))
+    return [].concat(vals);
+  throw new Error("Only Array of Arrays or Plain Objects allowed: " + to_string(arguments));
 }
 
 
