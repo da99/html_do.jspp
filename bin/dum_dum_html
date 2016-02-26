@@ -85,6 +85,7 @@ case $action in
         fi
         $0 test "$DIR" || { stat="$?"; echo "$DIR" >> "$TEMP/last_failed"; exit $stat; }
       done < <(find specs/ -maxdepth 1 -mindepth 1 -type d)
+      echo -e "=== All ${BGreen}pass${Color_Off}."
       exit 0
     fi
 
