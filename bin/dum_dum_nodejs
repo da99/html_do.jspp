@@ -38,6 +38,35 @@ case $action in
     js_setup upgrade
     ;;
 
+  functions_to_files)
+    file="$1"; shift
+    file_name="$(basename "$file" ".js")"
+    dir="$(dirname "$file")/${file_name}"
+    content=""
+    while IFS= read -r LINE; do
+      content="$content\n$LINE"
+      if ! { echo "$LINE" | grep --extended-regexp '(^\}(\s|$))|(\}$)' &>/dev/null; } then
+        continue
+      fi
+
+      new_file="$dir/${file_name}.js"
+      echo -e "$content"
+
+      if [[ -s "$new_file" ]]; then
+        echo "!!! File exists: $new_file" 1>&2
+        exit 1
+      fi
+
+      echo "=== Writing to ${new_file}" 1>&2;
+      if [[ "$answer" == "y" ]]; then
+        echo -e "$content" >> "$new_file"
+      else
+        echo "=== Stopping." 1>&2
+        break
+      fi
+    done < <(cat "$file")
+    ;;
+
   test)
     target=""
     if [[ -n "$@" ]]; then

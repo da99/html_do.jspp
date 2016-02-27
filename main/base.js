@@ -1,235 +1,3 @@
-"use strict";
-/* jshint globalstrict: true, undef: true */
-/* globals console, _, setTimeout, spec, spec_throws, spec_returns  */
-
-// === INCLUDE BELOW:
-
-var WHITESPACE = /\s+/g;
-
-function identity(x) {
-  if (arguments.length !== 1)
-    throw new Error("arguments.length !== 0");
-  return x;
-}
-
-function log(_args) {
-  if (typeof console !== 'undefined' && console.log)
-    return console.log.apply(console, arguments);
-
-  return false;
-} // === func
-
-
-spec(dot('num'),    [{num: 3}],                  3);
-spec(dot('html()'), [{html: identity('hyper')}], 'hyper');
-spec(dot('num'),    [{n:4}],                     new Error('Property not found: "num" in {"n":4}'));
-function dot(raw_name) {
-  var name = _.trimRight(raw_name, '()');
-  return function _dot_(o) {
-    if (is_undefined(o[name]))
-      throw new Error('Property not found: ' + to_string(name) + ' in ' + to_string(o));
-    if (name !== raw_name) {
-      should_be(o[name], is_function);
-      return o[name]();
-    } else
-      return o[name];
-  };
-} // === func dot
-
-
-spec_returns(3, function own_property_returns_own_property() {
-  return own_property('num')({num: 3});
-});
-spec_throws(own_property('num'), [{n:4}], 'Key not found: "num" in {"n":4}');
-function own_property(name) {
-  return function _own_property_(o) {
-    if (!o.hasOwnProperty(name))
-      throw new Error('Key not found: ' + to_string(name) + ' in ' + to_string(o));
-    return o[name];
-  };
-} // === func own_property
-
-
-function is_whitespace(v) { return is_string(v) && length(_.trim(v)) === 0; }
-function is(target) { return function (val) { return val === target; }; }
-function is_boolean(v) { return typeof v === 'boolean'; }
-function is_string(v) { return typeof v === "string"; }
-function is_length_zero(v) { return length(v) === 0;  }
-function is_blank_string(str) { return _.trim(str).length === 0; }
-function identity(v) { return v; }
-function is_null_or_undefined(v) { return v === null || v === undefined; }
-function is_something(v) { return !is_null_or_undefined(v); }
-function is_partial($) { return $('html').length === 0; }
-function is_array(v) { return _.isArray(v); }
-function is_plain_object(v) { return _.isPlainObject(v); }
-function is_true(v) { return v === true; }
-
-function is_empty(v) {
-  if (is_array(v))
-    return v.length === 0;
-  if (is_plain_object(v))
-    return _.keys(v).length === 0;
-  if (v.hasOwnProperty('length') && _.isFinite(v.length))
-    return v.length === 0;
-
-  throw new Error("Unknown .length for: " + to_string(v));
-}
-
-
-function to_default(valid) {
-  if (length(arguments) === 2) {
-    var v = arguments[1];
-    if (v === null || v === undefined)
-      return valid;
-    return v;
-  }
-
-  return function (v) { return to_default(valid, v); };
-}
-
-
-spec(is_arguments, [return_arguments()], true);
-spec(is_arguments, [[]], false);
-function is_arguments(v) {
-  return is_something(v) && or(is(0), is_positive)(v.length) && v.hasOwnProperty('callee');
-}
-
-
-
-spec(to_string, [null], 'null');
-spec(to_string, [undefined], 'undefined');
-spec(to_string, [[1]], '[1]');
-spec(to_string, ['yo yo'], '"yo yo"');
-spec(to_string, [{a:'b', c:'d'}], '{"a":"b","c":"d"}');
-function to_string(val) {
-  var v = val;
-
-  if (val === null)      return 'null';
-  if (val === undefined) return 'undefined';
-  if (val === false)     return 'false';
-  if (val === true)      return 'true';
-
-  if (_.isArray(val))
-    return  '['+_.map(val, to_string).join(", ") + ']';
-
-  if (_.isString(val))
-    return '"' + val + '"';
-
-  if ( is_arguments(val) )
-    return to_string(_.toArray(val));
-
-  if (is_plain_object(val)) {
-    return '{' + _.reduce(_.keys(val), function (acc, k) {
-      acc.push(to_string(k) + ':' + to_string(val[k]));
-      return acc;
-    }, []).join(",") + '}';
-  }
-
-  if (is_function(val) && val.hasOwnProperty('to_string_name'))
-    return val.to_string_name;
-
-  if (_.isFunction(v))
-    return (v.name) ? v.name + ' (function)' : v.toString();
-
-  if (_.isString(v))
-    return '"' + v + '"';
-
-  if (_.isArray(v))
-    return '[' + _.map(_.toArray(v), to_string).join(', ') + '] (Array)';
-
-  if (v.constructor === arguments.constructor)
-    return '[' + _.map(_.toArray(v), to_string).join(', ') + '] (arguments)';
-
-  return val.toString();
-} // === func
-
-
-spec(is_array_of_functions, [[function () {}]], true);
-spec(is_array_of_functions, [[]], false);
-spec(is_array_of_functions, [[1]], false);
-spec(is_array_of_functions, [1], false);
-function is_array_of_functions(a) {
-  return _.isArray(a) && length_gt(a) > 0 && _.all(a, _.isFunction);
-} // === func
-
-spec_returns(true,  function () { return is(5)(5); });
-spec_returns(false, function () { return is("a")("b"); });
-function is(target) { return function (v) { return v === target; }; }
-
-function is_positive(v) { return typeof v === 'number' && isFinite(v) && v > 0; }
-
-spec_returns(true, function () { return not(is_something)(null); });
-spec_returns(true, function () { return not(length_gt(2), is_null)([1]); });
-spec_returns(false, function () { return not(is_something)(1); });
-spec_returns(false, function () { return not(is_something, is_null)(1); });
-function not() {
-  should_be(arguments, length_gt(0));
-  var l = arguments.length, funcs = arguments;
-  for (var i = 0; i < l; i++) {
-    if (!is_function(funcs[i]))
-      throw new Error('Not a function: ' + to_string(funcs[i]));
-  }
-
-  return function custom_not(val) {
-    if (arguments.length !== 1)
-      throw new Error('arguments.length !== 1');
-    var result;
-    for (var i = 0; i < l; i++) {
-      result = funcs[i](val);
-      if (!is_bool(result))
-        throw new Error('Function did not return boolean: ' + to_string(funcs[i]) + ' -> ' + to_string(result));
-      if (result)
-        return false;
-    }
-    return true;
-  };
-}
-
-function to_arg(val) { return function (f) { return f(val); }; }
-
-spec(should_be, [1, is_num], 1);
-spec(should_be, [1, is_num, is_something], 1);
-spec_throws( should_be, ['1', is_num], 'Value: "1" !== is_num');
-spec_throws( should_be, [2, is_num, is_null], 'Value: 2 !== is_null');
-function should_be(val, _funcs) {
-  if (arguments.length < 2)
-    throw new Error('Not enough arguments: ' + to_string(arguments));
-  var funcs = _.toArray(arguments).slice(1);
-  var l = funcs.length, result;
-  for (var i = 0; i < l; i++) {
-    result = funcs[i](val);
-    if (!is_bool(result))
-      throw new Error('Return value  not a boolean: ' + to_string(result) + ' <- ' + to_string(funcs[i]) + '(' + to_string(val) + ')');
-    if (!result)
-      throw new Error('Value: ' + to_string(val) + ' !== ' + function_to_name(funcs[i]));
-  }
-
-  return val;
-}
-
-
-spec(
-  arguments_are,
-  [[1], is_num, is_num],
-  new Error('Wrong # of arguments: expected: 2 actual: 1)')
-);
-function arguments_are(args_o, _funcs) {
-  var funcs = _.toArray(arguments);
-  var args  = funcs.shift();
-
-  if (args.length !== funcs.length) {
-    throw new Error('Wrong # of arguments: expected: ' + funcs.length + ' actual: ' + args.length);
-  }
-
-  for (var i = 0; i < funcs.length; i++) {
-    if (!funcs[i](args[i]))
-      throw new Error('Invalid arguments: ' + to_string(args[i]) + ' !' + to_string(funcs[i]));
-  }
-
-  return _.toArray(args);
-}
-
-// === Helpers ===================================================================
 
 function apply_function(f, args) {
   if (arguments.length !== 2)
@@ -314,6 +82,7 @@ spec(standard_name, ['NAME NAME'], "name name");     // it 'lowercases names'
 spec(standard_name, ['  name  '],  'name');          // it 'trims string'
 spec(standard_name, ['n   aME'],   'n ame');         // it 'squeezes whitespace'
 function standard_name(str) {
+  var WHITESPACE = /\s+/g;
   return _.trim(str).replace(WHITESPACE, ' ').toLowerCase();
 }
 
@@ -583,6 +352,7 @@ function is_specs(specs) {
 
 spec(function_to_name, ["function my_name() {}"], "my_name");
 function function_to_name(f) {
+  var WHITESPACE = /\s+/g;
   return f.to_string_name || f.toString().split('(')[0].split(WHITESPACE)[1] || f.toString();
 }
 
@@ -1045,6 +815,7 @@ function combine(_vals) {
 
 spec(function_to_name, ["function my_name() {}"], "my_name");
 function function_to_name(f) {
+var WHITESPACE = /\s+/g;
   return f.to_string_name || f.toString().split('(')[0].split(WHITESPACE)[1] || f.toString();
 }
 
