@@ -110,6 +110,17 @@ case $action in
       content=""
       function_name=""
     done < <(cat "$file")
+
+    echo ""
+
+    if [[ -n "$content" ]]; then
+      bottom="$dir/_.bottom.js"
+      echo -e "$content" >> "$bottom"
+      echo -e "\n\n=== NOTE: Wrote to $bottom\n\n"
+    fi
+
+
+    echo "=== Trashing: $file" 1>&2
     trash-put "$file"
     ;;
 
