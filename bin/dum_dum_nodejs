@@ -39,25 +39,48 @@ case $action in
     ;;
 
   function_name)
+    # === __  function_name  "file"
+    # === echo something | __  function_name
     grep -Pzo '^function \K(.+?)(?=\()' "$@"
     ;;
 
+  duplicate_functions)
+    # === duplicate_functions
+    find main/ -type f -iname "*.js" | xargs -I FILE basename FILE | uniq -c | sort | grep -v --extended-regexp '^\s+1'
+    ;;
+
   functions_already_extracted)
+    # === __ functions_already_extracted  "main/file.js"
+    # Exits 0 if there are any functions already extracted.
     file="$1"; shift
     dir="$(dirname "$file")/$(basename "$file" .js)"
+    found=""
     while read NAME; do
       file_name="$dir/${NAME}.js"
       if [[ -s "$file_name" ]]; then
         echo "$file_name"
+        found="yes"
       fi
     done < <($0 function_name "$file")
+
+    if [[ -n "$found" ]]; then
+      exit 0
+    else
+      exit 1
+    fi
     ;;
 
   functions_to_files)
+    # === __ functions_to_files  "main/file.js"
     file="$1"; shift
     dir="$(dirname "$file")/$(basename "$file" ".js")"
     content=""
     function_name=""
+
+    if $0 functions_already_extracted "$file"; then
+      echo "!!! Dups found" 1>&2
+    fi
+
     while IFS= read -r LINE; do
       content="$content\n$LINE"
       if [[ -z "$function_name" ]]; then
@@ -91,6 +114,10 @@ case $action in
     ;;
 
   test)
+    if $0 duplicate_functions; then
+      echo "!!! Duplicate functions found." 1>&2
+      exit 1
+    fi
     target=""
     if [[ -n "$@" ]]; then
       target="$1"; shift
