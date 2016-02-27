@@ -1,19 +1,23 @@
 "use strict";
 /* jshint globalstrict: true, undef: true */
-/* globals setTimeout, alite, formToObj, Mustache, promise, _, $, window, console, DOMParser  */
+/* globals console, _, spec, spec_throws, spec_returns  */
+
+// === INCLUDE BELOW:
 
 var WHITESPACE = /\s+/g;
-
-function spec() {throw new Error('Not implemented.'); }
-function spec_throws() {throw new Error('Not implemented.'); }
-function spec_returns() { throw new Error('Not implemented.'); }
-function spec_run() {throw new Error('Not implemented.'); }
 
 function identity(x) {
   if (arguments.length !== 1)
     throw new Error("arguments.length !== 0");
   return x;
 }
+
+function log(_args) {
+  if (typeof console !== 'undefined' && console.log)
+    return console.log.apply(console, arguments);
+
+  return false;
+} // === func
 
 
 spec(dot('num'),    [{num: 3}],                  3);
@@ -204,9 +208,10 @@ function should_be(val, _funcs) {
 }
 
 
-spec_throws(
-  arguments_are, [[1], is_num, is_num],
-  'Wrong # of arguments: expected: 2 actual: 1'
+spec(
+  arguments_are,
+  [[1], is_num, is_num],
+  new Error('Wrong # of arguments: expected: 2 actual: 1)
 );
 function arguments_are(args_o, _funcs) {
   var funcs = _.toArray(arguments);
@@ -329,7 +334,7 @@ spec(is_function_name, ['is_function'], true);
 spec(is_function_name, ['none none'], false);
 spec(is_function_name, [is_function_name], false);
 function is_function_name(v) {
-  return is_string(v) && is_function(window[v]);
+  return is_string(v) && typeof v === 'function';
 }
 
 function is_function(v) {
@@ -529,12 +534,13 @@ function to_function_string(f, args) {
 
 spec(name_to_function, ["name_to_function"], name_to_function);
 function name_to_function(raw) {
+  /* globals window, global */
   if (!is_string(raw))
     throw new Error('Not a string: ' + to_string(raw));
   var str = _.trim(raw);
-  if (!window[str])
+  if (typeof str !== 'function')
     throw new Error('Function not found: ' + to_string(raw));
-  return window[str];
+  return (typeof 'window' !== 'undefined') ? window[str] : global[str];
 }
 
 
@@ -980,6 +986,10 @@ function and(_funcs) {
   };
 }
 
+spec(be, [1, is_num], 1);
+spec(be, [1, is_num, is_something], 1);
+spec(be, ['1', is_num], new Error('Value: "1" !== is_num'));
+spec(be, [2, is_num, is_null], new Error('Value: 2 !== is_null'));
 function be() {
   var funcs = _.toArray(arguments);
   return function (v) {
@@ -1048,4 +1058,20 @@ function to_match_string(actual, expect) {
 
 function to_function_string(f, args) {
   return function_to_name(f) + '(' + _.map(args, to_string).join(', ') + ')';
+}
+
+function wait_max(seconds, func) {
+  var ms = seconds * 1000;
+  var total = 0;
+  var interval = 100;
+  function reloop() {
+    total = total + interval;
+    if (func())
+      return true;
+    if (total > ms)
+      throw new Error('Timeout exceeded: ' + to_string(func) );
+    else
+      setTimeout(reloop, interval);
+  }
+  setTimeout(reloop, interval);
 }

@@ -1,8 +1,7 @@
 "use strict";
 /* jshint esnext: true, globalstrict: true, undef: true */
-/* global _ : true, console, require, process  */
+/* global console, require, process  */
 
-const WHITESPACE = /\s+/g;
 const _          = require('lodash');
 const fs         = require('fs');
 const util       = require('util');
