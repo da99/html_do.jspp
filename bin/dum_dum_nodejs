@@ -39,8 +39,20 @@ case $action in
     ;;
 
   test)
-    find main -type f  -iname "*.js"  | xargs -I FILE js_setup jshint FILE || :
+    while read FILE; do
+      js_setup jshint "$FILE"
+      dups="$($0 print_dups "$FILE")"
+      if [[ ! -z "$dups" ]]; then
+        echo -e "!!! Dups found:\n$dups" 1>&2
+        exit 1
+      fi
+    done < <(find main -type f  -iname "*.js")
     node main/dum_dum_nodejs.js test
+    ;;
+
+  print_dups)
+    file="$1"; shift
+    cat "$file" | grep --extended-regexp '^\s*function\s+[^\s]+\(' | sed -e 's/^[ \t]*//' | tr -s ' ' | cut -d' ' -f 2 | cut -d'(' -f 1 | uniq -c | sort | grep -v --extended-regexp '\s+1'
     ;;
 
   watch)
