@@ -38,6 +38,23 @@ case $action in
     js_setup upgrade
     ;;
 
+  body-files)
+    # === __ body-files  "main/dir"
+    dir="$1"; shift
+    find "$dir" -type f -iname "_.*.js" -prune -o -iname "*.js" -print
+    ;;
+
+  build-node)
+    $0 duplicate_functions || { stat="$?"; echo "!!! Dup found." 1>&2; exit $stat; }
+    # === __  build-node
+    touch main/node/_.top.js
+    touch main/node/_.bottom.js
+    dir="main/node"
+    output="build"
+    files="$($0 body-files "$dir")"
+    uglifyjs "$dir/_.top.js" $files "$dir/_.bottom.js"  --source-map "$output/node.js.map" > "$output/node.js"
+    ;;
+
   function_name)
     # === __  function_name  "file"
     # === echo something | __  function_name
@@ -46,7 +63,20 @@ case $action in
 
   duplicate_functions)
     # === duplicate_functions
-    find main/ -type f -iname "*.js" | xargs -I FILE basename FILE | uniq -c | sort | grep -v --extended-regexp '^\s+1'
+    files="$(find main/ -type f -iname "_.*.js" -prune -o -iname "*.js" -print | \
+      xargs -I FILE basename FILE |  \
+      sort                        |  \
+      uniq -c                     |  \
+     grep -v --extended-regexp '^\s+1' | \
+     tr -s ' ' | cut -d' ' -f3 || :)"
+    if [[ -z "$files" ]]; then
+      exit 0
+    else
+      while read NAME; do
+        echo main/*/$NAME | tr ' ' '\n'
+      done < <( echo "$files" )
+      exit 1
+    fi
     ;;
 
   functions_already_extracted)
