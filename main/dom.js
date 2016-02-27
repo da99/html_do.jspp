@@ -1,6 +1,9 @@
 "use strict";
 /* jshint globalstrict: true, undef: true */
-/* globals spec_dom, spec, spec_returns, setTimeout, alite, formToObj, Mustache, promise, _, $, window, console, DOMParser  */
+/* globals spec_dom, spec, spec_returns */
+/* globals setTimeout, alite, formToObj, Mustache, promise, _, $, window, console, DOMParser  */
+/* globals App, to_value, arguments_are, has_property_of */
+/* globals is_bool, is_empty, is_num, should_be, is_string, is_plain_object, key_to_bool */
 
 if (typeof window === 'undefined')
   throw new Error('No window defined.');

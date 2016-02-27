@@ -1,6 +1,6 @@
 "use strict";
 /* jshint globalstrict: true, undef: true */
-/* globals console, _, spec, spec_throws, spec_returns  */
+/* globals console, _, setTimeout, spec, spec_throws, spec_returns  */
 
 // === INCLUDE BELOW:
 
@@ -211,7 +211,7 @@ function should_be(val, _funcs) {
 spec(
   arguments_are,
   [[1], is_num, is_num],
-  new Error('Wrong # of arguments: expected: 2 actual: 1)
+  new Error('Wrong # of arguments: expected: 2 actual: 1)')
 );
 function arguments_are(args_o, _funcs) {
   var funcs = _.toArray(arguments);

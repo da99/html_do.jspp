@@ -39,15 +39,29 @@ case $action in
     ;;
 
   test)
+    target=""
+    if [[ -n "$@" ]]; then
+      target="$1"; shift
+    fi
+
     while read FILE; do
+      if [[ -n "$target" && "$(realpath -m "$target")" != "$(realpath -m "$FILE")" ]]; then
+        continue
+      fi
+
       js_setup jshint "$FILE"
       dups="$($0 print_dups "$FILE" || :)"
       if [[ ! -z "$dups" ]]; then
         echo -e "!!! Dups found:\n$dups" 1>&2
         exit 1
       fi
+
+      case "$FILE" in
+        main/node.js)
+          node "$FILE" test
+          ;;
+      esac
     done < <(find main -type f -iname "*.js")
-    node main/dum_dum_nodejs.js test
     ;;
 
   print_dups)
@@ -93,7 +107,7 @@ case $action in
       fi
 
       if [[ -z "$cmd" ]]; then
-        $0 test || :
+        $0 test "$path" || :
       else
         $cmd
       fi
