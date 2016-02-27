@@ -1,28 +1,4 @@
-"use strict";
-/* jshint esnext: true, globalstrict: true, undef: true */
-/* global console, require, process  */
 
-const _          = require('lodash');
-const fs         = require('fs');
-const util       = require('util');
-const path       = require('path');
-
-
-function spec_push(f) {
-  if (!spec_push.specs) spec_push.specs = [];
-  spec_push.specs.push(f);
-  return true;
-}
-
-function spec_run() {
-  let specs = (spec_push.specs || []);
-  log('=== Running specs: ');
-  for (var i = 0; i < specs.length; i++) {
-    specs[i]();
-  }
-  if (specs.length === 0)
-    throw new Error('No specs found.');
-}
 
 function spec(_args) {
   let f, args, expect;
@@ -60,19 +36,3 @@ function spec(_args) {
     });
   }
 } // === function spec
-
-function log(_args) {
-  return console.log.apply(console, arguments);
-}
-
-function log_and_return(v) {
-  log(v);
-  return v;
-}
-
-function is_dir(v) { try { return fs.lstatSync(v).isDirectory(); } catch (e) { return false; } }
-function is_file(v) { try { return fs.lstatSync(v).isFile(); } catch (e) { return false; } }
-
-
-if(process.argv[2] === 'test')
-  spec_run();
