@@ -1,3 +1,5 @@
+/* jshint strict: true, undef: true */
+/* globals is_spec_env, log, spec, is_empty, spec_next, to_string */
 
 
 // === Arguments:
@@ -12,7 +14,9 @@
 // });
 //
 function spec_run() {
-  if (!is_localhost())
+  "use strict";
+
+  if (!is_spec_env())
     return false;
 
   var on_fin = arguments[0] || function (msg) {

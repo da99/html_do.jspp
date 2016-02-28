@@ -1,7 +1,11 @@
+/* jshint strict: true, undef: true */
+/* globals to_string, length, setTimeout, be, is_specs */
 
 
 function spec_next(specs) {
-  should_be(specs, is_specs);
+  "use strict";
+
+  be(is_specs, specs);
 
   if (specs.i === 'init') {
       specs.i = 0;
@@ -16,12 +20,12 @@ function spec_next(specs) {
   var func = list[i];
 
   // === Are all specs finished?
-  if (!func && i >= l(specs.list)) {
+  if (!func && i >= length(specs.list)) {
     specs.total = i;
     if (specs.total !== specs.list.length)
       throw new Error('Not all specs finished: ' + to_string(specs.total) + ' !== ' + to_string(specs.list.length));
     specs.on_finish(specs);
-    return l(specs.list);
+    return length(specs.list);
   }
 
   // === Function was found?
@@ -30,7 +34,7 @@ function spec_next(specs) {
   }
 
   // === Async?
-  if (l(func) === 1 ) {
+  if (length(func) === 1 ) {
     setTimeout(function () {
       if (!specs.dones[i])
         throw new Error("Spec did not finish in time: " + to_string(func));
@@ -43,7 +47,7 @@ function spec_next(specs) {
   }
 
   // === Regular spec, non-asyc?
-  if (l(func) === 0) {
+  if (length(func) === 0) {
     func();
     specs.dones[i] = true;
     return spec_next(specs);

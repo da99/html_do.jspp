@@ -1,17 +1,30 @@
+/* jshint strict: true, undef: true */
+/* globals spec, is_string, is_function, is_num, is_something, is_null, _, length, to_string */
 
 
+spec(be, [1, is_num],    1);
+spec(be, [is_num, '1'],  new Error('Value: "1" !== is_num'));
+spec(be, [is_string, 2], new Error('Value: 2 !== is_string'));
 
-spec(be, [1, is_num], 1);
-spec(be, [1, is_num, is_something], 1);
-spec(be, ['1', is_num], new Error('Value: "1" !== is_num'));
-spec(be, [2, is_num, is_null], new Error('Value: 2 !== is_null'));
-function be() {
-  var funcs = _.toArray(arguments);
-  return function (v) {
-    for (var i = 0; i < length(funcs); i++) {
-      if (!funcs[i](v))
-        throw new Error(to_string(v) + ' should be: ' + to_string(funcs[i]));
-    }
-    return v;
-  };
+function be(func, val) {
+  "use strict";
+
+  switch(length(arguments)) {
+    case 2:
+      if (!func)
+        throw new Error(to_string(val) + ' should be: ' + to_string(func));
+      return val;
+
+    case 1:
+      be(is_function, func);
+      return function (v) {
+        return be(func, v);
+      };
+
+    default:
+      throw new Error("Invalid arguments.");
+
+  }
+
 }
+

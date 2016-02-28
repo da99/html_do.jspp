@@ -1,3 +1,5 @@
+/* jshint strict: true, undef: true */
+/* globals spec, is_string, _, is_plain_object, is_empty, is_function, be, is_boolean */
 
 
 spec(msg_match, [1,1], true);
@@ -9,7 +11,10 @@ spec(msg_match, [{a:is_string}, {a:"b"}], true);
 spec(msg_match, [{}, {a:"b"}], false);
 spec(msg_match, [{}, {}], true);
 spec(msg_match, [[], []], true);
+
 function msg_match(pattern, msg) {
+  "use strict";
+
   if (_.isEqual(pattern, msg))
     return true;
 
@@ -22,7 +27,7 @@ function msg_match(pattern, msg) {
       if (msg[key] === target)
         return !true;
       if (is_function(target))
-        return !should_be(target(msg[key]), is_bool);
+        return !be(is_boolean, target(msg[key]));
       return !false;
     });
   }

@@ -1,3 +1,5 @@
+/* jshint strict: true, undef: true */
+/* globals spec, return_arguments, spec_throws, _, to_string */
 
 spec(is_empty, [[]], true);
 spec(is_empty, [{}], true);
@@ -8,7 +10,10 @@ spec(is_empty, ["a"],      false);
 spec(is_empty, [return_arguments()],      true);
 spec(is_empty, [return_arguments(1,2,3)], false);
 spec_throws(is_empty, [null],   'invalid value for is_empty: null');
+
 function is_empty(v) {
+  "use strict";
+
   if (arguments.length !== 1)
     throw new Error("arguments.length !== 1: " + to_string(v));
 
@@ -25,6 +30,3 @@ function is_empty(v) {
 
   return l === 0;
 } // === func
-
-
-

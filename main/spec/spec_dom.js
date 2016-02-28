@@ -1,9 +1,12 @@
+/* jshint strict: true, undef: true */
+/* globals $, to_string */
 
 
 // Specification function:
 // Accepts:
 //   string : 'reset'  => Reset dom for next test.
 function spec_dom(cmd) {
+  "use strict";
 
   switch (cmd) {
     case 'reset':

@@ -1,24 +1,27 @@
-
-
+/* jshint strict: true, undef: true */
+/* globals spec, to_string, _, is_enumerable, is_undefined, length, keys_or_indexes */
 
 
 // TODO: spec: does not modify arr
 spec(reduce_eachs, [
-  [], [1,2], function (v, kx, x) { v.push("" + kx + x); return v; }
+  [], [1,2], function (v, kx, x) { "use strict"; v.push("" + kx + x); return v; }
 ], ["01", "12"]);
 
 spec(reduce_eachs, [
-  [], [1,2], ["a", "b"], function (v, kx, x, ky, y) { v.push("" + x + y); return v; }
+  [], [1,2], ["a", "b"], function (v, kx, x, ky, y) { "use strict"; v.push("" + x + y); return v; }
 ], ["1a", "1b", "2a", "2b"]);
 
 spec(reduce_eachs, [
-  [], {one: 1, two: 2}, ["a"], function (v, kx, x, ky, y) { v.push("" + kx + y); return v; }
+  [], {one: 1, two: 2}, ["a"], function (v, kx, x, ky, y) { "use strict"; v.push("" + kx + y); return v; }
 ], ["onea", "twoa"]);
 
 spec(reduce_eachs, [
-  [], {one: 1, two: 2}, [], ["a"], function (v, kx, x, ky, y, kz, z) { v.push("" + kx + y); return v; }
+  [], {one: 1, two: 2}, [], ["a"], function (v, kx, x, ky, y, kz, z) { "use strict"; v.push("" + kx + y); return v; }
 ], []);
+
 function reduce_eachs() {
+  "use strict";
+
   var args = _.toArray(arguments);
   if (args.length < 3)
     throw new Error("Not enough args: " + to_string(args));

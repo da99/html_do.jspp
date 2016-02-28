@@ -1,6 +1,10 @@
+/* jshint strict: true, undef: true */
+/* globals _, length */
 
 
 function and(_funcs) {
+  "use strict";
+
   var funcs = _.toArray(arguments);
   return function (v) {
     for (var i = 0; i < length(funcs); i++) {

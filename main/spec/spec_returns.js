@@ -1,14 +1,18 @@
+/* jshint strict: true, undef: true */
+/* globals _, length, to_string, function_to_name, log, spec_new, spec_push, to_match_string */
 
 
 // Specification function:
 function spec_returns(expect, f) {
+  "use strict";
+
   if (!spec_new(f))
     return false;
 
   if (!_.isFunction(f))
     throw new Error('Invalid value for func: ' + to_string(f));
 
-  if (l(f) === 0) {
+  if (length(f) === 0) {
     spec_push(function () {
       var sig = function_to_name(f);
       var actual = f();

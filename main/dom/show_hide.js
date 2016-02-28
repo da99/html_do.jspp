@@ -1,29 +1,39 @@
+/* jshint strict: true, undef: true */
+/* globals is_plain_object, be, $, spec_dom, spec_returns, App, is_string, key_to_bool, is_boolean */
 
 
 
 
 spec_returns('', function _show_hide() { // === show_hide shows element if key = true
+  "use strict";
+
   spec_dom().html('<div data-do="show_hide is_ruby" style="display: none;">Ruby</div>');
   App('run', {'dom-change': true});
   App('run', {is_ruby: true});
   return spec_dom().find('div').attr('style');
 });
+
 spec_returns('display: none;', function _show_hide() { // === show_hide hides element if key = false
+  "use strict";
+
   spec_dom().html('<div data-do="show_hide is_ruby" style="">Perl</div>');
   App('run', {'dom-change': true});
   App('run', {is_ruby: false});
   return spec_dom().find('div').attr('style');
 });
+
 function show_hide(msg) {
-  var dom_id = should_be(msg.dom_id, is_string);
-  var key    = should_be(msg.args[0], is_string);
+  "use strict";
+
+  var dom_id = be(is_string, msg.dom_id);
+  var key    = be(is_string, msg.args[0]);
 
   App('push', function _show_hide_(msg) {
     if (!is_plain_object(msg))
       return;
 
     var answer = key_to_bool(key, msg);
-    if (!is_bool(answer))
+    if (!is_boolean(answer))
       return;
 
     if (answer)

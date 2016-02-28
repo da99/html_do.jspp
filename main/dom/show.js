@@ -1,24 +1,35 @@
+/* jshint strict: true, undef: true */
+/* globals App, be, is_string, key_to_bool, is_boolean, $, spec_dom, spec_returns */
 
 
 
 spec_returns('', function () { // show: shows element when key is true
+  "use strict";
+
   spec_dom().html('<div data-do="show is_factor" style="display: none;">Factor</div>');
   App('run', {'dom-change': true});
   App('run', {is_factor: true});
   return spec_dom().find('div').attr('style');
 });
+
 spec_returns('display: none;', function () { // does not alter element msg is missing key
+  "use strict";
+
   spec_dom().html('<div data-do="show is_pearl" style="display: none;">Pearl</div>');
   App('run', {'dom-change': true});
   App('run', {is_factor: true});
   return spec_dom().find('div').attr('style');
 });
+
 function show(msg) {
-  var dom_id = should_be(msg.dom_id, is_string);
-  var key    = should_be(msg.args[0], is_string);
+  "use strict";
+
+  var dom_id = be(is_string, msg.dom_id);
+  var key    = be(is_string, msg.args[0]);
+
   App('push', function _show_(msg) {
     var answer = key_to_bool(key, msg);
-    if (is_bool(answer) !== true)
+    if (is_boolean(answer) !== true)
       return;
     $('#' + dom_id).show();
     return 'show: ' + dom_id;

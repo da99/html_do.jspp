@@ -1,6 +1,9 @@
-
+/* jshint strict: true, undef: true */
+/* globals _ */
 
 function conditional(name, funcs) {
+  "use strict";
+
   if (funcs.length < 2)
     throw new Error("Called with too few arguments: " + arguments.length);
 

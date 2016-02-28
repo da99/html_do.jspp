@@ -1,16 +1,28 @@
-
+/* jshint strict: true, undef: true */
+/* globals spec_returns, identity, to_string, is_function, _, apply_function */
 
 spec_returns(true, function to_function_returns_sole_function() {
+  "use strict";
+
   var f = function () {};
   return to_function(f) === f;
 });
+
 spec_returns(2, function to_function_returns_an_identity_function() {
+  "use strict";
+
   return to_function(2)();
 });
+
 spec_returns('"3"', function to_function_returns_a_function() {
+  "use strict";
+
   return to_function(identity, to_string, to_string)(3);
 });
+
 function to_function() {
+  "use strict";
+
   if (arguments.length === 1) {
     if (is_function(arguments[0])) {
       return arguments[0];

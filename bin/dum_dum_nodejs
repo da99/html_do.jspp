@@ -50,17 +50,39 @@ case $action in
 
   jshint)
     # === __ jshint
-    last_fail="$(cat /tmp/fail_jshint || :)"
-    for FILE in main/*/*.js; do
-      if [[ -n "$last_fail" && "$last_fail" != "$FILE" ]]; then
-        continue
-      fi
-      if [[ -n "$last_fail" && "$last_fail" == "$FILE" ]]; then
-        last_file=""
-      fi
-      js_setup jshint "$FILE" || { stat=$?; echo "$FILE" > /tmp/fail_jshint; exit $stat; }
-    done
-    echo -e "=== ${Green}jshint${Color_Off} ==="
+    TEMP_FILE=$TEMP/fail_jshint
+    FAIL="$(cat $TEMP_FILE 2>/dev/null || :)"
+    JS_FILE='^.*\.js$'
+    CHANGE="$(cat $TEMP/CHANGE 2>/dev/null || :)"
+
+    if [[ -z "$@" ]]; then
+      group='*'
+    else
+      group="$1"; shift
+    fi
+
+    reset_fail () {
+      FAIL=""; echo "" > $TEMP_FILE
+    }
+
+    if [[ -n "$FAIL" && ! -s "$FAIL" ]]; then # file has moved or deleted
+      reset_fail
+    fi
+
+    if [[ -n "$CHANGE" && "$CHANGE" =~ $JS_FILE  ]]; then
+      js_setup jshint "$CHANGE"
+    fi
+
+    if [[ -n "$FAIL" && "$FAIL" =~ $JS_FILE ]]; then
+      js_setup jshint "$FAIL" && { reset_fail; } || :
+    fi
+
+    files="$(echo main/$group/*.js)"
+    echo -n "=== Linting $(echo $files | wc -w) files: "
+    jshint $files
+
+    reset_fail
+    echo -e "${Green}pass${Color_Off} ==="
     ;;
 
   body-build-files)
@@ -225,9 +247,10 @@ case $action in
   watch)
     # === watch
     # === watch  cmd with args 
-    for FILE in $(git ls-files --cached --others --exclude-standard | grep --extended-regexp '.js|.html|bin'); do
-      [[ -f "$FILE" ]] && bash_setup is_same_file "$FILE" || :
-    done
+    # for FILE in $(git ls-files --cached --others --exclude-standard | grep --extended-regexp '.js|.html|bin'); do
+    #   [[ -f "$FILE" ]] && bash_setup is_same_file "$FILE" || :
+    # done
+    echo "" > "$TEMP/CHANGE"
 
     cmd="$@"
     if [[ -z "$cmd" ]]; then
@@ -241,6 +264,7 @@ case $action in
       dir=$(echo "$CHANGE" | cut -d' ' -f 1)
       path="${dir}$(echo "$CHANGE" | cut -d' ' -f 3)"
       file="$(basename $path)"
+      echo "" > "$TEMP/CHANGE"
 
       # Make sure this is not a temp/swap file:
       { [[ ! -f "$path" ]] && continue; } || :
@@ -254,10 +278,12 @@ case $action in
       # File has changed:
       echo -e "\n=== $CHANGE ($path)"
 
-      if [[ "$path" =~ "$0" ]]; then
+      if [[ "$(realpath -m "$path")" =~ "$(realpath -m "$0")" ]]; then
         echo "=== Reloading..."
         break
       fi
+
+      echo "$path" > "$TEMP/CHANGE"
 
       if [[ -z "$cmd" ]]; then
         $0 test "$path" || :

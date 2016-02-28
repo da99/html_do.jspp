@@ -1,2 +1,7 @@
+/* jshint strict: true, undef: true */
 
-function is_boolean(v) { return typeof v === 'boolean'; }
+function is_boolean(v) {
+  "use strict";
+
+  return typeof v === 'boolean';
+}

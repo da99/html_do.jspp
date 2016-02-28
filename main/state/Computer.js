@@ -1,8 +1,12 @@
+/* jshint strict: true, undef: true */
+/* globals is_array, spec_returns, arguments_are, reduce_eachs, copy_value, do_it, and, is, is_plain_object */
+/* globals to_string, apply_function, has_length, is_function, msg_match, function_to_name */
 
 
 
-// ========================= Computer =========================================
 spec_returns(3, function () {
+  "use strict";
+
   var counter = 0;
   var data = {my_name: 'happy'};
   var state = new Computer();
@@ -14,7 +18,10 @@ spec_returns(3, function () {
   do_it(3, function () { state('run', data); });
   return counter;
 });
+
 function Computer() {
+  "use strict";
+
   return State;
 
   function State(action, args) {

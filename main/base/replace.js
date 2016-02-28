@@ -1,7 +1,11 @@
+/* jshint strict: true, undef: true */
+/* globals length */
 
 
 
 function replace(pattern, new_value) {
+  "use strict";
+
   if (length(arguments) === 3) {
     return arguments[2].replace(arguments[0], arguments[1]);
   }

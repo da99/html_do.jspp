@@ -1,3 +1,5 @@
+/* jshint strict: true, undef: true */
+/* globals spec, _, is_arguments, is_plain_object, is_function */
 
 
 
@@ -6,7 +8,10 @@ spec(to_string, [undefined], 'undefined');
 spec(to_string, [[1]], '[1]');
 spec(to_string, ['yo yo'], '"yo yo"');
 spec(to_string, [{a:'b', c:'d'}], '{"a":"b","c":"d"}');
+
 function to_string(val) {
+  "use strict";
+
   var v = val;
 
   if (val === null)      return 'null';
@@ -47,4 +52,3 @@ function to_string(val) {
 
   return val.toString();
 } // === func
-

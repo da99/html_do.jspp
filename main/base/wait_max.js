@@ -1,10 +1,10 @@
-
-
-
-
+/* jshint strict: true, undef: true */
+/* globals to_string, setTimeout */
 
 
 function wait_max(seconds, func) {
+  "use strict";
+
   var ms = seconds * 1000;
   var total = 0;
   var interval = 100;

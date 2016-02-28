@@ -1,3 +1,5 @@
+/* jshint strict: true, undef: true */
+/* globals is_spec_env, spec */
 
 
 // Specification function:
@@ -6,6 +8,8 @@
 //   Runs function (ie test) with all other tests
 //   when spec_run is called.
 function spec_push(f) {
+  "use strict";
+
   if (!is_spec_env())
     return false;
   if (!spec.specs)

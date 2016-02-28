@@ -1,2 +1,7 @@
+/* jshint strict: true, undef: true */
 
-function is_null_or_undefined(v) { return v === null || v === undefined; }
+function is_null_or_undefined(v) {
+  "use strict";
+
+  return v === null || v === undefined;
+}

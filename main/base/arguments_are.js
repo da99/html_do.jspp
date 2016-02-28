@@ -1,4 +1,5 @@
-
+/* jshint strict: true, undef: true */
+/* globals spec, is_num, _, to_string */
 
 spec(
   arguments_are,
@@ -7,6 +8,7 @@ spec(
 );
 function arguments_are(args_o, _funcs) {
   "use strict";
+
   var funcs = _.toArray(arguments);
   var args  = funcs.shift();
 

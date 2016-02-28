@@ -1,5 +1,5 @@
-
-
+/* jshint strict: true, undef: true */
+/* globals _, spec, spec_throws, reduce, be, is_string, not, is_empty */
 
 spec(key_to_bool, ['time', {time: 'morning'}], true); // it 'returns true if key is "truthy"'
 spec(key_to_bool, ['!time', {time: false}], true); // it 'returns true if: !key , key is !truthy'
@@ -14,10 +14,19 @@ spec(key_to_bool, ['!is_happy', {is_happy: true}], false);
 spec(key_to_bool, ['is_happy',  {is_happy: false}], false);
 spec(key_to_bool, ['!is_happy', {is_happy: false}], true);
 spec_throws(key_to_bool, [['is_factor'], {}], "Value: [\"is_factor\"] !== is_string");
+
 function key_to_bool(raw_key, data) {
+  "use strict";
+
   var FRONT_BANGS = /^\!+/;
 
-  var key        = _.trim(should_be(raw_key, is_string));
+  var key = reduce(
+    raw_key,
+    be(is_string),
+    _.trim,
+    be(not(is_empty))
+  );
+
   var bang_match = key.match(FRONT_BANGS);
   var dots       = ( bang_match ? key.replace(bang_match[0], '') : key ).split('.');
   var keys       = _.map( dots, _.trim );

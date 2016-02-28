@@ -1,8 +1,12 @@
-
+/* jshint strict: true, undef: true */
+/* globals spec, is_string, to_string, _ */
 
 
 spec(name_to_function, ["name_to_function"], name_to_function);
+
 function name_to_function(raw) {
+  "use strict";
+
   /* globals window, global */
   if (!is_string(raw))
     throw new Error('Not a string: ' + to_string(raw));

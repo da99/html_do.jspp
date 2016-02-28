@@ -1,7 +1,11 @@
+/* jshint strict: true, undef: true */
+/* globals _, to_string, spec_push, to_function_string, to_match_string, log, spec_new */
 
 
 // Specification function:
 function spec_throws(f, args, expect) {
+  "use strict";
+
   if (!spec_new(f))
     return false;
 

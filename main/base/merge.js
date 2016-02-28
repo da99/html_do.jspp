@@ -1,10 +1,14 @@
-
+/* jshint strict: true, undef: true */
+/* globals spec, is_array, eachs, to_string, is_plain_object */
 
 
 spec(merge, [{a: [1]}, {a: [2,3]}], {a: [1,2,3]});
 spec(merge, [[1], [2,3]], [1,2,3]);
 spec(merge, [{a: 1}, {b: 2}, {c: 3}], {a: 1, b: 2, c: 3});
+
 function merge(_args) {
+  "use strict";
+
   if (arguments.length === 0)
     throw new Error('Arguments misisng.');
   var type = is_array(arguments[0]) ? 'array' : 'plain object';
