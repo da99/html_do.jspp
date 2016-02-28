@@ -87,8 +87,26 @@ case $action in
 
   build)
     # ===   __  build
-    $0 build-browser
-    $0 build-node
+    ugly () {
+      # === __  build-node
+      local name="$1"; shift
+      local output="build/${name}"
+      local file="$output.js"
+      rm -f "$file"
+      rm -f "$file".map
+      names="$@"
+      uglifyjs                  \
+        -b --comments all       \
+        --screw-ie8             \
+        $($0 top-bottom-build-files $names) \
+        $($0 body-build-files       $names)  \
+        --source-map "$file".map > "$file"
+      echo "$file"
+      js_setup jshint "$file"
+    }
+
+    ugly "browser"  spec base state dom
+    ugly "node"     spec base state node
     ;;
 
   body-build-files)
@@ -121,38 +139,6 @@ case $action in
       dir="main/$name"
       echo "$(top-bottom-build-files)" $($0 body-build-files $name)
     done
-    ;;
-
-  build-browser)
-    # === __  build-node
-    output="build"
-    file="$output/browser.js"
-    rm -f "$file"
-    names="spec base state dom"
-    uglifyjs                  \
-      -b --comments all       \
-      --screw-ie8             \
-      $($0 top-bottom-build-files $names) \
-      $($0 body-build-files       $names)  \
-      --source-map "$output/node.js.map" > "$file"
-    echo "$file"
-    js_setup jshint "$file" 
-    ;;
-
-  build-node)
-    # === __  build-node
-    output="build"
-    file="$output/node.js"
-    rm -f "$file"
-    names="spec base state node"
-    uglifyjs                  \
-      -b --comments all       \
-      --screw-ie8             \
-      $($0 top-bottom-build-files $names) \
-      $($0 body-build-files       $names)  \
-      --source-map "$output/browser.js.map" > "$file"
-    echo "$file"
-    js_setup jshint "$file" 
     ;;
 
   function_name)

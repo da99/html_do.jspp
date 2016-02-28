@@ -1653,4 +1653,4 @@ function is_dir(v) {
         return false;
     }
 }
-//# sourceMappingURL=build/browser.js.map
+//# sourceMappingURL=build/node.js.map

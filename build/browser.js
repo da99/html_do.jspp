@@ -1987,4 +1987,4 @@ function html_unescape(raw) {
     // From: http://stackoverflow.com/questions/1912501/unescape-html-entities-in-javascript
     return new DOMParser().parseFromString(raw, "text/html").documentElement.textContent;
 }
-//# sourceMappingURL=build/node.js.map
+//# sourceMappingURL=build/browser.js.map
