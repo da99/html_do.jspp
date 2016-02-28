@@ -1,25 +1,28 @@
 {
   "name": "dum_dum_js",
-  "version": "0.0.0",
-  "description": "Logic-less templates to a new level",
-  "main": "main/main.js",
-  "scripts": {},
+  "version": "2.0.0",
+  "main": "build/node.js",
+  "description": "Personal way of writing nodejs and browser apps",
   "repository": {
     "type": "git",
     "url": "git@github:da99/dum_dum_js.git"
   },
   "keywords": [],
+  "bin": {},
   "author": "da99",
   "license": "MIT",
+
   "devDependencies": {
-    "body-parser": "^1.15.0",
-    "express": "^4.13.3",
-    "lodash": ">0.0",
-    "morgan": "~1",
-    "serve-static": "^1.10.0"
+    "body-parser": "latest",
+    "express": "latest",
+    "lodash": "latest",
+    "morgan": "latest",
+    "serve-static": "latest"
   },
   "dependencies": {
-    "lodash": "^4.5.0",
-    "morgan": "^1.7.0"
+    "lodash": "latest"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
   }
 }

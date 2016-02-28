@@ -1,0 +1,329 @@
+#!/usr/bin/env bash
+#
+#
+THE_ARGS="$@"
+THIS_DIR="$(bash_setup dirname_of_bin "$0")"
+
+TEMP="/tmp/dum_dum_nodejs"
+mkdir -p $TEMP
+
+if [[ -z "$@" ]]; then
+  action="watch"
+else
+  action=$1
+  shift
+fi
+
+set -u -e -o pipefail
+
+Color_Off='\e[0m'
+Bold="$(tput bold)"
+Reset='\e[0m'
+BRed='\e[1;31m'
+Red='\e[0;31m'
+Green='\e[0;32m'
+BGreen='\e[1;32m'
+Orange='\e[0;33m'
+BOrange='\e[1;33m'
+
+case $action in
+  help|--help)
+    bash_setup print_help $0
+    ;;
+
+  upgrade)
+    # === upgrade
+    cd "$THIS_DIR"
+    js_setup upgrade
+    ;;
+
+  prepend-to)
+    name="$1"; shift
+    text="$@"
+    [[ -z "$text" ]] && echo '!!! Text is missing.' 1>&2 && exit 1 || :
+    for FILE in $($0 body-build-files $name); do
+      new_content="$text\n$(cat "$FILE")"
+      echo -e "$new_content" > "$FILE"
+      echo "=== $FILE"
+    done
+    ;;
+
+  jshint)
+    # === __ jshint
+    TEMP_FILE=$TEMP/fail_jshint
+    FAIL="$(cat $TEMP_FILE 2>/dev/null || :)"
+    JS_FILE='^.*\.js$'
+    CHANGE="$(cat $TEMP/CHANGE 2>/dev/null || :)"
+
+    if [[ -z "$@" ]]; then
+      group='*'
+    else
+      group="$1"; shift
+    fi
+
+    reset_fail () {
+      FAIL=""; echo "" > $TEMP_FILE
+    }
+
+    if [[ -n "$FAIL" && ! -s "$FAIL" ]]; then # file has moved or deleted
+      reset_fail
+    fi
+
+    if [[ -n "$CHANGE" && "$CHANGE" =~ $JS_FILE  ]]; then
+      js_setup jshint "$CHANGE"
+    fi
+
+    if [[ -n "$FAIL" && "$FAIL" =~ $JS_FILE ]]; then
+      js_setup jshint "$FAIL" && { reset_fail; } || :
+    fi
+
+    files="$(echo lib/$group/*.js)"
+    echo -n "=== Linting $(echo $files | wc -w) files: "
+    jshint $files
+
+    reset_fail
+    echo -e "${Green}pass${Color_Off} ==="
+    ;;
+
+  build)
+    # ===   __  build
+    ugly () {
+      # === __  build-node
+      local name="$1"; shift
+      local output="build/${name}"
+      local file="$output.js"
+      rm -f "$file"
+      rm -f "$file".map
+      names="$@"
+      uglifyjs                           \
+        -b --comments all                 \
+        --screw-ie8                        \
+        $($0 top-bottom-build-files $names) \
+        $($0 body-build-files       $names)  \
+        --source-map "$file".map > "$file"
+      echo "$file"
+
+      dups="$($0 print_dups "$file" || :)"
+      if [[ ! -z "$dups" ]]; then
+        echo -e "!!! ${Red}Dups found${Color_Off}:\n$dups" 1>&2
+        exit 1
+      fi
+
+      js_setup jshint "$file"
+    }
+
+    ugly "browser"  spec base state dom
+    ugly "node"     spec base state node
+    node "build/node.js" test
+    echo "=== ${Bold}Test for browser.js not ready yet${Color_Off}"
+    ;;
+
+  body-build-files)
+    # === __ body-build-files  [dom|node|etc.]
+    for name in $@; do
+      dir="lib/$name"
+      find "$dir" -type f -iname "_.*.js" -prune -o -iname "*.js" -print
+    done
+    ;;
+
+  top-bottom-build-files)
+    for name in $@; do
+      dir="lib/$name"
+      top=$dir/_.top.js
+      [[ ! -f "$top"    ]] && touch "$top"    || :
+      echo $top
+    done
+
+    for name in $@; do
+      dir="lib/$name"
+      bottom="$dir/_.bottom.js"
+      [[ ! -f "$bottom" ]] && touch "$bottom" || :
+      echo $bottom
+    done
+    ;;
+
+  build-files)
+    # === __ build-files  [dom|node|etc.]
+    for name in $@; do
+      dir="lib/$name"
+      echo "$(top-bottom-build-files)" $($0 body-build-files $name)
+    done
+    ;;
+
+  function_name)
+    # === __  function_name  "file"
+    # === echo something | __  function_name
+    grep -Pzo '^function \K(.+?)(?=\()' "$@"
+    ;;
+
+  duplicate_functions)
+    # === duplicate_functions
+    files="$(find lib/ -type f -iname "_.*.js" -prune -o -iname "*.js" -print | \
+      xargs -I FILE basename FILE |  \
+      sort                        |  \
+      uniq -c                     |  \
+     grep -v --extended-regexp '^\s+1' | \
+     tr -s ' ' | cut -d' ' -f3 || :)"
+    if [[ -z "$files" ]]; then
+      exit 0
+    else
+      while read NAME; do
+        echo lib/*/$NAME | tr ' ' '\n'
+      done < <( echo "$files" )
+      exit 1
+    fi
+    ;;
+
+  functions_already_extracted)
+    # === __ functions_already_extracted  "lib/file.js"
+    # Exits 0 if there are any functions already extracted.
+    file="$1"; shift
+    dir="$(dirname "$file")/$(basename "$file" .js)"
+    found=""
+    while read NAME; do
+      file_name="$dir/${NAME}.js"
+      if [[ -s "$file_name" ]]; then
+        echo "$file_name"
+        found="yes"
+      fi
+    done < <($0 function_name "$file")
+
+    if [[ -n "$found" ]]; then
+      exit 0
+    else
+      exit 1
+    fi
+    ;;
+
+  functions_to_files)
+    # === __ functions_to_files  "lib/file.js"
+    file="$1"; shift
+    dir="$(dirname "$file")/$(basename "$file" ".js")"
+    content=""
+    function_name=""
+
+    if $0 functions_already_extracted "$file"; then
+      echo "!!! Dups found" 1>&2
+    fi
+
+    while IFS= read -r LINE; do
+      content="$content\n$LINE"
+      if [[ -z "$function_name" ]]; then
+        function_name="$(echo "$LINE" | $0 function_name || :)"
+      fi
+      if ! { echo "$LINE" | grep --extended-regexp '(^\}(\s|$))|(^function .+\}$)' &>/dev/null; } then
+        continue
+      fi
+
+      new_file="$dir/${function_name}.js"
+      echo -e "$content"
+
+      if [[ -s "$new_file" ]] && diff <(echo -e "$content") "$new_file" ; then
+        echo "=== Already processed: $function_name" 1>&2
+      else
+        if [[ -s "$new_file" ]]; then
+          echo "!!! File exists: $new_file" 1>&2
+          exit 1
+        fi
+        echo -e -n  "=== Writing to ${Bold}${function_name}${Color_Off} -> ${new_file}" 1>&2;
+        sleep 1; echo -n "." 1>&2; sleep 1; echo -n "." 1>&2;
+        sleep 1; echo -n "." 1>&2; sleep 1; echo -n "." 1>&2;
+        sleep 1; echo -n "." 1>&2; sleep 1; echo -n "." 1>&2;
+        echo -e "$content" >> "$new_file"
+      fi
+
+      content=""
+      function_name=""
+    done < <(cat "$file")
+
+    echo ""
+
+    if [[ -n "$content" ]]; then
+      bottom="$dir/_.bottom.js"
+      echo -e "$content" >> "$bottom"
+      echo -e "\n\n=== NOTE: Wrote to $bottom\n\n"
+    fi
+
+
+    echo "=== Trashing: $file" 1>&2
+    trash-put "$file"
+    ;;
+
+  test)
+    $0 duplicate_functions || { stat="$?"; echo "!!! Dup found." 1>&2; exit $stat; }
+    files="$(find lib -type f -iname "*.js")"
+    target=""
+    if [[ -n "$@" ]]; then
+      target="$1"; shift
+      js_setup jshint "$target"
+      if [[ "$target" == lib/* ]]; then
+        name="$(echo "$target" | cut -d'/' -f1)"
+        $0 build "$name"
+      fi
+      exit 0
+    fi
+
+    $0 build
+    ;;
+
+  print_dups)
+    file="$1"; shift
+    cat "$file" | grep --extended-regexp '^\s*function\s+[^\s]+\(' | sed -e 's/^[ \t]*//' | tr -s ' ' | cut -d' ' -f 2 | cut -d'(' -f 1 | uniq -c | sort | grep -v --extended-regexp '\s+1'
+    ;;
+
+  watch)
+    # === watch
+    # === watch  cmd with args 
+    # for FILE in $(git ls-files --cached --others --exclude-standard | grep --extended-regexp '.js|.html|bin'); do
+    #   [[ -f "$FILE" ]] && bash_setup is_same_file "$FILE" || :
+    # done
+    echo "" > "$TEMP/CHANGE"
+
+    cmd="$@"
+    if [[ -z "$cmd" ]]; then
+      $0 test || :
+    else
+      $cmd || :
+    fi
+
+    echo -e "\n=== Watching:"
+    while read -r CHANGE; do
+      dir=$(echo "$CHANGE" | cut -d' ' -f 1)
+      path="${dir}$(echo "$CHANGE" | cut -d' ' -f 3)"
+      file="$(basename $path)"
+      echo "" > "$TEMP/CHANGE"
+
+      # Make sure this is not a temp/swap file:
+      { [[ ! -f "$path" ]] && continue; } || :
+
+      # Check if file has changed:
+      if bash_setup is_same_file "$path"; then
+        echo "=== No change: $CHANGE"
+        continue
+      fi
+
+      # File has changed:
+      echo -e "\n=== $CHANGE ($path)"
+
+      if [[ "$(realpath -m "$path")" =~ "$(realpath -m "$0")" ]]; then
+        echo "=== Reloading..."
+        break
+      fi
+
+      echo "$path" > "$TEMP/CHANGE"
+
+      if [[ -z "$cmd" ]]; then
+        $0 test "$path" || :
+      else
+        $cmd
+      fi
+    done < <(inotifywait --quiet --monitor --event close_write package.json -r lib/ -r bin/) || exit 1
+    $0 $THE_ARGS
+    ;;
+
+
+  *)
+    echo "!!! Unknown action: $action" 1>&2
+    exit 1
+    ;;
+esac
