@@ -77,7 +77,7 @@ case $action in
       js_setup jshint "$FAIL" && { reset_fail; } || :
     fi
 
-    files="$(echo main/$group/*.js)"
+    files="$(echo lib/$group/*.js)"
     echo -n "=== Linting $(echo $files | wc -w) files: "
     jshint $files
 
@@ -112,21 +112,21 @@ case $action in
   body-build-files)
     # === __ body-build-files  [dom|node|etc.]
     for name in $@; do
-      dir="main/$name"
+      dir="lib/$name"
       find "$dir" -type f -iname "_.*.js" -prune -o -iname "*.js" -print
     done
     ;;
 
   top-bottom-build-files)
     for name in $@; do
-      dir="main/$name"
+      dir="lib/$name"
       top=$dir/_.top.js
       [[ ! -f "$top"    ]] && touch "$top"    || :
       echo $top
     done
 
     for name in $@; do
-      dir="main/$name"
+      dir="lib/$name"
       bottom="$dir/_.bottom.js"
       [[ ! -f "$bottom" ]] && touch "$bottom" || :
       echo $bottom
@@ -136,7 +136,7 @@ case $action in
   build-files)
     # === __ build-files  [dom|node|etc.]
     for name in $@; do
-      dir="main/$name"
+      dir="lib/$name"
       echo "$(top-bottom-build-files)" $($0 body-build-files $name)
     done
     ;;
@@ -149,7 +149,7 @@ case $action in
 
   duplicate_functions)
     # === duplicate_functions
-    files="$(find main/ -type f -iname "_.*.js" -prune -o -iname "*.js" -print | \
+    files="$(find lib/ -type f -iname "_.*.js" -prune -o -iname "*.js" -print | \
       xargs -I FILE basename FILE |  \
       sort                        |  \
       uniq -c                     |  \
@@ -159,14 +159,14 @@ case $action in
       exit 0
     else
       while read NAME; do
-        echo main/*/$NAME | tr ' ' '\n'
+        echo lib/*/$NAME | tr ' ' '\n'
       done < <( echo "$files" )
       exit 1
     fi
     ;;
 
   functions_already_extracted)
-    # === __ functions_already_extracted  "main/file.js"
+    # === __ functions_already_extracted  "lib/file.js"
     # Exits 0 if there are any functions already extracted.
     file="$1"; shift
     dir="$(dirname "$file")/$(basename "$file" .js)"
@@ -187,7 +187,7 @@ case $action in
     ;;
 
   functions_to_files)
-    # === __ functions_to_files  "main/file.js"
+    # === __ functions_to_files  "lib/file.js"
     file="$1"; shift
     dir="$(dirname "$file")/$(basename "$file" ".js")"
     content=""
@@ -260,11 +260,11 @@ case $action in
       fi
 
       case "$FILE" in
-        main/node.js)
+        lib/node.js)
           node "$FILE" test
           ;;
       esac
-    done < <(find main -type f -iname "*.js")
+    done < <(find lib -type f -iname "*.js")
     ;;
 
   print_dups)
@@ -318,7 +318,7 @@ case $action in
       else
         $cmd
       fi
-    done < <(inotifywait --quiet --monitor --event close_write package.json -r main/ -r bin/) || exit 1
+    done < <(inotifywait --quiet --monitor --event close_write package.json -r lib/ -r bin/) || exit 1
     $0 $THE_ARGS
     ;;
 

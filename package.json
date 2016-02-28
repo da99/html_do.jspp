@@ -2,7 +2,7 @@
   "name": "dum_dum_nodejs",
   "version": "2.0.0",
   "description": "Personal way of writing nodejs apps",
-  "main": "main/dum_dum_nodejs.js",
+  "main": "build/node.js",
   "bin": {},
   "dependencies": {
     "lodash": "^4.5.1"
