@@ -87,30 +87,49 @@ case $action in
 
   body-build-files)
     # === __ body-build-files  [dom|node|etc.]
-    name="$1"; shift
-    dir="main/$name"
-    find "$dir" -type f -iname "_.*.js" -prune -o -iname "*.js" -print
+    for name in $@; do
+      dir="main/$name"
+      find "$dir" -type f -iname "_.*.js" -prune -o -iname "*.js" -print
+    done
+    ;;
+
+  top-bottom-build-files)
+    for name in $@; do
+      dir="main/$name"
+      top=$dir/_.top.js
+      [[ ! -f "$top"    ]] && touch "$top"    || :
+      echo $top
+    done
+
+    for name in $@; do
+      dir="main/$name"
+      bottom="$dir/_.bottom.js"
+      [[ ! -f "$bottom" ]] && touch "$bottom" || :
+      echo $bottom
+    done
     ;;
 
   build-files)
     # === __ build-files  [dom|node|etc.]
-    name="$1"; shift
-    dir="main/$name"
-    touch $dir/_.top.js
-    touch $dir/_.bottom.js
-    echo "$dir/_.top.js" $($0 body-build-files $name) "$dir/_.bottom.js"
+    for name in $@; do
+      dir="main/$name"
+      echo "$(top-bottom-build-files)" $($0 body-build-files $name)
+    done
     ;;
 
   build-node)
     # === __  build-node
     output="build"
     file="$output/node.js"
+    rm -f "$file"
     uglifyjs                  \
-      $($0 build-files specs) \
-      $($0 build-files base)  \
-      $($0 build-files node)  \
+      -b --comments all       \
+      --screw-ie8             \
+      $($0 top-bottom-build-files spec base node) \
+      $($0 body-build-files       spec base node)  \
       --source-map "$output/node.js.map" > "$file"
     echo "$file"
+    js_setup jshint "$file" 
     ;;
 
   function_name)

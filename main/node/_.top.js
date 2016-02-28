@@ -1,5 +1,4 @@
-/* jshint esnext: true, undef: true */
-/* globals require */
+/* jshint node: true, esnext: true, undef: true */
 const _          = require('lodash');
 const FS         = require('fs');
 const UTIL       = require('util');
