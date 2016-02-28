@@ -85,6 +85,12 @@ case $action in
     echo -e "${Green}pass${Color_Off} ==="
     ;;
 
+  build)
+    # ===   __  build
+    build-browser
+    build-node
+    ;;
+
   body-build-files)
     # === __ body-build-files  [dom|node|etc.]
     for name in $@; do
