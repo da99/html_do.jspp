@@ -95,9 +95,9 @@ case $action in
       rm -f "$file"
       rm -f "$file".map
       names="$@"
-      uglifyjs                  \
-        -b --comments all       \
-        --screw-ie8             \
+      uglifyjs                           \
+        -b --comments all                 \
+        --screw-ie8                        \
         $($0 top-bottom-build-files $names) \
         $($0 body-build-files       $names)  \
         --source-map "$file".map > "$file"
