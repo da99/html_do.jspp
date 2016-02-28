@@ -50,8 +50,15 @@ case $action in
 
   jshint)
     # === __ jshint
+    last_fail="$(cat /tmp/fail_jshint || :)"
     for FILE in main/*/*.js; do
-      js_setup jshint "$FILE"
+      if [[ -n "$last_fail" && "$last_fail" != "$FILE" ]]; then
+        continue
+      fi
+      if [[ -n "$last_fail" && "$last_fail" == "$FILE" ]]; then
+        last_file=""
+      fi
+      js_setup jshint "$FILE" || { stat=$?; echo "$FILE" > /tmp/fail_jshint; exit $stat; }
     done
     echo -e "=== ${Green}jshint${Color_Off} ==="
     ;;
