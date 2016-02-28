@@ -117,6 +117,21 @@ case $action in
     done
     ;;
 
+  build-browser)
+    # === __  build-node
+    output="build"
+    file="$output/browser.js"
+    rm -f "$file"
+    uglifyjs                  \
+      -b --comments all       \
+      --screw-ie8             \
+      $($0 top-bottom-build-files spec base state dom) \
+      $($0 body-build-files       spec base state node)  \
+      --source-map "$output/node.js.map" > "$file"
+    echo "$file"
+    js_setup jshint "$file" 
+    ;;
+
   build-node)
     # === __  build-node
     output="build"
@@ -125,8 +140,8 @@ case $action in
     uglifyjs                  \
       -b --comments all       \
       --screw-ie8             \
-      $($0 top-bottom-build-files spec base node) \
-      $($0 body-build-files       spec base node)  \
+      $($0 top-bottom-build-files spec base state node) \
+      $($0 body-build-files       spec base state node)  \
       --source-map "$output/node.js.map" > "$file"
     echo "$file"
     js_setup jshint "$file" 
