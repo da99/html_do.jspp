@@ -102,11 +102,20 @@ case $action in
         $($0 body-build-files       $names)  \
         --source-map "$file".map > "$file"
       echo "$file"
+
+      dups="$($0 print_dups "$file" || :)"
+      if [[ ! -z "$dups" ]]; then
+        echo -e "!!! ${Red}Dups found${Color_Off}:\n$dups" 1>&2
+        exit 1
+      fi
+
       js_setup jshint "$file"
     }
 
     ugly "browser"  spec base state dom
     ugly "node"     spec base state node
+    node "build/node.js" test
+    echo "=== ${Bold}Test for browser.js not ready yet${Color_Off}"
     ;;
 
   body-build-files)
@@ -242,29 +251,19 @@ case $action in
 
   test)
     $0 duplicate_functions || { stat="$?"; echo "!!! Dup found." 1>&2; exit $stat; }
+    files="$(find lib -type f -iname "*.js")"
     target=""
     if [[ -n "$@" ]]; then
       target="$1"; shift
+      js_setup jshint "$target"
+      if [[ "$target" == lib/* ]]; then
+        name="$(echo "$target" | cut -d'/' -f1)"
+        $0 build "$name"
+      fi
+      exit 0
     fi
 
-    while read FILE; do
-      if [[ -n "$target" && "$(realpath -m "$target")" != "$(realpath -m "$FILE")" ]]; then
-        continue
-      fi
-
-      js_setup jshint "$FILE"
-      dups="$($0 print_dups "$FILE" || :)"
-      if [[ ! -z "$dups" ]]; then
-        echo -e "!!! Dups found:\n$dups" 1>&2
-        exit 1
-      fi
-
-      case "$FILE" in
-        lib/node.js)
-          node "$FILE" test
-          ;;
-      esac
-    done < <(find lib -type f -iname "*.js")
+    $0 build
     ;;
 
   print_dups)
