@@ -1,1 +1,1 @@
-../main/main.js
+../build/browser.js
