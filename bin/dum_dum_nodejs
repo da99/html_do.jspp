@@ -87,8 +87,8 @@ case $action in
 
   build)
     # ===   __  build
-    build-browser
-    build-node
+    $0 build-browser
+    $0 build-node
     ;;
 
   body-build-files)
@@ -128,11 +128,12 @@ case $action in
     output="build"
     file="$output/browser.js"
     rm -f "$file"
+    names="spec base state dom"
     uglifyjs                  \
       -b --comments all       \
       --screw-ie8             \
-      $($0 top-bottom-build-files spec base state dom) \
-      $($0 body-build-files       spec base state node)  \
+      $($0 top-bottom-build-files $names) \
+      $($0 body-build-files       $names)  \
       --source-map "$output/node.js.map" > "$file"
     echo "$file"
     js_setup jshint "$file" 
@@ -143,12 +144,13 @@ case $action in
     output="build"
     file="$output/node.js"
     rm -f "$file"
+    names="spec base state node"
     uglifyjs                  \
       -b --comments all       \
       --screw-ie8             \
-      $($0 top-bottom-build-files spec base state node) \
-      $($0 body-build-files       spec base state node)  \
-      --source-map "$output/node.js.map" > "$file"
+      $($0 top-bottom-build-files $names) \
+      $($0 body-build-files       $names)  \
+      --source-map "$output/browser.js.map" > "$file"
     echo "$file"
     js_setup jshint "$file" 
     ;;
