@@ -4,11 +4,10 @@
   "description": "Personal way of creating HTML templates",
   "main": "main/main.js",
   "bin": {
-    "dum_dum_html": "dum_dum_html"
   },
   "dependencies": {
     "cheerio": "latest",
-    "handlebars": "^4.0.5",
+    "handlebars": "latest",
     "he": "latest",
     "lodash": "latest",
     "stylus": "latest"
