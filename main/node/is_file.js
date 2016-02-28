@@ -1,2 +1,11 @@
+/* jshint esnext: true, strict: true, undef: true */
+/* globals FS */
 
-function is_file(v) { try { return fs.lstatSync(v).isFile(); } catch (e) { return false; } }
+function is_file(v) {
+  "use strict";
+  try {
+    return FS.lstatSync(v).isFile();
+  } catch (e) {
+    return false;
+  }
+}

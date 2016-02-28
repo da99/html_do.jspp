@@ -12,7 +12,8 @@ function is_empty(v) {
   if (arguments.length !== 1)
     throw new Error("arguments.length !== 1: " + to_string(v));
 
-  if (typeof v === 'null' || typeof v === 'undefined')
+  var v_type = typeof v;
+  if ( v_type === 'null' || v_type === 'undefined')
     throw new Error("null and undefined not allowed.");
 
   if (_.isPlainObject(v))

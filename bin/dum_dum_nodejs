@@ -50,9 +50,10 @@ case $action in
 
   jshint)
     # === __ jshint
-    for FILE in $($0 build-files node); do
+    for FILE in main/*/*.js; do
       js_setup jshint "$FILE"
     done
+    echo -e "=== ${Green}jshint${Color_Off} ==="
     ;;
 
   body-build-files)
