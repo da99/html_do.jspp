@@ -1,5 +1,5 @@
 "use strict";
-/* jshint evil : true, esnext: true, globalstrict: true, undef: true */
+/* jshint esnext: true, globalstrict: true, undef: true */
 /* global _ : true, console, require, process  */
 
 const _                  = require('lodash');
@@ -48,14 +48,14 @@ $template = var_pipeline(
   styles_to_tag,
   tag_template_to_script,
 
-  to_func(merge_tags,'head'),
-  to_func(merge_tags,'tail'),
-  to_func(merge_tags,'top'),
-  to_func(merge_tags,'bottom'),
+  merge_tags('head'),
+  merge_tags('tail'),
+  merge_tags('top'),
+  merge_tags('bottom'),
 
-  to_func(remove_duplicate_tag,'link'),
-  to_func(remove_duplicate_tag,'script'),
-  to_func(remove_duplicate_tag,'meta'),
+  remove_duplicate_tag('link'),
+  remove_duplicate_tag('script'),
+  remove_duplicate_tag('meta'),
 
   write_conditions_js,
   markup_to_file
@@ -264,36 +264,6 @@ function var_pipeline() {
   }, v);
 }
 
-function log(_args) {
-  return console.log.apply(console, arguments);
-}
-
-function log_and_return(v) {
-  log(v);
-  return v;
-}
-
-function to_func_first() {
-  var args = _.toArray(arguments);
-  var func = args.shift();
-
-  return function () {
-    return func.apply( null, _.toArray(arguments).concat(args));
-  };
-}
-
-function to_func() {
-  var args = _.toArray(arguments);
-  var func = args.shift();
-
-  return function () {
-    return func.apply(
-      null,
-      [].concat(args).concat(_.toArray(arguments))
-    );
-  };
-}
-
 
 function read_conds() {
   var file = ABOUT('json-file');
@@ -318,71 +288,6 @@ function tag_when_to_object($) {
   return conds;
 }
 
-
-function to_string(v) {
-  if (v === undefined)
-    return 'undefined';
-  if (v === null)
-    return 'null';
-  if (v === false)
-    return 'false';
-  if (v === true)
-    return 'true';
-  if (_.isFunction(v))
-    return (v.name) ? v.name + ' (function)' : v.toString();
-  if (_.isString(v))
-    return '"' + v + '"';
-  if (_.isArray(v))
-    return '[' + _.map(_.toArray(v), to_string).join(', ') + '] (Array)';
-  if (v.constructor === arguments.constructor)
-    return '[' + _.map(_.toArray(v), to_string).join(', ') + '] (arguments)';
-  return util.inspect(v);
-}
-
-function is_whitespace(v) { return is_string(v) && length(_.trim(v)) === 0; }
-function is(target) { return function (val) { return val === target; }; }
-function is_boolean(v) { return _.isBoolean(v); }
-function is_string(v) { return _.isString(v); }
-function is_length_zero(v) { return length(v) === 0;  }
-function is_dir(v) { try { return fs.lstatSync(v).isDirectory(); } catch (e) { return false; } }
-function is_file(v) { try { return fs.lstatSync(v).isFile(); } catch (e) { return false; } }
-function is_blank_string(str) { return _.trim(str).length === 0; }
-function is_non_blank_string(str) { return is_string(str) && !is_blank_string(str); }
-function identity(v) { return v; }
-function is_null_or_undefined(v) { return v === null || v === undefined; }
-function is_something(v) { return !is_null_or_undefined(v); }
-function is_partial($) { return $('html').length === 0; }
-function is_array(v) { return _.isArray(v); }
-function is_plain_object(v) { return _.isPlainObject(v); }
-function is_true(v) { return v === true; }
-
-function sort_by_length(arr) {
-  return arr.sort(function (a,b) {
-    return to_length(a) - to_length(b);
-  });
-}
-
-function is_empty(v) {
-  if (is_array(v))
-    return v.length === 0;
-  if (is_plain_object(v))
-    return _.keys(v).length === 0;
-  if (v.hasOwnProperty('length') && _.isFinite(v.length))
-    return v.length === 0;
-
-  console.error("!!! Unknown .length for: " + to_string(v));
-  process.exit(1);
-}
-
-function to_length(v) {
-  if (is_string(v) || is_array(v))
-    return v.length;
-  if (_.isPlainObject(v))
-    return _.keys(v).length;
-
-  console.error("!!! Invalid value: " + to_string(v));
-  process.exit(1);
-}
 
 function tag_snippet_to_markup($) {
   var snippets = $('snippet');
@@ -433,39 +338,43 @@ function read_file(file_path) {
 } // === function read_file
 
 
-function merge_tags(tag, $) {
-  var tags = $(tag);
-  if (tags.length === 0)
+function merge_tags(tag) {
+  return function _merge_tags_($) {
+    var tags = $(tag);
+    if (tags.length === 0)
+      return $;
+
+    var $first = $($('head').first());
+    _.each(tags, function (raw, i) {
+      if (i === 0) return;
+      var html = $(raw).html();
+      $first.append(html);
+      $(raw).remove();
+    });
+
     return $;
-
-  var $first = $($('head').first());
-  _.each(tags, function (raw, i) {
-    if (i === 0) return;
-    var html = $(raw).html();
-    $first.append(html);
-    $(raw).remove();
-  });
-
-  return $;
+  };
 } // === function merge_tags
 
 
-function remove_duplicate_tag(tag, $) {
-  var tags = $(tag);
-  if (is_empty(tags)) return $;
-  var cache = [];
-  function to_o(raw) {
-    return [raw.name, $(raw).attr(), _.trim($(raw).html() || "")];
-  }
-  _.each(tags, function (raw, i) {
-    var o = to_o(raw);
-    if (_.find(cache, function (oo) { return _.isEqual(oo, o); })) {
-      $(raw).remove();
-    } else {
-      cache.push(o);
+function remove_duplicate_tag(tag) {
+  return function ($) {
+    var tags = $(tag);
+    if (is_empty(tags)) return $;
+    var cache = [];
+    function to_o(raw) {
+      return [raw.name, $(raw).attr(), _.trim($(raw).html() || "")];
     }
-  });
-  return $;
+    _.each(tags, function (raw, i) {
+      var o = to_o(raw);
+      if (_.find(cache, function (oo) { return _.isEqual(oo, o); })) {
+        $(raw).remove();
+      } else {
+        cache.push(o);
+      }
+    });
+    return $;
+  };
 } // === function
 
 function copy_files_to_public($) {
@@ -550,97 +459,5 @@ function string_to_$(raw_str) {
   let str = be(is_string)(raw_str);
   return cheerio.load(str, {recognizeSelfClosing: true});
 }
-
-function replace(pattern, new_value) {
-  if (length(arguments) === 3) {
-    return arguments[2].replace(arguments[0], arguments[1]);
-  }
-
-  return function (v) {
-    return v.replace(pattern, new_value);
-  };
-}
-
-function and(_funcs) {
-  let funcs = _.toArray(arguments);
-  return function (v) {
-    for (var i = 0; i < length(funcs); i++) {
-      if (!funcs[i](v)) return false;
-    }
-    return true;
-  };
-}
-
-function be() {
-  let funcs = _.toArray(arguments);
-  return function (v) {
-    for (var i = 0; i < length(funcs); i++) {
-      if (!funcs[i](v))
-        throw new Error(to_string(v) + ' should be: ' + to_string(funcs[i]));
-    }
-    return v;
-  };
-}
-
-function reduce(value, _functions) {
-  let funcs = _.toArray(arguments);
-  let v     = funcs.shift();
-  return _.reduce(funcs, function (acc, f) { return f(acc); }, v);
-}
-
-function find(_funcs) {
-  let funcs = _.toArray(arguments);
-  return function (v) {
-    return _.find(v, and.apply(null, funcs));
-  };
-}
-
-function not(func) {
-  reduce(arguments, length, be(is(1)));
-  return function (v) {
-    let result = be(is_boolean)(func(v));
-    return !result;
-  };
-}
-
-function length(raw_v) {
-  if (raw_v === null || raw_v === undefined || !_.isFinite(raw_v.length))
-    throw new Error("Invalid value for length: " + to_string(raw_v));
-  return raw_v.length;
-}
-
-function to_default(valid) {
-  if (length(arguments) === 2) {
-    let v = arguments[1];
-    if (v === null || v === undefined)
-      return valid;
-    return v;
-  }
-
-  return function (v) { return to_default(valid, v); };
-}
-
-function all(_funcs) {
-  let _and = and.apply(null, arguments);
-  return function (arr) {
-    for(var i = 0; i < length(arr); i++){
-      if (!_and(arr[i]))
-        return false;
-    }
-    return true;
-  };
-}
-
-function combine(_vals) {
-  let vals = _.toArray(arguments);
-  if (all(is_plain_object)(vals)) {
-    return _.extend.apply(null, [{}].concat(vals));
-  }
-  if (all(is_array)(vals))
-    return [].concat(vals);
-  throw new Error("Only Array of Arrays or Plain Objects allowed: " + to_string(arguments));
-}
-
-
 
 
