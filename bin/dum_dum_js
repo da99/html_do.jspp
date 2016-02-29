@@ -131,7 +131,6 @@ case $action in
         $($0 body-build-files   $names)      \
         $($0 bottom-build-files $names)       \
         --source-map "$file".map > "$file"
-      echo "$file"
 
       dups="$($0 print_dups "$file" || :)"
       if [[ ! -z "$dups" ]]; then
