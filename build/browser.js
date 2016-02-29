@@ -2223,9 +2223,13 @@ function submit_form(msg) {
     });
 }
 
+/* jshint strict: true, undef: true */
+/* globals spec_returns, spec_dom, html_escape, App, wait_max, $, msg_match, length */
+/* globals eachs, split_on, is_empty, to_string, name_to_function, apply_function, dom_id */
 // ==== Integration tests =====================================================
 // ============================================================================
 spec_returns("yo mo", function button_submit(fin) {
+    "use strict";
     spec_dom().html('<form id="the_form" action="/repeat">' + '<script type="application/template" data-do="template ok_the_form replace">' + html_escape("<div>{{val1}} {{val2}}</div>") + '</script><button onclick="return false;" data-do="on_click submit_form">Submit</button>' + '<input type="hidden" name="val1" value="yo" />' + '<input type="hidden" name="val2" value="mo" />' + "</form>");
     App("run", {
         "dom-change": true
@@ -2242,6 +2246,8 @@ spec_returns("yo mo", function button_submit(fin) {
 // === Adds functionality:
 //     <div data-do="my_func arg1 arg2">content</div>
 App("push", function process_data_dos(msg) {
+    "use strict";
+    var WHITESPACE = /\s+/g;
     // The other functions
     // may alter the DOM. So to prevent unprocessed DOM
     // or infinit loops, we process one element, then call the function
@@ -2251,7 +2257,7 @@ App("push", function process_data_dos(msg) {
     }, msg)) return;
     var selector = '*[data-do]:not(*[data-do_done~="yes"])';
     var elements = $('*[data-do]:not(*[data-do_done~="yes"]):first');
-    if (l(elements) === 0) return;
+    if (length(elements) === 0) return;
     var raw_e = elements[0];
     $(raw_e).attr("data-do_done", "yes");
     eachs(split_on(";", $(raw_e).attr("data-do")), function(_i, raw_cmd) {
