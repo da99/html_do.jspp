@@ -70,7 +70,7 @@ case $action in
     name="$1"; shift
     text="$@"
     [[ -z "$text" ]] && echo '!!! Text is missing.' 1>&2 && exit 1 || :
-    for FILE in $($0 body-build-files $name); do
+    for FILE in $($0 build-files $name); do
       new_content="$text\n$(cat "$FILE")"
       echo -e "$new_content" > "$FILE"
       echo "=== $FILE"
@@ -142,7 +142,7 @@ case $action in
       js_setup jshint "$file"
     }
 
-    ugly "browser"  spec base state dom
+    ugly "browser"  spec base state dom   data-do
     ugly "node"     spec base state node
     node "build/node.js" test
     echo "=== ${Bold}Test for browser.js not ready yet${Color_Off}"
@@ -182,11 +182,6 @@ case $action in
     done
     ;;
 
-  function_name)
-    # === __  function_name  "file"
-    # === echo something | __  function_name
-    grep -Pzo '^function \K(.+?)(?=\()' "$@"
-    ;;
 
   duplicate_functions)
     # === duplicate_functions
@@ -206,6 +201,15 @@ case $action in
     fi
     ;;
 
+  functions-not-extracted)
+    file="$1"; shift
+    while read NAME; do
+      if [[ ! -f "$(echo lib/*/${NAME}.js)" ]]; then
+        echo "$NAME"
+      fi
+    done < <(js_setup function-names-in-file $file)
+    ;;
+
   functions_already_extracted)
     # === __ functions_already_extracted  "lib/file.js"
     # Exits 0 if there are any functions already extracted.
@@ -218,7 +222,7 @@ case $action in
         echo "$file_name"
         found="yes"
       fi
-    done < <($0 function_name "$file")
+    done < <(js_setup function-names-in-file "$file")
 
     if [[ -n "$found" ]]; then
       exit 0
@@ -241,7 +245,7 @@ case $action in
     while IFS= read -r LINE; do
       content="$content\n$LINE"
       if [[ -z "$function_name" ]]; then
-        function_name="$(echo "$LINE" | $0 function_name || :)"
+        function_name="$(echo "$LINE" | js_setup function-names-in_file || :)"
       fi
       if ! { echo "$LINE" | grep --extended-regexp '(^\}(\s|$))|(^function .+\}$)' &>/dev/null; } then
         continue
@@ -312,10 +316,13 @@ case $action in
     echo "" > "$TEMP/CHANGE"
 
     cmd="$@"
+    run_cmd () {
+      $cmd && echo -e "=== ${Green}$cmd${Color_Off}" || echo -e "=== ${Red}Failed${Color_Off}"
+    }
     if [[ -z "$cmd" ]]; then
       $0 test || :
     else
-      $cmd || :
+      run_cmd
     fi
 
     echo -e "\n=== Watching:"
@@ -345,14 +352,14 @@ case $action in
       echo "$path" > "$TEMP/CHANGE"
 
       if [[ "$file" =~ "www" ]]; then
-        { cmd $path && gui_setup reload-browser google-chrome "Dum"; } || :
+        { $cmd $path && gui_setup reload-browser google-chrome "Dum"; } || :
         continue
       fi
 
       if [[ -z "$cmd" ]]; then
         $0 test "$path" || :
       else
-        $cmd
+        run_cmd
       fi
     done < <(inotifywait --quiet --monitor --event close_write package.json -r lib/ -r bin/) || exit 1
     $0 $THE_ARGS
