@@ -1,6 +1,6 @@
 
 # === Shutdowns down dev/test server.
-# === {{BIN} {{NAME}}
+# === {{CMD}}
 shutdown_server () {
     if [[ -f "tmp/pid.txt"  ]]; then
         pid="$(cat tmp/pid.txt)"

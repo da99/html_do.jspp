@@ -1,6 +1,6 @@
 
 # === Starts server for development and testing purposes:
-# === {{BIN}} {{NAME}}
+# === {{CMD}}
 start_server () {
     shutdown_server
     (node main/server.js) &
