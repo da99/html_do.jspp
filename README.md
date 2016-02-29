@@ -1,12 +1,11 @@
 
-Don't use Dum\_Dum\_Boom\_Boom.
+Don't use Dum\_Dum\_JS.
 =================================
 
 You should be using this instead (in order of awesomeness):
   * [Elm](http://elm-lang.org)
   * [RiotJS](https://muut.com/riotjs/)
   * [TypeScript](http://www.typescriptlang.org/)
-
 
 
 Someone beat me to this:
