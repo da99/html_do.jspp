@@ -20,8 +20,6 @@ fi
 
 set -u -e -o pipefail
 
-files="$(find main/ -maxdepth 1 -type f -name '*.js' )"
-main_js="$(echo -e "$files" | head -n 1)"
 
 Color_Off='\e[0m'
 Bold="$(tput bold)"

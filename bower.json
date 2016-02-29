@@ -4,7 +4,7 @@
     "da99 <i-hate-spam-1234567@mailinator.com>"
   ],
   "description": "[don't use this]",
-  "main": "main.js",
+  "main": "build/browser.js",
   "moduleType": [],
   "license": "MIT",
   "homepage": "https://github.com/da99/dum_dum_js",
@@ -13,11 +13,12 @@
     "**/.*",
     "node_modules",
     "bower_components",
+    "lib/node",
     "test",
     "tests"
   ],
   "dependencies": {
-    "form-to-obj": "chrisdavies/form-to-obj#^0.0.3",
-    "alite": "chrisdavies/alite#^0.1.4"
+    "form-to-obj": "chrisdavies/form-to-obj#latest",
+    "alite": "chrisdavies/alite#latest"
   }
 }
