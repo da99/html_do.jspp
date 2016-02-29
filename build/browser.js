@@ -1989,4 +1989,284 @@ function html_unescape(raw) {
     // From: http://stackoverflow.com/questions/1912501/unescape-html-entities-in-javascript
     return new DOMParser().parseFromString(raw, "text/html").documentElement.textContent;
 }
+
+/* jshint strict: true, undef: true */
+/* globals msg_match, has_length, is_string, be, is_array, and, window, is_function, $ */
+function on_click(msg) {
+    "use strict";
+    if (!msg_match({
+        dom_id: is_string,
+        args: and(is_array, has_length(1))
+    }, msg)) return;
+    var dom_id = msg.dom_id;
+    var func = be(is_function, window[msg.args[0]]);
+    if (!on_click.processed) on_click.processed = {};
+    if (on_click.processed[dom_id]) throw new Error("#" + dom_id + " already processed by on_click");
+    on_click.processed[dom_id] = true;
+    $("#" + msg.dom_id).on("click", function(e) {
+        e.stopPropagation();
+        func({
+            dom_id: dom_id
+        });
+    });
+}
+
+/* jshint strict: true, undef: true */
+/* globals App, html_escape, to_function, dot, map_x, to_$, $, msg_match, key_to_bool, be */
+/* globals is_string, eachs, html_unescape, Mustache, dom_id */
+/* globals spec_returns, spec_dom, _, is_plain_object, is_array */
+spec_returns([ "SCRIPT", "SPAN", "P" ], function template_replaces_elements_by_default() {
+    "use strict";
+    spec_dom().html('<script type="application/template" data-do="template is_text replace">' + html_escape("<span>{{a1}}</span>") + html_escape("<p>{{a2}}</p>") + "</script>");
+    App("run", {
+        "dom-change": true
+    });
+    App("run", {
+        is_text: true,
+        data: {
+            a1: "1",
+            a2: "2"
+        }
+    });
+    App("run", {
+        is_text: true,
+        data: {
+            a1: "3",
+            a2: "4"
+        }
+    });
+    return _.map(spec_dom().children(), dot("tagName"));
+});
+
+spec_returns([ "SCRIPT", "P", "DIV" ], function template_renders_elements_below_by_default() {
+    "use strict";
+    spec_dom().html('<script type="application/template" data-do="template is_text replace">' + html_escape("<p>one</p>") + html_escape("<div>two</div>") + "</script>");
+    App("run", {
+        "dom-change": true
+    });
+    App("run", {
+        is_text: true
+    });
+    return _.map(spec_dom().children(), dot("tagName"));
+});
+
+spec_returns("123", function template_renders_nested_vars() {
+    "use strict";
+    spec_dom().html('<script type="application/template" data-do="template is_text replace">' + html_escape("<p>{{a}}</p>") + html_escape("<p>{{b}}</p>") + html_escape('<script type="application/template" data-do="template is_val replace">') + html_escape(html_escape("<p>{{c}}</p>")) + html_escape("</script>") + "</script>");
+    App("run", {
+        "dom-change": true
+    });
+    App("run", {
+        is_text: true,
+        data: {
+            a: 1,
+            b: 2
+        }
+    });
+    App("run", {
+        is_val: true,
+        data: {
+            c: "3"
+        }
+    });
+    return map_x(spec_dom().find("p"), to_function(to_$, dot("html()"))).join("");
+});
+
+spec_returns([ "P", "P", "SCRIPT" ], function template_renders_above() {
+    "use strict";
+    spec_dom().html('<script type="application/template" data-do="template is_text above">' + html_escape("<p>{{a}}</p>") + html_escape("<p>{{b}}</p>") + "</script>");
+    App("run", {
+        "dom-change": true
+    });
+    App("run", {
+        is_text: true,
+        data: {
+            a: 4,
+            b: 5
+        }
+    });
+    return map_x(spec_dom().children(), dot("tagName"));
+});
+
+spec_returns([ "SCRIPT", "SPAN", "P" ], function template_renders_below() {
+    "use strict";
+    spec_dom().html('<script type="application/template" data-do="template is_text bottom">' + html_escape("<span>{{a}}</span>") + html_escape("<p>{{b}}</p>") + "</script>");
+    App("run", {
+        "dom-change": true
+    });
+    App("run", {
+        is_text: true,
+        data: {
+            a: 6,
+            b: 7
+        }
+    });
+    return map_x(spec_dom().children(), dot("tagName"));
+});
+
+spec_returns("none", function template_renders_dum_functionality() {
+    "use strict";
+    spec_dom().html('<script type="application/template" data-do="template render_template replace">' + html_escape('<div><span id="template_1" data-do="hide is_num">{{num.word}}</span></div>') + "</script>");
+    App("run", {
+        "dom-change": true
+    });
+    App("run", {
+        render_template: true
+    });
+    App("run", {
+        is_num: true,
+        data: {
+            num: {
+                word: "one"
+            }
+        }
+    });
+    return $("#template_1").css("display");
+});
+
+function template(msg) {
+    "use strict";
+    if (!msg_match({
+        dom_id: is_string
+    }, msg)) return;
+    var key = be(is_string, msg.args[0]);
+    var pos = be(is_string, msg.args[1]);
+    var t = $("#" + msg.dom_id);
+    var raw_html = t.html();
+    var id = msg.dom_id;
+    function _template_(future_msg) {
+        if (key_to_bool(key, future_msg) !== true) return;
+        var me = _template_;
+        // === Init state:
+        if (!is_plain_object(me.elements)) me.elements = {};
+        if (!is_array(me.elements[id])) me.elements[id] = [];
+        // === Remove old nodes:
+        if (pos === "replace") {
+            eachs(me.elements[id], function(_index, id) {
+                $("#" + id).remove();
+            });
+        }
+        var decoded_html = html_unescape(raw_html);
+        var compiled = $(Mustache.render(decoded_html, future_msg.data || {}));
+        var new_ids = _.map(compiled, function(x) {
+            return dom_id($(x));
+        });
+        if (pos === "replace" || pos === "bottom") compiled.insertAfter($("#" + id)); else compiled.insertBefore($("#" + id));
+        me.elements[id] = [].concat(me.elements[id]).concat(new_ids);
+        App("run", {
+            "dom-change": true
+        });
+        return new_ids;
+    }
+    App("push", _template_);
+}
+
+/* jshint strict: true, undef: true */
+/* globals spec, window */
+spec(is_localhost, [], window.location.href.indexOf("/specs.html") > 0);
+
+function is_localhost() {
+    "use strict";
+    var addr = window.location.href;
+    return window.console && (addr.indexOf("localhost") > -1 || addr.indexOf("file:///") > -1 || addr.indexOf("127.0.0.1") > -1);
+}
+
+/* jshint strict: true, undef: true */
+/* globals msg_match, is_string, $, dom_id, alite, formToObj, is_plain_object, log, is_blank_string */
+/* globals App */
+function submit_form(msg) {
+    "use strict";
+    if (!msg_match({
+        dom_id: is_string
+    }, msg)) return;
+    var form = $("#" + msg.dom_id).closest("form");
+    var raw_form = form[0];
+    if (!raw_form) return;
+    var form_dom_id = dom_id(form);
+    // the form_id
+    // the form as a data structure
+    // Create callback for response
+    //   -- standardize response
+    //   -- send to Computer/App
+    // Send to ajax w/callback
+    alite({
+        url: form.attr("action"),
+        method: "POST",
+        data: formToObj(raw_form)
+    }).then(function(result) {
+        // At this point, we don't know if it's success or err:
+        var data = {
+            ajax_response: true,
+            result: result,
+            data: result.data || {}
+        };
+        // === If err:
+        if (!is_plain_object(result) || !result.ok) {
+            data.msg = result.msg || "Computer error. Try again later.";
+            data["err_" + form_dom_id] = true;
+            App("run", data);
+            return;
+        }
+        // === else success:
+        data["ok_" + form_dom_id] = true;
+        App("run", data);
+    }).catch(function(err) {
+        log(err);
+        var data = {
+            ajax_err: true
+        };
+        if (is_string(err)) {
+            if (is_blank_string(err)) data.msg = "Network error."; else data.msg = err;
+        }
+        data["err_" + form_dom_id] = true;
+        App("run", data);
+    });
+}
+
+// ==== Integration tests =====================================================
+// ============================================================================
+spec_returns("yo mo", function button_submit(fin) {
+    spec_dom().html('<form id="the_form" action="/repeat">' + '<script type="application/template" data-do="template ok_the_form replace">' + html_escape("<div>{{val1}} {{val2}}</div>") + '</script><button onclick="return false;" data-do="on_click submit_form">Submit</button>' + '<input type="hidden" name="val1" value="yo" />' + '<input type="hidden" name="val2" value="mo" />' + "</form>");
+    App("run", {
+        "dom-change": true
+    });
+    spec_dom().find("button").click();
+    wait_max(1.5, function() {
+        var html = spec_dom().find("div").html();
+        if (!html) return false;
+        fin(html);
+        return true;
+    });
+});
+
+// === Adds functionality:
+//     <div data-do="my_func arg1 arg2">content</div>
+App("push", function process_data_dos(msg) {
+    // The other functions
+    // may alter the DOM. So to prevent unprocessed DOM
+    // or infinit loops, we process one element, then call the function
+    // over until no other unprocessed elements are found.
+    if (!msg_match({
+        "dom-change": true
+    }, msg)) return;
+    var selector = '*[data-do]:not(*[data-do_done~="yes"])';
+    var elements = $('*[data-do]:not(*[data-do_done~="yes"]):first');
+    if (l(elements) === 0) return;
+    var raw_e = elements[0];
+    $(raw_e).attr("data-do_done", "yes");
+    eachs(split_on(";", $(raw_e).attr("data-do")), function(_i, raw_cmd) {
+        var args = split_on(WHITESPACE, raw_cmd);
+        if (is_empty(args)) throw new Error("Invalid command: " + to_string(raw_cmd));
+        var func_name = args.shift();
+        var func = name_to_function(func_name);
+        apply_function(func, [ {
+            on_dom: true,
+            dom_id: dom_id($(raw_e)),
+            args: args.slice(0)
+        } ]);
+        return;
+    });
+    process_data_dos(msg);
+    return true;
+});
 //# sourceMappingURL=build/browser.js.map
