@@ -1,11 +1,12 @@
 
+# === {{CMD}}
 build () {
-    # ===   __  build
+
     ugly () {
-      # === __  build-node
       local name="$1"; shift
       local output="build/${name}"
       local file="$output.js"
+
       rm -f "$file"
       rm -f "$file".map
       names="$@"
@@ -26,8 +27,11 @@ build () {
       js_setup jshint "$file"
     }
 
-    ugly "browser"  spec base state dom   data-do
+    echo -e "=== Building: ${Bold}node.js${Color_Off}"
     ugly "node"     spec base state node
     node "build/node.js" test
+    echo -e "=== Done building: ${Bold}node.js${Color_Off}"
+
+    ugly "browser"  spec base state dom   data-do
     echo "=== ${Bold}Test for browser.js not ready yet${Color_Off}"
 } # === end function

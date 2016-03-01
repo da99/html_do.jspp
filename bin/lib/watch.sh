@@ -18,6 +18,7 @@ watch () {
   fi
 
   echo -e "\n=== Watching:"
+
   while read -r CHANGE; do
     dir=$(echo "$CHANGE" | cut -d' ' -f 1)
     path="${dir}$(echo "$CHANGE" | cut -d' ' -f 3)"
@@ -36,7 +37,7 @@ watch () {
     # File has changed:
     echo -e "\n=== $CHANGE ($path)"
 
-    if [[ "$(realpath -m "$path")" =~ "$(realpath -m "$0")" ]]; then
+    if [[ "$path" == bin/* ]]; then
       echo "=== Reloading..."
       break
     fi
@@ -54,5 +55,8 @@ watch () {
       run_cmd
     fi
   done < <(inotifywait --quiet --monitor --event close_write package.json -r lib/ -r bin/) || exit 1
-  $0 $THE_ARGS
+
+  $0 "$THE_ARGS"
+
 } # === end function
+
