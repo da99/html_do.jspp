@@ -1,6 +1,6 @@
 
+# === {{CMD}}
 duplicate-functions () {
-  # === duplicate_functions
   files="$(find lib/ -type f -iname "_.*.js" -prune -o -iname "*.js" -print | \
     xargs -I FILE basename FILE |  \
     sort                        |  \
