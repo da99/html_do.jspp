@@ -33,5 +33,5 @@ build () {
     echo -e "=== Done building: ${Bold}node.js${Color_Off}"
 
     ugly "browser"  spec base state dom   data-do
-    echo "=== ${Bold}Test for browser.js not ready yet${Color_Off}"
+    echo -e "=== ${Bold}Test for browser.js not ready yet${Color_Off}"
 } # === end function

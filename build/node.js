@@ -1066,7 +1066,7 @@ spec(dot("num"), [ {
 
 function dot(raw_name) {
     "use strict";
-    var name = _.trimRight(raw_name, "()");
+    var name = _.trimEnd(raw_name, "()");
     return function _dot_(o) {
         if (is_undefined(o[name])) throw new Error("Property not found: " + to_string(name) + " in " + to_string(o));
         if (name !== raw_name) {
