@@ -1,3 +1,9 @@
+/* jshint strict: true, undef: true */
+if (typeof exports === "undefined") {
+    var module = {};
+    var exports = module.exports = {};
+}
+
 /* jshint browser: true, undef: true */
 if (typeof window === "undefined") throw new Error("No window defined.");
 
@@ -6,6 +12,8 @@ if (typeof window === "undefined") throw new Error("No window defined.");
 // Specification function:
 // Accepts:
 //   str_or_func : The function the spec is about.
+exports.spec_new = spec_new;
+
 function spec_new(str_or_func) {
     "use strict";
     if (!is_spec_env()) return false;
@@ -22,6 +30,8 @@ function spec_new(str_or_func) {
 
 /* jshint strict: true, undef: true */
 /* globals to_string, length, setTimeout, be, is_specs */
+exports.spec_next = spec_next;
+
 function spec_next(specs) {
     "use strict";
     be(is_specs, specs);
@@ -78,6 +88,8 @@ function spec_next(specs) {
 //    on_finish: my_callback
 // });
 //
+exports.spec_run = spec_run;
+
 function spec_run() {
     "use strict";
     if (!is_spec_env()) return false;
@@ -99,6 +111,8 @@ function spec_run() {
 /* jshint strict: true, undef: true */
 /* globals $, process */
 // Specification function:
+exports.is_spec_env = is_spec_env;
+
 function is_spec_env() {
     "use strict";
     return typeof window !== "undefined" && $("#Spec_Stage").length === 1 || typeof process !== "undefined" && process.argv[2] === "test";
@@ -107,6 +121,8 @@ function is_spec_env() {
 /* jshint strict: true, undef: true */
 /* globals _, to_string, spec_push, to_function_string, to_match_string, log, spec_new */
 // Specification function:
+exports.spec_throws = spec_throws;
+
 function spec_throws(f, args, expect) {
     "use strict";
     if (!spec_new(f)) return false;
@@ -136,6 +152,8 @@ function spec_throws(f, args, expect) {
 /* jshint strict: true, undef: true */
 /* globals _, length, to_string, function_to_name, log, spec_new, spec_push, to_match_string */
 // Specification function:
+exports.spec_returns = spec_returns;
+
 function spec_returns(expect, f) {
     "use strict";
     if (!spec_new(f)) return false;
@@ -167,6 +185,8 @@ function spec_returns(expect, f) {
 
 /* jshint strict: true, undef: true */
 /* globals be, is, not, is_empty, or, is_plain_object, is_positive */
+exports.is_specs = is_specs;
+
 function is_specs(specs) {
     "use strict";
     var is_valid_specs_i = or(is("init"), is(0), is_positive);
@@ -182,6 +202,8 @@ function is_specs(specs) {
 // Specification function:
 // Accepts:
 //   string : 'reset'  => Reset dom for next test.
+exports.spec_dom = spec_dom;
+
 function spec_dom(cmd) {
     "use strict";
     switch (cmd) {
@@ -200,6 +222,8 @@ function spec_dom(cmd) {
 /* jshint strict: true, undef: true */
 /* globals _, to_match_string, log, spec_push, to_string, spec_new, to_function_string */
 // Specification function:
+exports.spec = spec;
+
 function spec(f, args, expect) {
     "use strict";
     if (!spec_new(f)) return false;
@@ -222,6 +246,8 @@ function spec(f, args, expect) {
 //     f - function
 //   Runs function (ie test) with all other tests
 //   when spec_run is called.
+exports.spec_push = spec_push;
+
 function spec_push(f) {
     "use strict";
     if (!is_spec_env()) return false;
@@ -232,6 +258,8 @@ function spec_push(f) {
 
 /* jshint strict: true, undef: true */
 /* globals to_string, setTimeout */
+exports.wait_max = wait_max;
+
 function wait_max(seconds, func) {
     "use strict";
     var ms = seconds * 1e3;
@@ -246,6 +274,8 @@ function wait_max(seconds, func) {
 }
 
 /* jshint strict: true, undef: true */
+exports.to_arg = to_arg;
+
 function to_arg(val) {
     "use strict";
     return function(f) {
@@ -261,6 +291,8 @@ spec(is_function_name, [ "none none" ], false);
 
 spec(is_function_name, [ is_function_name ], false);
 
+exports.is_function_name = is_function_name;
+
 function is_function_name(v) {
     "use strict";
     return is_string(v) && typeof v === "function";
@@ -268,6 +300,8 @@ function is_function_name(v) {
 
 /* jshint strict: true, undef: true */
 /* globals arguments_are, is_positive, is_function */
+exports.do_it = do_it;
+
 function do_it(num, func) {
     "use strict";
     arguments_are(arguments, is_positive, is_function);
@@ -291,6 +325,8 @@ spec(is_nothing, [ {
     a: "c"
 } ], false);
 
+exports.is_nothing = is_nothing;
+
 function is_nothing(v) {
     "use strict";
     if (arguments.length !== 1) throw new Error("arguments.length !== 1: " + to_string(v));
@@ -298,6 +334,8 @@ function is_nothing(v) {
 }
 
 /* jshint strict: true, undef: true */
+exports.is_true = is_true;
+
 function is_true(v) {
     "use strict";
     return v === true;
@@ -305,6 +343,8 @@ function is_true(v) {
 
 /* jshint strict: true, undef: true */
 /* globals _, length */
+exports.and = and;
+
 function and(_funcs) {
     "use strict";
     var funcs = _.toArray(arguments);
@@ -338,6 +378,8 @@ spec(is_empty, [ return_arguments(1, 2, 3) ], false);
 
 spec_throws(is_empty, [ null ], "invalid value for is_empty: null");
 
+exports.is_empty = is_empty;
+
 function is_empty(v) {
     "use strict";
     if (arguments.length !== 1) throw new Error("arguments.length !== 1: " + to_string(v));
@@ -351,6 +393,8 @@ function is_empty(v) {
 
 /* jshint strict: true, undef: true */
 /* globals be, is_enumerable, is_function, eachs */
+exports.each_x = each_x;
+
 function each_x(coll, f) {
     "use strict";
     be(is_enumerable, coll);
@@ -362,6 +406,8 @@ function each_x(coll, f) {
 
 /* jshint strict: true, undef: true */
 /* globals length */
+exports.to_default = to_default;
+
 function to_default(valid) {
     "use strict";
     if (length(arguments) === 2) {
@@ -375,6 +421,8 @@ function to_default(valid) {
 }
 
 /* jshint strict: true, undef: true */
+exports.is_num = is_num;
+
 function is_num(v) {
     "use strict";
     return typeof v === "number" && isFinite(v);
@@ -382,6 +430,8 @@ function is_num(v) {
 
 /* jshint strict: true, undef: true */
 /* globals set_function_string_name */
+exports.has_property_of = has_property_of;
+
 function has_property_of(name, type) {
     "use strict";
     var f = function has_property_of(o) {
@@ -449,6 +499,8 @@ spec(key_to_bool, [ "!is_happy", {
 
 spec_throws(key_to_bool, [ [ "is_factor" ], {} ], 'Value: ["is_factor"] !== is_string');
 
+exports.key_to_bool = key_to_bool;
+
 function key_to_bool(raw_key, data) {
     "use strict";
     var FRONT_BANGS = /^\!+/;
@@ -478,6 +530,8 @@ function key_to_bool(raw_key, data) {
 
 /* jshint strict: true, undef: true */
 /* globals be, is_enumerable, is_function, _ */
+exports.map_x = map_x;
+
 function map_x(coll, f) {
     "use strict";
     be(is_enumerable, coll);
@@ -489,12 +543,16 @@ function map_x(coll, f) {
 
 /* jshint strict: true, undef: true */
 /* globals is_string, length, _  */
+exports.is_whitespace = is_whitespace;
+
 function is_whitespace(v) {
     "use strict";
     return is_string(v) && length(_.trim(v)) === 0;
 }
 
 /* jshint strict: true, undef: true */
+exports.is_null_or_undefined = is_null_or_undefined;
+
 function is_null_or_undefined(v) {
     "use strict";
     return v === null || v === undefined;
@@ -502,6 +560,8 @@ function is_null_or_undefined(v) {
 
 /* jshint strict: true, undef: true */
 /* globals and, length */
+exports.all = all;
+
 function all(_funcs) {
     "use strict";
     var _and = and.apply(null, arguments);
@@ -515,6 +575,8 @@ function all(_funcs) {
 
 /* jshint strict: true, undef: true */
 /* globals _, to_string, function_to_name */
+exports.function_sig = function_sig;
+
 function function_sig(f, args) {
     "use strict";
     return function_to_name(f) + "(" + _.map(args, to_string).join(",") + ")";
@@ -534,6 +596,8 @@ spec(is_something, [ {
     a: "c"
 } ], true);
 
+exports.is_something = is_something;
+
 function is_something(v) {
     "use strict";
     var t = typeof v;
@@ -542,6 +606,8 @@ function is_something(v) {
 }
 
 /* jshint strict: true, undef: true */
+exports.is_function = is_function;
+
 function is_function(v) {
     "use strict";
     if (arguments.length !== 1) throw new Error("Invalid: arguments.length must === 1");
@@ -561,6 +627,8 @@ spec_throws(own_property("num"), [ {
     n: 4
 } ], 'Key not found: "num" in {"n":4}');
 
+exports.own_property = own_property;
+
 function own_property(name) {
     "use strict";
     return function _own_property_(o) {
@@ -571,6 +639,8 @@ function own_property(name) {
 
 /* jshint strict: true, undef: true */
 /* globals function_to_name, _, to_string */
+exports.to_function_string = to_function_string;
+
 function to_function_string(f, args) {
     "use strict";
     return function_to_name(f) + "(" + _.map(args, to_string).join(", ") + ")";
@@ -607,6 +677,8 @@ spec(msg_match, [ {}, {} ], true);
 
 spec(msg_match, [ [], [] ], true);
 
+exports.msg_match = msg_match;
+
 function msg_match(pattern, msg) {
     "use strict";
     if (_.isEqual(pattern, msg)) return true;
@@ -624,6 +696,8 @@ function msg_match(pattern, msg) {
 
 /* jshint strict: true, undef: true */
 /* globals _ */
+exports.reduce = reduce;
+
 function reduce(value, _functions) {
     "use strict";
     var funcs = _.toArray(arguments);
@@ -653,6 +727,8 @@ spec_returns({
     copy.a.b = "1";
     return orig;
 });
+
+exports.copy_value = copy_value;
 
 function copy_value(v) {
     "use strict";
@@ -692,6 +768,8 @@ spec_throws(function() {
     return has_length(3)([ 1, 2 ]);
 }, [], "[1, 2].length !== 3");
 
+exports.has_length = has_length;
+
 function has_length(num) {
     "use strict";
     return function _has_length_(val) {
@@ -713,6 +791,8 @@ spec_returns(false, function() {
     return is("a")("b");
 });
 
+exports.is = is;
+
 function is(target) {
     "use strict";
     return function(val) {
@@ -722,6 +802,8 @@ function is(target) {
 
 /* jshint strict: true, undef: true */
 /* globals is_plain_object, _ */
+exports.keys_or_indexes = keys_or_indexes;
+
 function keys_or_indexes(v) {
     "use strict";
     if (is_plain_object(v)) return _.keys(v);
@@ -744,6 +826,8 @@ spec_returns(5, function to_value_returns_first_value_if_no_funcs() {
     return to_value(5);
 });
 
+exports.to_value = to_value;
+
 function to_value(val, _funcs) {
     "use strict";
     be(is_something, val);
@@ -758,6 +842,8 @@ function to_value(val, _funcs) {
 
 /* jshint strict: true, undef: true */
 /* globals _ */
+exports.is_array = is_array;
+
 function is_array(v) {
     "use strict";
     return _.isArray(v);
@@ -768,6 +854,8 @@ function is_array(v) {
 spec(is_null, [ null ], true);
 
 spec(is_null, [ undefined ], false);
+
+exports.is_null = is_null;
 
 function is_null(v) {
     "use strict";
@@ -788,6 +876,8 @@ spec(to_string, [ {
     a: "b",
     c: "d"
 } ], '{"a":"b","c":"d"}');
+
+exports.to_string = to_string;
 
 function to_string(val) {
     "use strict";
@@ -815,6 +905,8 @@ function to_string(val) {
 
 /* jshint strict: true, undef: true */
 /* globals to_string, function_sig */
+exports.set_function_string_name = set_function_string_name;
+
 function set_function_string_name(f, args) {
     "use strict";
     if (f.to_string_name) throw new Error(".to_string_name alread set: " + to_string(f.to_string_name));
@@ -823,6 +915,8 @@ function set_function_string_name(f, args) {
 }
 
 /* jshint strict: true, undef: true */
+exports.is_string = is_string;
+
 function is_string(v) {
     "use strict";
     return typeof v === "string";
@@ -830,6 +924,8 @@ function is_string(v) {
 
 /* jshint strict: true, undef: true */
 /* globals conditional */
+exports.or = or;
+
 function or(_funcs) {
     "use strict";
     return conditional("any", arguments);
@@ -837,6 +933,8 @@ function or(_funcs) {
 
 /* jshint strict: true, undef: true */
 /* globals length */
+exports.sort_by_length = sort_by_length;
+
 function sort_by_length(arr) {
     "use strict";
     return arr.sort(function(a, b) {
@@ -845,6 +943,8 @@ function sort_by_length(arr) {
 }
 
 /* jshint strict: true, undef: true */
+exports.return_arguments = return_arguments;
+
 function return_arguments() {
     "use strict";
     return arguments;
@@ -852,6 +952,8 @@ function return_arguments() {
 
 /* jshint strict: true, undef: true */
 /* globals _, all, is_plain_object, is_array, to_string */
+exports.combine = combine;
+
 function combine(_vals) {
     "use strict";
     var vals = _.toArray(arguments);
@@ -885,6 +987,8 @@ spec_returns(false, function() {
     return not(is_something, is_null)(1);
 });
 
+exports.not = not;
+
 function not(func) {
     "use strict";
     reduce(arguments, length, be(is(1)));
@@ -902,6 +1006,8 @@ function not(func) {
 /* globals spec, is_string, to_string, _ */
 spec(name_to_function, [ "name_to_function" ], name_to_function);
 
+exports.name_to_function = name_to_function;
+
 function name_to_function(raw) {
     "use strict";
     /* globals window, global */
@@ -913,6 +1019,8 @@ function name_to_function(raw) {
 
 /* jshint strict: true, undef: true */
 /* globals _ */
+exports.is_plain_object = is_plain_object;
+
 function is_plain_object(v) {
     "use strict";
     return _.isPlainObject(v);
@@ -920,6 +1028,8 @@ function is_plain_object(v) {
 
 /* jshint strict: true, undef: true */
 /* globals length */
+exports.replace = replace;
+
 function replace(pattern, new_value) {
     "use strict";
     if (length(arguments) === 3) {
@@ -932,6 +1042,8 @@ function replace(pattern, new_value) {
 
 /* jshint strict: true, undef: true */
 /* globals is_something, has_property_of, to_string */
+exports.length_of = length_of;
+
 function length_of(num) {
     "use strict";
     return function(v) {
@@ -957,6 +1069,8 @@ spec(length, [ {
 
 spec_throws(length, [ {} ], "invalid value for l(): {}");
 
+exports.length = length;
+
 function length(raw_v) {
     "use strict";
     if (raw_v === null || raw_v === undefined || !_.isFinite(raw_v.length)) throw new Error("Invalid value for length: " + to_string(raw_v));
@@ -969,6 +1083,8 @@ spec(is_undefined, [ undefined ], true);
 
 spec(is_undefined, [ null ], false);
 
+exports.is_undefined = is_undefined;
+
 function is_undefined(v) {
     "use strict";
     return v === undefined;
@@ -976,6 +1092,8 @@ function is_undefined(v) {
 
 /* jshint strict: true, undef: true */
 /* globals _ */
+exports.conditional = conditional;
+
 function conditional(name, funcs) {
     "use strict";
     if (funcs.length < 2) throw new Error("Called with too few arguments: " + arguments.length);
@@ -989,6 +1107,8 @@ function conditional(name, funcs) {
 
 /* jshint strict: true, undef: true */
 /* globals _ */
+exports.all_funcs = all_funcs;
+
 function all_funcs(arr) {
     "use strict";
     var l = arr.length;
@@ -997,6 +1117,8 @@ function all_funcs(arr) {
 
 /* jshint strict: true, undef: true */
 /* globals set_function_string_name */
+exports.has_own_property = has_own_property;
+
 function has_own_property(name) {
     "use strict";
     var f = function __has_own_property(o) {
@@ -1015,6 +1137,8 @@ spec_throws(is_anything, [ null ], "null found");
 
 spec_throws(is_anything, [ undefined ], "undefined found");
 
+exports.is_anything = is_anything;
+
 function is_anything(v) {
     "use strict";
     if (arguments.length !== 1) throw new Error("Invalid: arguments.length must === 1");
@@ -1025,6 +1149,8 @@ function is_anything(v) {
 
 /* jshint strict: true, undef: true */
 /* globals console */
+exports.log = log;
+
 function log(_args) {
     "use strict";
     if (typeof console !== "undefined" && console.log) return console.log.apply(console, arguments);
@@ -1033,6 +1159,8 @@ function log(_args) {
 
 /* jshint strict: true, undef: true */
 /* globals _, to_string */
+exports.find_key = find_key;
+
 function find_key(k, _args) {
     "use strict";
     var args = _.toArray(arguments);
@@ -1058,6 +1186,8 @@ spec(dot("num"), [ {
     n: 4
 } ], new Error('Property not found: "num" in {"n":4}'));
 
+exports.dot = dot;
+
 function dot(raw_name) {
     "use strict";
     var name = _.trimEnd(raw_name, "()");
@@ -1071,6 +1201,8 @@ function dot(raw_name) {
 }
 
 /* jshint strict: true, undef: true */
+exports.length_gt = length_gt;
+
 function length_gt(num) {
     "use strict";
     return function(v) {
@@ -1085,6 +1217,8 @@ spec(is_blank_string, [ "" ], true);
 spec(is_blank_string, [ "   " ], true);
 
 spec(is_blank_string, [ " a  " ], false);
+
+exports.is_blank_string = is_blank_string;
 
 function is_blank_string(v) {
     "use strict";
@@ -1115,6 +1249,8 @@ spec(merge, [ {
     b: 2,
     c: 3
 });
+
+exports.merge = merge;
 
 function merge(_args) {
     "use strict";
@@ -1149,12 +1285,16 @@ function merge(_args) {
 
 /* jshint strict: true, undef: true */
 /* globals length */
+exports.is_length_zero = is_length_zero;
+
 function is_length_zero(v) {
     "use strict";
     return length(v) === 0;
 }
 
 /* jshint strict: true, undef: true */
+exports.is_boolean = is_boolean;
+
 function is_boolean(v) {
     "use strict";
     return typeof v === "boolean";
@@ -1192,6 +1332,8 @@ spec(reduce_eachs, [ [], {
     v.push("" + kx + y);
     return v;
 } ], []);
+
+exports.reduce_eachs = reduce_eachs;
 
 function reduce_eachs() {
     "use strict";
@@ -1234,6 +1376,8 @@ function reduce_eachs() {
 /* globals spec */
 spec(function_to_name, [ "function my_name() {}" ], "my_name");
 
+exports.function_to_name = function_to_name;
+
 function function_to_name(f) {
     "use strict";
     var WHITESPACE = /\s+/g;
@@ -1247,6 +1391,8 @@ spec(is_enumerable, [ [] ], true);
 spec(is_enumerable, [ {} ], true);
 
 spec(is_enumerable, [ {} ], true);
+
+exports.is_enumerable = is_enumerable;
 
 function is_enumerable(v) {
     "use strict";
@@ -1264,6 +1410,8 @@ spec(standard_name, [ "  name  " ], "name");
 spec(standard_name, [ "n   aME" ], "n ame");
 
 // it 'squeezes whitespace'
+exports.standard_name = standard_name;
+
 function standard_name(str) {
     "use strict";
     var WHITESPACE = /\s+/g;
@@ -1273,6 +1421,8 @@ function standard_name(str) {
 /* jshint strict: true, undef: true */
 /* globals spec, is_num, _, to_string */
 spec(arguments_are, [ [ 1 ], is_num, is_num ], new Error("Wrong # of arguments: expected: 2 actual: 1)"));
+
+exports.arguments_are = arguments_are;
 
 function arguments_are(args_o, _funcs) {
     "use strict";
@@ -1289,6 +1439,8 @@ function arguments_are(args_o, _funcs) {
 
 /* jshint strict: true, undef: true */
 /* globals _, to_string */
+exports.to_match_string = to_match_string;
+
 function to_match_string(actual, expect) {
     "use strict";
     if (_.isEqual(actual, expect)) return to_string(actual) + " === " + to_string(expect); else return to_string(actual) + " !== " + to_string(expect);
@@ -1302,6 +1454,8 @@ spec(split_on, [ /;/, "a;b;c" ], [ "a", "b", "c" ]);
 
 spec(split_on, [ /;/, "a; ;c" ], [ "a", "c" ]);
 
+exports.split_on = split_on;
+
 function split_on(pattern, str) {
     "use strict";
     arguments_are(arguments, is_something, is_string);
@@ -1314,6 +1468,8 @@ function split_on(pattern, str) {
 
 /* jshint strict: true, undef: true */
 /* globals is_array, is_arguments, to_string, function_to_name */
+exports.apply_function = apply_function;
+
 function apply_function(f, args) {
     "use strict";
     if (arguments.length !== 2) throw new Error("Wrong # of argumments: expected: " + 2 + " actual: " + arguments.length);
@@ -1323,6 +1479,8 @@ function apply_function(f, args) {
 }
 
 /* jshint strict: true, undef: true */
+exports.identity = identity;
+
 function identity(x) {
     "use strict";
     if (arguments.length !== 1) throw new Error("arguments.length !== 0");
@@ -1386,6 +1544,8 @@ spec_returns([], function eachs_returns_empty_array_if_one_array_is_empty() {
     return v;
 });
 
+exports.eachs = eachs;
+
 function eachs() {
     "use strict";
     var args = _.toArray(arguments);
@@ -1422,6 +1582,8 @@ function eachs() {
 }
 
 /* jshint strict: true, undef: true */
+exports.is_positive = is_positive;
+
 function is_positive(v) {
     "use strict";
     return typeof v === "number" && isFinite(v) && v > 0;
@@ -1436,6 +1598,8 @@ spec(is_array_of_functions, [ [] ], false);
 spec(is_array_of_functions, [ [ 1 ] ], false);
 
 spec(is_array_of_functions, [ 1 ], false);
+
+exports.is_array_of_functions = is_array_of_functions;
 
 function is_array_of_functions(a) {
     "use strict";
@@ -1459,6 +1623,8 @@ spec_returns('"3"', function to_function_returns_a_function() {
     "use strict";
     return to_function(identity, to_string, to_string)(3);
 });
+
+exports.to_function = to_function;
 
 function to_function() {
     "use strict";
@@ -1503,6 +1669,8 @@ spec(is_arguments, [ return_arguments() ], true);
 
 spec(is_arguments, [ [] ], false);
 
+exports.is_arguments = is_arguments;
+
 function is_arguments(v) {
     "use strict";
     return is_something(v) && or(is(0), is_positive)(v.length) && v.hasOwnProperty("callee");
@@ -1515,6 +1683,8 @@ spec(be, [ 1, is_num ], 1);
 spec(be, [ is_num, "1" ], new Error('Value: "1" !== is_num'));
 
 spec(be, [ is_string, 2 ], new Error("Value: 2 !== is_string"));
+
+exports.be = be;
 
 function be(func, val) {
     "use strict";
@@ -1536,6 +1706,8 @@ function be(func, val) {
 
 /* jshint strict: true, undef: true */
 /* globals _, and */
+exports.find = find;
+
 function find(_funcs) {
     "use strict";
     var funcs = _.toArray(arguments);
@@ -1549,6 +1721,8 @@ function find(_funcs) {
 // === Examples:
 // App()
 // App(..args for underlying Computer)
+exports.App = App;
+
 function App() {
     "use strict";
     if (!App._computer) {
@@ -1579,6 +1753,8 @@ spec_returns(3, function() {
     });
     return counter;
 });
+
+exports.Computer = Computer;
 
 function Computer() {
     "use strict";
