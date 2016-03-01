@@ -4,8 +4,8 @@ prepend-exports () {
     [[ "$FILE" == */_.*.js ]] && continue || :
     funcs_line_nums="$(grep -Po --line-number '^function\s+\K(.+?)(?=\()' "$FILE")"
     [[ -z "$funcs_line_nums" ]] && continue || :
-    grep 'export(' "$FILE" && continue || :
-    grep 'private ' "$FILE" && { echo "=== Skipping private: $FILE"; continue; } || :
+    grep 'export('  "$FILE" && { echo "=== Skipping exported: $FILE"; continue; } || :
+    grep 'private ' "$FILE" && { echo "=== Skipping private: $FILE";  continue; } || :
     while IFS=':' read LINE NAME; do
       new_content="export($NAME);"
       echo -e "=== ${Bold}ADDING${Color_Off}: $new_content -> $FILE"
