@@ -8,28 +8,6 @@ if (typeof exports === "undefined") {
 if (typeof window === "undefined") throw new Error("No window defined.");
 
 /* jshint strict: true, undef: true */
-/* globals is_spec_env, window, _, is_empty, function_to_name, spec_dom */
-/* globals exports */
-// Specification function:
-// Accepts:
-//   str_or_func : The function the spec is about.
-exports.spec_new = spec_new;
-
-function spec_new(str_or_func) {
-    "use strict";
-    if (!is_spec_env()) return false;
-    // === Is there a specific spec to run?
-    if (typeof window !== "undefined") {
-        var href = window.location.href;
-        var target = _.trim(href.split("?").pop() || "");
-        if (!is_empty(target) && target !== href && target !== function_to_name(str_or_func)) return false;
-        // === Reset DOM:
-        spec_dom("reset");
-    }
-    return true;
-}
-
-/* jshint strict: true, undef: true */
 /* globals to_string, length, setTimeout, be, is_specs */
 /* globals exports */
 exports.spec_next = spec_next;
@@ -78,118 +56,6 @@ function spec_next(specs) {
 }
 
 /* jshint strict: true, undef: true */
-/* globals is_spec_env, log, spec, is_empty, spec_next, to_string */
-/* globals exports */
-// === Arguments:
-// spec_run()
-// spec_run(function (msg) { log('Finished specs: ' + msg.total); })
-//
-// === Used by other functions to continue running specs:
-// spec_run({
-//    list: [],
-//    i:"init"|0|positive,
-//    on_finish: my_callback
-// });
-//
-exports.spec_run = spec_run;
-
-function spec_run() {
-    "use strict";
-    if (!is_spec_env()) return false;
-    var on_fin = arguments[0] || function(msg) {
-        log("      ======================================");
-        log("      Specs Finish: " + to_string(msg.total) + " tests");
-        log("      ======================================");
-    };
-    if (!spec.specs || is_empty(spec.specs)) throw new Error("No specs found.");
-    return spec_next({
-        i: "init",
-        list: spec.specs.slice(0),
-        dones: {},
-        on_finish: on_fin,
-        total: 0
-    });
-}
-
-/* jshint strict: true, undef: true */
-/* globals $, process */
-/* globals exports */
-// Specification function:
-exports.is_spec_env = is_spec_env;
-
-function is_spec_env() {
-    "use strict";
-    return typeof window !== "undefined" && $("#Spec_Stage").length === 1 || typeof process !== "undefined" && process.argv[2] === "test";
-}
-
-/* jshint strict: true, undef: true */
-/* globals _, to_string, spec_push, to_function_string, to_match_string, log, spec_new */
-/* globals exports */
-// Specification function:
-exports.spec_throws = spec_throws;
-
-function spec_throws(f, args, expect) {
-    "use strict";
-    if (!spec_new(f)) return false;
-    if (!_.isFunction(f)) throw new Error("Invalid value for func: " + to_string(f));
-    if (!_.isArray(args)) throw new Error("Invalid value for args: " + to_string(args));
-    if (!_.isString(expect)) throw new Error("Invalid valie for expect: " + to_string(expect));
-    spec_push(function() {
-        var actual, err;
-        var sig = to_function_string(f, args);
-        try {
-            f.apply(null, args);
-        } catch (e) {
-            err = e;
-            actual = e.message;
-        }
-        var msg = to_match_string(actual, expect);
-        if (!actual) throw new Error("!!! Failed to throw error: " + sig + " -> " + expect);
-        if (_.isEqual(actual, expect)) {
-            log("=== Passed: " + sig + " -> " + expect);
-            return true;
-        }
-        log(err);
-        throw new Error("Error message does not match: " + to_string(actual) + " !== " + to_string(expect));
-    });
-}
-
-/* jshint strict: true, undef: true */
-/* globals _, length, to_string, function_to_name, log, spec_new, spec_push, to_match_string */
-/* globals exports */
-// Specification function:
-exports.spec_returns = spec_returns;
-
-function spec_returns(expect, f) {
-    "use strict";
-    if (!spec_new(f)) return false;
-    if (!_.isFunction(f)) throw new Error("Invalid value for func: " + to_string(f));
-    if (length(f) === 0) {
-        spec_push(function() {
-            var sig = function_to_name(f);
-            var actual = f();
-            var msg = to_match_string(actual, expect);
-            if (!_.isEqual(actual, expect)) throw new Error("!!! Failed: " + sig + " -> " + msg);
-            log("=== Passed: " + sig + " -> " + msg);
-            return true;
-        });
-        return;
-    }
-    // if f.length === 0
-    // === Async func:
-    spec_push(function(fin) {
-        var sig = function_to_name(f);
-        f(function(actual) {
-            var msg = to_match_string(actual, expect);
-            if (!_.isEqual(actual, expect)) throw new Error("!!! Failed: " + sig + " -> " + msg);
-            log("=== Passed: " + sig + " -> " + msg);
-            fin();
-            return true;
-        });
-    });
-}
-
-/* jshint strict: true, undef: true */
 /* globals be, is, not, is_empty, or, is_plain_object, is_positive */
 /* globals exports */
 exports.is_specs = is_specs;
@@ -228,41 +94,132 @@ function spec_dom(cmd) {
 }
 
 /* jshint strict: true, undef: true */
-/* globals _, to_match_string, log, spec_push, to_string, spec_new, to_function_string */
-/* globals exports */
-// Specification function:
+/* globals _, App, to_match_string, log, to_string, to_function_string */
+/* globals exports, is_empty, length, is_function, is_plain_object */
+/* globals $, process */
+/* globals window, _, is_empty, function_to_name, spec_dom */
+/* globals _, to_string, to_function_string, to_match_string, log */
+/* globals exports, is_string, is_regexp, spec */
+// === Examples:
+// spec(my_func, ["my args"], "my expected value");
+// spec("my expected value", function my_custom_spec() {});
+//
+// spec(my_func, ["my args"], new Error("my expected thrown error"));
+// spec(new Error("my expected thrown error"), function my_custom_spec() {});
+//
+// === Run specs:
+// spec('run');
+// spec(function (msg) {
+//  log('Finished specs: ' + msg.total);
+// });
+//
+// === Used by other functions to continue running specs:
+// spec_run({
+//    list: [],
+//    i:"init"|0|positive,
+//    on_finish: my_callback
+// });
+//
 exports.spec = spec;
 
-function spec(f, args, expect) {
+spec.allow = typeof window !== "undefined" && $("#Spec_Stage").length === 1 || typeof process !== "undefined" && process.argv[2] === "test";
+
+function spec() {
     "use strict";
-    if (!spec_new(f)) return false;
-    if (!_.isFunction(f)) throw new Error("Invalid value for func: " + to_string(f));
-    if (arguments.length !== 3) throw new Error("arguments.length invalid for spec: " + to_string(arguments.length));
-    spec_push(function() {
-        var sig = to_function_string(f, args);
-        var actual = f.apply(null, args);
-        var msg = to_match_string(actual, expect);
-        if (actual !== expect && !_.isEqual(actual, expect)) throw new Error("!!! Failed: " + sig + " -> " + msg);
-        log("=== Passed: " + sig + " -> " + msg);
+    if (!spec.allow) return undefined;
+    var args = _.toArray(arguments);
+    if (length(args) !== 1) {
+        App("push into", "specs", args);
         return true;
+    }
+    // === switch
+    if (args[0] !== "run" && !is_function(args[0]) && !is_plain_object(args[0])) throw new Error("Unknown value: " + to_string(args[0]));
+    var specs = App("get", "specs", []);
+    if (is_empty(specs)) throw new Error("No specs found.");
+    var on_fin = is_function(arguments[0]) && arguments[0] || function(msg) {
+        log("      ======================================");
+        log("      Specs Finish: " + to_string(msg.total) + " tests");
+        log("      ======================================");
+    };
+    _.each(specs, function(raw_spec) {
+        log(raw_spec);
+        // === Is there a specific spec to run?
+        if (typeof window !== "undefined") {
+            var href = window.location.href;
+            var target = _.trim(href.split("?").pop() || "");
+            if (!is_empty(target) && target !== href && target !== function_to_name("str_or_func")) return false;
+            // === Reset DOM:
+            spec_dom("reset");
+        }
+        function spec_throws(f, args, expect) {
+            if (is_string(expect)) expect = new Error(expect);
+            if (is_regexp(expect)) {
+                var regexp = expect;
+                expect = function(err) {
+                    return err.message.match(regexp);
+                };
+            }
+            return spec.apply(null, [ f, args, expect ]);
+        }
+        // === function spec_throws
+        function spec_returns(expect, f) {
+            if (!_.isFunction(f)) throw new Error("Invalid value for func: " + to_string(f));
+            if (length(f) === 0) {
+                return returns(expect, f);
+            }
+            // if f.length === 0
+            throw new Error("async test not done yet.");
+            function returns(expect, f) {
+                var sig = function_to_name(f);
+                var actual = f();
+                var msg = to_match_string(actual, expect);
+                if (!_.isEqual(actual, expect)) throw new Error("!!! Failed: " + sig + " -> " + msg);
+                log("=== Passed: " + sig + " -> " + msg);
+                return true;
+            }
+            // === Async func:
+            function async_returns(fin) {
+                var sig = function_to_name(f);
+                f(function(actual) {
+                    var msg = to_match_string(actual, expect);
+                    if (!_.isEqual(actual, expect)) throw new Error("!!! Failed: " + sig + " -> " + msg);
+                    log("=== Passed: " + sig + " -> " + msg);
+                    fin();
+                    return true;
+                });
+            }
+        }
+        // === spec_returns
+        function regular_spec(f, args, expect) {
+            var sig = to_function_string(f, args);
+            var actual = f.apply(null, args);
+            var msg = to_match_string(actual, expect);
+            if (actual !== expect && !_.isEqual(actual, expect)) throw new Error("!!! Failed: " + sig + " -> " + msg);
+            log("=== Passed: " + sig + " -> " + msg);
+            return true;
+        }
+        // === function regular_spec
+        function throws(f, args, expect) {
+            var actual, err;
+            var sig = to_function_string(f, args);
+            try {
+                f.apply(null, args);
+            } catch (e) {
+                err = e;
+                actual = e.message;
+            }
+            var msg = to_match_string(actual, expect);
+            if (!actual) throw new Error("!!! Failed to throw error: " + sig + " -> " + expect);
+            if (_.isEqual(actual, expect)) {
+                log("=== Passed: " + sig + " -> " + expect);
+                return true;
+            }
+            log(err);
+            throw new Error("Error message does not match: " + to_string(actual) + " !== " + to_string(expect));
+        }
     });
-}
-
-/* jshint strict: true, undef: true */
-/* globals is_spec_env, spec */
-/* globals exports */
-// Specification function:
-//   Accepts:
-//     f - function
-//   Runs function (ie test) with all other tests
-//   when spec_run is called.
-exports.spec_push = spec_push;
-
-function spec_push(f) {
-    "use strict";
-    if (!is_spec_env()) return false;
-    if (!spec.specs) spec.specs = [];
-    spec.specs = [].concat(spec.specs).concat([ f ]);
+    // === each
+    on_fin();
     return true;
 }
 
@@ -394,7 +351,7 @@ spec(is_empty, [ return_arguments() ], true);
 
 spec(is_empty, [ return_arguments(1, 2, 3) ], false);
 
-spec_throws(is_empty, [ null ], "invalid value for is_empty: null");
+spec(is_empty, [ null ], new Error("invalid value for is_empty: null"));
 
 exports.is_empty = is_empty;
 
@@ -463,7 +420,7 @@ function has_property_of(name, type) {
 }
 
 /* jshint strict: true, undef: true */
-/* globals _, spec, spec_throws, reduce, be, is_string, not, is_empty */
+/* globals _, spec, reduce, be, is_string, not, is_empty */
 /* globals exports */
 spec(key_to_bool, [ "time", {
     time: "morning"
@@ -520,7 +477,7 @@ spec(key_to_bool, [ "!is_happy", {
     is_happy: false
 } ], true);
 
-spec_throws(key_to_bool, [ [ "is_factor" ], {} ], 'Value: ["is_factor"] !== is_string');
+spec(key_to_bool, [ [ "is_factor" ], {} ], new Error('Value: ["is_factor"] !== is_string'));
 
 exports.key_to_bool = key_to_bool;
 
@@ -645,18 +602,18 @@ function is_function(v) {
 }
 
 /* jshint strict: true, undef: true */
-/* globals spec_returns, spec_throws, to_string */
+/* globals spec, to_string */
 /* globals exports */
-spec_returns(3, function own_property_returns_own_property() {
+spec(3, function own_property_returns_own_property() {
     "use strict";
     return own_property("num")({
         num: 3
     });
 });
 
-spec_throws(own_property("num"), [ {
+spec(own_property("num"), [ {
     n: 4
-} ], 'Key not found: "num" in {"n":4}');
+} ], new Error('Key not found: "num" in {"n":4}'));
 
 exports.own_property = own_property;
 
@@ -742,9 +699,9 @@ function reduce(value, _functions) {
 }
 
 /* jshint strict: true, undef: true */
-/* globals spec_returns, arguments_are, is_something, is_boolean, is_array, _, is_plain_object, reduce_eachs, to_string */
+/* globals spec, arguments_are, is_something, is_boolean, is_array, _, is_plain_object, reduce_eachs, to_string */
 /* globals exports */
-spec_returns({
+spec({
     a: {
         b: "c"
     },
@@ -781,28 +738,28 @@ function copy_value(v) {
 }
 
 /* jshint strict: true, undef: true */
-/* globals spec_returns, is_function, spec_throws, arguments_are, is_something, to_string */
+/* globals spec, spec, is_function, arguments_are, is_something, to_string */
 /* globals exports */
-spec_returns(true, function has_length_returns_function() {
+spec(true, function has_length_returns_function() {
     "use strict";
     return is_function(has_length(1));
 });
 
-spec_returns(true, function has_length_returns_function_comparing_length() {
+spec(true, function has_length_returns_function_comparing_length() {
     "use strict";
     return has_length(1)([ 1 ]);
 });
 
-spec_returns(true, function has_length_returns_function_comparing_length_of_function() {
+spec(true, function has_length_returns_function_comparing_length_of_function() {
     "use strict";
     return has_length(2)(function(a, b) {});
 });
 
-spec_throws(function() {
+spec(function() {
     // returns function that returns false on length mismatch
     "use strict";
     return has_length(3)([ 1, 2 ]);
-}, [], "[1, 2].length !== 3");
+}, [], new Error("[1, 2].length !== 3"));
 
 exports.has_length = has_length;
 
@@ -816,14 +773,14 @@ function has_length(num) {
 }
 
 /* jshint strict: true, undef: true */
-/* globals spec_returns */
+/* globals spec */
 /* globals exports */
-spec_returns(true, function() {
+spec(true, function() {
     "use strict";
     return is(5)(5);
 });
 
-spec_returns(false, function() {
+spec(false, function() {
     "use strict";
     return is("a")("b");
 });
@@ -853,14 +810,14 @@ function keys_or_indexes(v) {
 }
 
 /* jshint strict: true, undef: true */
-/* globals spec_returns, be, is_something, to_string, not, is_empty */
+/* globals spec, be, is_something, to_string, not, is_empty */
 /* globals exports */
-spec_returns('"4"', function to_value_returns_a_value() {
+spec('"4"', function to_value_returns_a_value() {
     "use strict";
     return to_value(4, to_string, to_string);
 });
 
-spec_returns(5, function to_value_returns_first_value_if_no_funcs() {
+spec(5, function to_value_returns_first_value_if_no_funcs() {
     "use strict";
     return to_value(5);
 });
@@ -1013,25 +970,25 @@ function combine(_vals) {
 }
 
 /* jshint strict: true, undef: true */
-/* globals spec_returns, is_something, reduce, length, length_gt, is_something, to_string, is_function, is_null */
+/* globals spec, is_something, reduce, length, length_gt, is_something, to_string, is_function, is_null */
 /* globals be, is_boolean, is */
 /* globals exports */
-spec_returns(true, function() {
+spec(true, function() {
     "use strict";
     return not(is_something)(null);
 });
 
-spec_returns(true, function() {
+spec(true, function() {
     "use strict";
     return not(length_gt(2), is_null)([ 1 ]);
 });
 
-spec_returns(false, function() {
+spec(false, function() {
     "use strict";
     return not(is_something)(1);
 });
 
-spec_returns(false, function() {
+spec(false, function() {
     "use strict";
     return not(is_something, is_null)(1);
 });
@@ -1106,7 +1063,7 @@ function length_of(num) {
 }
 
 /* jshint strict: true, undef: true */
-/* globals spec, spec_throws, _, to_string */
+/* globals spec, _, to_string */
 /* globals exports */
 spec(length, [ [ 1 ] ], 1);
 
@@ -1121,7 +1078,7 @@ spec(length, [ {
     length: 3
 } ], 3);
 
-spec_throws(length, [ {} ], "invalid value for l(): {}");
+spec(length, [ {} ], new Error("invalid value for l(): {}"));
 
 exports.length = length;
 
@@ -1186,15 +1143,15 @@ function has_own_property(name) {
 }
 
 /* jshint strict: true, undef: true */
-/* globals spec, spec_throws */
+/* globals spec */
 /* globals exports */
 spec(is_anything, [ false ], true);
 
 spec(is_anything, [ true ], true);
 
-spec_throws(is_anything, [ null ], "null found");
+spec(is_anything, [ null ], new Error("null found"));
 
-spec_throws(is_anything, [ undefined ], "undefined found");
+spec(is_anything, [ undefined ], new Error("undefined found"));
 
 exports.is_anything = is_anything;
 
@@ -1271,6 +1228,15 @@ function length_gt(num) {
     return function(v) {
         return v.length > num;
     };
+}
+
+/* jshint strict: true, undef: true */
+/* globals exports, _ */
+exports.is_regexp = is_regexp;
+
+function is_regexp(val) {
+    "use strict";
+    return _.isRegExp(val);
 }
 
 /* jshint strict: true, undef: true */
@@ -1490,7 +1456,7 @@ function standard_name(str) {
 }
 
 /* jshint strict: true, undef: true */
-/* globals spec, is_num, _, to_string */
+/* globals spec, is_arguments, is_num, _, to_string */
 /* globals exports */
 spec(arguments_are, [ [ 1 ], is_num, is_num ], new Error("Wrong # of arguments: expected: 2 actual: 1)"));
 
@@ -1498,6 +1464,7 @@ exports.arguments_are = arguments_are;
 
 function arguments_are(args_o, _funcs) {
     "use strict";
+    if (!is_arguments(args_o)) throw new Error("not arguments: " + to_string(args_o));
     var funcs = _.toArray(arguments);
     var args = funcs.shift();
     if (args.length !== funcs.length) {
@@ -1564,10 +1531,10 @@ function identity(x) {
 }
 
 /* jshint strict: true, undef: true */
-/* globals spec_returns, _, to_string, is_enumerable, length, keys_or_indexes */
+/* globals spec, _, to_string, is_enumerable, length, keys_or_indexes */
 /* globals exports */
 // TODO: spec :eachs does not alter inputs
-spec_returns([ "01", "12" ], function eachs_passes_key_and_val() {
+spec([ "01", "12" ], function eachs_passes_key_and_val() {
     "use strict";
     var v = [];
     eachs([ 1, 2 ], function(kx, x) {
@@ -1576,7 +1543,7 @@ spec_returns([ "01", "12" ], function eachs_passes_key_and_val() {
     return v;
 });
 
-spec_returns([ "1a", "1b", "2a", "2b" ], function eachs_passes_vals_of_multiple_colls() {
+spec([ "1a", "1b", "2a", "2b" ], function eachs_passes_vals_of_multiple_colls() {
     "use strict";
     var v = [];
     eachs([ 1, 2 ], [ "a", "b" ], function(kx, x, ky, y) {
@@ -1585,7 +1552,7 @@ spec_returns([ "1a", "1b", "2a", "2b" ], function eachs_passes_vals_of_multiple_
     return v;
 });
 
-spec_returns([ "onea", "twoa" ], function eachs_passes_keys_and_vals_of_arrays_and_plain_objects() {
+spec([ "onea", "twoa" ], function eachs_passes_keys_and_vals_of_arrays_and_plain_objects() {
     "use strict";
     var v = [];
     eachs({
@@ -1597,7 +1564,7 @@ spec_returns([ "onea", "twoa" ], function eachs_passes_keys_and_vals_of_arrays_a
     return v;
 });
 
-spec_returns([ "1a", "1b", "2a", "2b" ], function eachs_passes_vals_of_plain_object_and_array() {
+spec([ "1a", "1b", "2a", "2b" ], function eachs_passes_vals_of_plain_object_and_array() {
     "use strict";
     var v = [];
     eachs({
@@ -1609,7 +1576,7 @@ spec_returns([ "1a", "1b", "2a", "2b" ], function eachs_passes_vals_of_plain_obj
     return v;
 });
 
-spec_returns([], function eachs_returns_empty_array_if_one_array_is_empty() {
+spec([], function eachs_returns_empty_array_if_one_array_is_empty() {
     "use strict";
     var v = [];
     eachs({
@@ -1686,20 +1653,20 @@ function is_array_of_functions(a) {
 }
 
 /* jshint strict: true, undef: true */
-/* globals spec_returns, identity, to_string, is_function, _, apply_function */
+/* globals spec, identity, to_string, is_function, _, apply_function */
 /* globals exports */
-spec_returns(true, function to_function_returns_sole_function() {
+spec(true, function to_function_returns_sole_function() {
     "use strict";
     var f = function() {};
     return to_function(f) === f;
 });
 
-spec_returns(2, function to_function_returns_an_identity_function() {
+spec(2, function to_function_returns_an_identity_function() {
     "use strict";
     return to_function(2)();
 });
 
-spec_returns('"3"', function to_function_returns_a_function() {
+spec('"3"', function to_function_returns_a_function() {
     "use strict";
     return to_function(identity, to_string, to_string)(3);
 });
@@ -1754,7 +1721,7 @@ exports.is_arguments = is_arguments;
 
 function is_arguments(v) {
     "use strict";
-    return is_something(v) && or(is(0), is_positive)(v.length) && v.hasOwnProperty("callee");
+    return is_something(v) && v.constructor === arguments.constructor;
 }
 
 /* jshint strict: true, undef: true */
@@ -1815,10 +1782,11 @@ function App() {
     return App;
 }
 
-/* jshint node: true, strict: true, undef: true */
-/* globals is_array, spec_returns, arguments_are, reduce_eachs, copy_value, do_it, and, is, is_plain_object */
-/* globals to_string, apply_function, has_length, is_function, msg_match, function_to_name */
-spec_returns(3, function() {
+/* jshint strict: true, undef: true */
+/* globals is_array, spec, arguments_are, reduce_eachs, copy_value, do_it, and, is, is_plain_object */
+/* globals is_string, be, not, to_string, apply_function, has_length, is_function, msg_match, function_to_name */
+/* globals exports, is_something, is_empty, _ */
+spec(3, function() {
     "use strict";
     var counter = 0;
     var data = {
@@ -1851,6 +1819,15 @@ function Computer() {
         if (!is_array(State.funcs)) State.funcs = [];
         var funcs = State.funcs.slice(0);
         switch (action) {
+          case "push into":
+            arguments_are(arguments, is("push into"), is_string, is_something);
+            var name = be(not(is_empty), _.trim(arguments[1]));
+            var new_val = arguments[2];
+            if (!is_something(State.values)) State.values = {};
+            if (!is_something(State.values[name])) State.values[name] = [];
+            State.values[name] = [].concat(State.values).concat([ new_val ]);
+            return true;
+
           case "push":
             arguments_are(arguments, is("push"), and(is_function, has_length(1)));
             var func = arguments[1];
@@ -1880,8 +1857,8 @@ function Computer() {
 }
 
 /* jshint strict: true, undef: true */
-/* globals App, be, is_string, key_to_bool, is_boolean, $, spec_dom, spec_returns */
-spec_returns("", function() {
+/* globals App, be, is_string, key_to_bool, is_boolean, $, spec_dom, spec */
+spec("", function() {
     // show: shows element when key is true
     "use strict";
     spec_dom().html('<div data-do="show is_factor" style="display: none;">Factor</div>');
@@ -1894,7 +1871,7 @@ spec_returns("", function() {
     return spec_dom().find("div").attr("style");
 });
 
-spec_returns("display: none;", function() {
+spec("display: none;", function() {
     // does not alter element msg is missing key
     "use strict";
     spec_dom().html('<div data-do="show is_pearl" style="display: none;">Pearl</div>');
@@ -1920,15 +1897,15 @@ function show(msg) {
 }
 
 /* jshint strict: true, undef: true */
-/* globals spec_returns, spec_dom, $, _, is_empty, new_id */
-spec_returns("has id", function dom_id_adds_id_attr_to_element() {
+/* globals spec, spec_dom, $, _, is_empty, new_id */
+spec("has id", function dom_id_adds_id_attr_to_element() {
     "use strict";
     spec_dom().html("<div>has id</div>");
     var id = dom_id(spec_dom().find("div:first"));
     return $("#" + id).html();
 });
 
-spec_returns("dom_id_does_not_override_original_id", function dom_id_does_not_override_original_id() {
+spec("dom_id_does_not_override_original_id", function dom_id_does_not_override_original_id() {
     "use strict";
     spec_dom().html('<div id="dom_id_does_not_override_original_id">override id</div>');
     return dom_id(spec_dom().find("div:first"));
@@ -1959,8 +1936,8 @@ function is_partial($) {
 }
 
 /* jshint strict: true, undef: true */
-/* globals spec_returns, is_num, is_empty */
-spec_returns(false, function() {
+/* globals spec, is_num, is_empty */
+spec(false, function() {
     // next_id returns a different value than previous
     "use strict";
     return next_id() === next_id();
@@ -1975,8 +1952,8 @@ function next_id() {
 }
 
 /* jshint strict: true, undef: true */
-/* globals is_plain_object, be, $, spec_dom, spec_returns, App, is_string, key_to_bool, is_boolean */
-spec_returns("", function _show_hide() {
+/* globals is_plain_object, be, $, spec_dom, spec, App, is_string, key_to_bool, is_boolean */
+spec("", function _show_hide() {
     // === show_hide shows element if key = true
     "use strict";
     spec_dom().html('<div data-do="show_hide is_ruby" style="display: none;">Ruby</div>');
@@ -1989,7 +1966,7 @@ spec_returns("", function _show_hide() {
     return spec_dom().find("div").attr("style");
 });
 
-spec_returns("display: none;", function _show_hide() {
+spec("display: none;", function _show_hide() {
     // === show_hide hides element if key = false
     "use strict";
     spec_dom().html('<div data-do="show_hide is_ruby" style="">Perl</div>');
@@ -2015,7 +1992,7 @@ function show_hide(msg) {
 }
 
 /* jshint strict: true, undef: true */
-/* globals spec, _, $, dom_attrs, spec_returns */
+/* globals spec, _, $, dom_attrs, spec */
 // it 'returns an Array when passed a String'
 spec(node_array, [ '<div id="111" show_if="happy?"><span></span></div>' ], [ {
     tag: "DIV",
@@ -2032,7 +2009,7 @@ spec(node_array, [ '<div id="111" show_if="happy?"><span></span></div>' ], [ {
     } ]
 } ]);
 
-spec_returns([ "a", undefined, "b" ], function node_array_returns_raw_text_nodes() {
+spec([ "a", undefined, "b" ], function node_array_returns_raw_text_nodes() {
     "use strict";
     var arr = node_array("<div><span>a<span></span>b</span></div>");
     return _.pluck(arr[0].childs[0].childs, "nodeValue");
@@ -2102,14 +2079,14 @@ function new_id(prefix) {
 }
 
 /* jshint strict: true, undef: true */
-/* globals spec_returns, spec_dom, _, next_id, $ */
-spec_returns("top_descendents_returns_self_if_selector_matches", function top_descendents_returns_self_if_selector_matches() {
+/* globals spec, spec_dom, _, next_id, $ */
+spec("top_descendents_returns_self_if_selector_matches", function top_descendents_returns_self_if_selector_matches() {
     "use strict";
     spec_dom().html('<div id="top_descendents_returns_self_if_selector_matches" template="num"></div>');
     return top_descendents(spec_dom().children(), "*[template]")[0].attr("id");
 });
 
-spec_returns([ "SPAN", "SPAN" ], function() {
+spec([ "SPAN", "SPAN" ], function() {
     // it 'returns first children matching selector'
     "use strict";
     spec_dom().html('<div><span class="top"></span><span class="top"></span></div>');
@@ -2118,7 +2095,7 @@ spec_returns([ "SPAN", "SPAN" ], function() {
     });
 });
 
-spec_returns([ [ "DIV", "top_descendents_1" ] ], function() {
+spec([ [ "DIV", "top_descendents_1" ] ], function() {
     // does not return nested matching descendants if ancestor matches selector'
     "use strict";
     var id = next_id();
@@ -2141,16 +2118,16 @@ function top_descendents(dom, selector) {
 }
 
 /* jshint strict: true, undef: true */
-/* globals spec_returns, spec_dom, _, $ */
+/* globals spec, spec_dom, _, $ */
 // it 'returns value of the attribute'
-spec_returns("one", function remove_attr_returns_value_of_the_attribute() {
+spec("one", function remove_attr_returns_value_of_the_attribute() {
     "use strict";
     spec_dom().html('<div show_if="one"></div>');
     return remove_attr(spec_dom().find("div:first"), "show_if");
 });
 
 // it 'removes attribute from node'
-spec_returns({
+spec({
     id: "remove_attr_1"
 }, function remove_attr_removes_attribute_from_node() {
     "use strict";
@@ -2180,8 +2157,8 @@ function is_dev() {
 }
 
 /* jshint strict: true, undef: true */
-/* globals App, is_string, key_to_bool, is_string, $, spec_dom, spec_returns, be */
-spec_returns("display: none;", function() {
+/* globals App, is_string, key_to_bool, is_string, $, spec_dom, spec, be */
+spec("display: none;", function() {
     // hide: hides element when key is true
     "use strict";
     spec_dom().html('<div data-do="hide is_factor">Factor</div>');
@@ -2194,7 +2171,7 @@ spec_returns("display: none;", function() {
     return spec_dom().find("div").attr("style");
 });
 
-spec_returns("", function() {
+spec("", function() {
     // does not alter element if msg has missing key
     "use strict";
     spec_dom().html('<div data-do="hide is_dog" style="">Dog</div>');
@@ -2235,10 +2212,10 @@ function outer_html(raw) {
 }
 
 /* jshint strict: true, undef: true */
-/* globals spec, spec_returns, to_value, html_escape, DOMParser */
+/* globals spec, spec, to_value, html_escape, DOMParser */
 spec(html_unescape, [ "&lt;p&gt;&#123;&#123;1&#125;&#125;&lt;/p&gt;" ], "<p>{{1}}</p>");
 
-spec_returns("<p>{{1}}</p>", function html_unescape_multiple_times() {
+spec("<p>{{1}}</p>", function html_unescape_multiple_times() {
     "use strict";
     return to_value("<p>{{1}}</p>", html_escape, html_escape, html_escape, html_unescape, html_unescape, html_unescape);
 });
@@ -2273,8 +2250,8 @@ function on_click(msg) {
 /* jshint strict: true, undef: true */
 /* globals App, html_escape, to_function, dot, map_x, to_$, $, msg_match, key_to_bool, be */
 /* globals is_string, eachs, html_unescape, Mustache, dom_id */
-/* globals spec_returns, spec_dom, _, is_plain_object, is_array */
-spec_returns([ "SCRIPT", "SPAN", "P" ], function template_replaces_elements_by_default() {
+/* globals spec, spec_dom, _, is_plain_object, is_array */
+spec([ "SCRIPT", "SPAN", "P" ], function template_replaces_elements_by_default() {
     "use strict";
     spec_dom().html('<script type="application/template" data-do="template is_text replace">' + html_escape("<span>{{a1}}</span>") + html_escape("<p>{{a2}}</p>") + "</script>");
     App("run", {
@@ -2297,7 +2274,7 @@ spec_returns([ "SCRIPT", "SPAN", "P" ], function template_replaces_elements_by_d
     return _.map(spec_dom().children(), dot("tagName"));
 });
 
-spec_returns([ "SCRIPT", "P", "DIV" ], function template_renders_elements_below_by_default() {
+spec([ "SCRIPT", "P", "DIV" ], function template_renders_elements_below_by_default() {
     "use strict";
     spec_dom().html('<script type="application/template" data-do="template is_text replace">' + html_escape("<p>one</p>") + html_escape("<div>two</div>") + "</script>");
     App("run", {
@@ -2309,7 +2286,7 @@ spec_returns([ "SCRIPT", "P", "DIV" ], function template_renders_elements_below_
     return _.map(spec_dom().children(), dot("tagName"));
 });
 
-spec_returns("123", function template_renders_nested_vars() {
+spec("123", function template_renders_nested_vars() {
     "use strict";
     spec_dom().html('<script type="application/template" data-do="template is_text replace">' + html_escape("<p>{{a}}</p>") + html_escape("<p>{{b}}</p>") + html_escape('<script type="application/template" data-do="template is_val replace">') + html_escape(html_escape("<p>{{c}}</p>")) + html_escape("</script>") + "</script>");
     App("run", {
@@ -2331,7 +2308,7 @@ spec_returns("123", function template_renders_nested_vars() {
     return map_x(spec_dom().find("p"), to_function(to_$, dot("html()"))).join("");
 });
 
-spec_returns([ "P", "P", "SCRIPT" ], function template_renders_above() {
+spec([ "P", "P", "SCRIPT" ], function template_renders_above() {
     "use strict";
     spec_dom().html('<script type="application/template" data-do="template is_text above">' + html_escape("<p>{{a}}</p>") + html_escape("<p>{{b}}</p>") + "</script>");
     App("run", {
@@ -2347,7 +2324,7 @@ spec_returns([ "P", "P", "SCRIPT" ], function template_renders_above() {
     return map_x(spec_dom().children(), dot("tagName"));
 });
 
-spec_returns([ "SCRIPT", "SPAN", "P" ], function template_renders_below() {
+spec([ "SCRIPT", "SPAN", "P" ], function template_renders_below() {
     "use strict";
     spec_dom().html('<script type="application/template" data-do="template is_text bottom">' + html_escape("<span>{{a}}</span>") + html_escape("<p>{{b}}</p>") + "</script>");
     App("run", {
@@ -2363,7 +2340,7 @@ spec_returns([ "SCRIPT", "SPAN", "P" ], function template_renders_below() {
     return map_x(spec_dom().children(), dot("tagName"));
 });
 
-spec_returns("none", function template_renders_dum_functionality() {
+spec("none", function template_renders_dum_functionality() {
     "use strict";
     spec_dom().html('<script type="application/template" data-do="template render_template replace">' + html_escape('<div><span id="template_1" data-do="hide is_num">{{num.word}}</span></div>') + "</script>");
     App("run", {
@@ -2483,11 +2460,11 @@ function submit_form(msg) {
 }
 
 /* jshint strict: true, undef: true */
-/* globals spec_returns, spec_dom, html_escape, App, wait_max, $, msg_match, length */
+/* globals spec, spec_dom, html_escape, App, wait_max, $, msg_match, length */
 /* globals eachs, split_on, is_empty, to_string, name_to_function, apply_function, dom_id */
 // ==== Integration tests =====================================================
 // ============================================================================
-spec_returns("yo mo", function button_submit(fin) {
+spec("yo mo", function button_submit(fin) {
     "use strict";
     spec_dom().html('<form id="the_form" action="/repeat">' + '<script type="application/template" data-do="template ok_the_form replace">' + html_escape("<div>{{val1}} {{val2}}</div>") + '</script><button onclick="return false;" data-do="on_click submit_form">Submit</button>' + '<input type="hidden" name="val1" value="yo" />' + '<input type="hidden" name="val2" value="mo" />' + "</form>");
     App("run", {
