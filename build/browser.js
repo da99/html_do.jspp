@@ -149,7 +149,7 @@ function spec() {
     if (!spec.allow) return undefined;
     var args = _.toArray(arguments);
     if (length(args) !== 1) {
-        App("push into", "specs", args);
+        App("insert into", "specs", args);
         return true;
     }
     // === switch
@@ -1808,14 +1808,14 @@ function App() {
 /* globals is_string, be, not, to_string, apply_function, has_length, is_function, msg_match, function_to_name */
 /* globals reduce, log, exports, is_something, is_empty, _ */
 /* globals is_null, is_undefined, is_regexp, is_error, is_arguments */
-spec(3, function() {
+spec(3, function runs_message_function() {
     "use strict";
     var counter = 0;
     var data = {
         my_name: "happy"
     };
     var state = new Computer();
-    state("push", function(msg) {
+    state("insert message function", function(msg) {
         if (!msg_match({
             my_name: "happy"
         }, msg)) return;
@@ -1831,51 +1831,61 @@ exports.Computer = Computer;
 
 function Computer() {
     "use strict";
+    State.values = {};
+    State.funcs = [];
     return State;
+    function _copy_(v) {
+        return copy_value(v, is_function, is_null, is_undefined, is_error, is_arguments, is_regexp);
+    }
     function State(action, args) {
         if (action === "invalid") {
             State.is_invalid = true;
             return;
         }
-        var name, old_vals;
+        var name, old_vals, default_val;
         if (State.is_invalid === true) throw new Error("state is invalid.");
-        if (!is_array(State.funcs)) State.funcs = [];
         var funcs = State.funcs.slice(0);
         switch (action) {
-          case "push into":
-            arguments_are(arguments, is("push into"), is_string, is_something);
+          case "insert message function":
+            var func = be(and(is_function, has_length(1)), arguments[1]);
+            State.funcs = funcs.slice(0).concat([ func ]);
+            return true;
+
+          case "insert into":
+            arguments_are(arguments, is("insert into"), is_string, is_something);
             name = be(not(is_empty), _.trim(arguments[1]));
             var new_val = arguments[2];
-            if (!is_something(State.values)) State.values = {};
             if (!is_something(State.values[name])) State.values[name] = [];
             old_vals = State.values[name];
             State.values[name] = [].concat(old_vals).concat([ new_val ]);
             return true;
 
           case "get":
-            var vals = State.values || {};
+            var vals = State.values;
             name = reduce(arguments[1], be(is_string), _.trim, be(not(is_empty)));
-            var val_has_been_set = is_something(State.values) && is_something(State.values[name]);
+            var val_has_been_set = is_something(State.values[name]);
             var has_default_val = arguments.length > 2;
-            var default_val = has_default_val && be(is_something, arguments[2]);
+            default_val = has_default_val && be(is_something, arguments[2]);
             if (!val_has_been_set && !has_default_val) throw new Error("Not set: " + to_string(name));
-            // log(copy_value(State.values[name], is_function, is_null, is_undefined, is_error, is_arguments, is_regexp) );
-            if (val_has_been_set) return copy_value(State.values[name], is_function, is_null, is_undefined, is_error, is_arguments, is_regexp);
+            if (val_has_been_set) return _copy_(State.values[name]);
             return default_val;
 
-          case "push":
-            arguments_are(arguments, is("push"), and(is_function, has_length(1)));
-            var func = arguments[1];
-            if (func.length !== 1) throw new Error("function.length needs to === 1: " + function_to_name(func));
-            State.funcs = funcs.slice(0).concat([ func ]);
-            return true;
+          case "get or set":
+            name = be(not(is_empty), _.trim(arguments[1]));
+            default_val = be(is_something, arguments[2]);
+            if (!State.values.hasOwnProperty(name)) State.values[name] = default_val;
+            return _copy_(State.values[name]);
+
+          case "get counter":
+            name = be(not(is_empty), _.trim(arguments[1]));
+            break;
 
           case "run":
             arguments_are(arguments, is("run"), is_plain_object);
             var msg = arguments[1];
             return reduce_eachs([], funcs, function(acc, _ky, func) {
                 try {
-                    var msg_copy = copy_value(msg);
+                    var msg_copy = _copy_(msg);
                     acc.push(apply_function(func, [ msg_copy ]));
                 } catch (e) {
                     State("invalid");
@@ -1940,7 +1950,7 @@ function show(msg) {
     "use strict";
     var dom_id = be(is_string, msg.dom_id);
     var key = be(is_string, msg.args[0]);
-    App("push", function _show_(msg) {
+    App("insert message function", function _show_(msg) {
         var answer = key_to_bool(key, msg);
         if (is_boolean(answer) !== true) return;
         $("#" + dom_id).show();
@@ -2035,7 +2045,7 @@ function show_hide(msg) {
     "use strict";
     var dom_id = be(is_string, msg.dom_id);
     var key = be(is_string, msg.args[0]);
-    App("push", function _show_hide_(msg) {
+    App("insert message function", function _show_hide_(msg) {
         if (!is_plain_object(msg)) return;
         var answer = key_to_bool(key, msg);
         if (!is_boolean(answer)) return;
@@ -2240,7 +2250,7 @@ function hide(msg) {
     "use strict";
     var dom_id = be(is_string, msg.dom_id);
     var key = be(is_string, msg.args[0]);
-    App("push", function _hide_(msg) {
+    App("insert message function", function _hide_(msg) {
         if (key_to_bool(key, msg) !== true) return;
         $("#" + dom_id).hide();
         return "hide: " + msg.dom_id;
@@ -2462,7 +2472,7 @@ function template(msg) {
         });
         return new_ids;
     }
-    App("push", _template_);
+    App("insert message function", _template_);
 }
 
 /* jshint strict: true, undef: true */
@@ -2549,7 +2559,7 @@ spec("yo mo", function button_submit(fin) {
 
 // === Adds functionality:
 //     <div data-do="my_func arg1 arg2">content</div>
-App("push", function process_data_dos(msg) {
+App("insert message function", function process_data_dos(msg) {
     "use strict";
     var WHITESPACE = /\s+/g;
     // The other functions
