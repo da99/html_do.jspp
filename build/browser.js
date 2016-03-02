@@ -98,7 +98,7 @@ function spec_dom(cmd) {
 /* globals exports, is_empty, length, is_function, is_plain_object */
 /* globals $, process */
 /* globals window, _, is_empty, function_to_name, spec_dom */
-/* globals _, to_string, to_function_string, to_match_string, log */
+/* globals _, is_array, to_string, to_function_string, to_match_string, log */
 /* globals exports, is_string, is_regexp, spec */
 // === Examples:
 // spec(my_func, ["my args"], "my expected value");
@@ -114,7 +114,7 @@ function spec_dom(cmd) {
 // });
 //
 // === Used by other functions to continue running specs:
-// spec_run({
+// spec({
 //    list: [],
 //    i:"init"|0|positive,
 //    on_finish: my_callback
@@ -135,6 +135,7 @@ function spec() {
     // === switch
     if (args[0] !== "run" && !is_function(args[0]) && !is_plain_object(args[0])) throw new Error("Unknown value: " + to_string(args[0]));
     var specs = App("get", "specs", []);
+    log(specs);
     if (is_empty(specs)) throw new Error("No specs found.");
     var on_fin = is_function(arguments[0]) && arguments[0] || function(msg) {
         log("      ======================================");
@@ -219,7 +220,9 @@ function spec() {
         }
     });
     // === each
-    on_fin();
+    on_fin({
+        total: specs.length
+    });
     return true;
 }
 
@@ -700,7 +703,7 @@ function reduce(value, _functions) {
 
 /* jshint strict: true, undef: true */
 /* globals spec, arguments_are, is_something, is_boolean, is_array, _, is_plain_object, reduce_eachs, to_string */
-/* globals exports */
+/* globals exports, is_arguments, is_function, length, log */
 spec({
     a: {
         b: "c"
@@ -720,20 +723,31 @@ spec({
     return orig;
 });
 
+spec(copy_value, [ [ 1, copy_value ], is_function ], [ 1, copy_value ]);
+
 exports.copy_value = copy_value;
 
 function copy_value(v) {
     "use strict";
-    arguments_are(arguments, is_something);
+    var allow_these = [];
+    if (length(arguments) < 2) {
+        arguments_are(arguments, is_something);
+    } else {
+        allow_these = _.toArray(arguments).slice(1);
+    }
     var type = typeof v;
     if (type === "string" || type === "number" || is_boolean(v)) return v;
-    if (is_array(v)) return _.map(v, function(v) {
-        return copy_value(v);
+    if (is_array(v)) return _.map(v, function(new_v) {
+        return copy_value.apply(null, [ new_v ].concat(allow_these));
     });
     if (is_plain_object(v)) return reduce_eachs({}, v, function(acc, kx, x) {
-        acc[kx] = copy_value(x);
+        acc[kx] = copy_value.apply(null, [ x ].concat(allow_these));
         return acc;
     });
+    var return_val = _.find(allow_these, function(f) {
+        return f(v);
+    });
+    if (return_val) return v;
     throw new Error("Value can't be copied: " + to_string(v));
 }
 
@@ -1334,6 +1348,20 @@ function is_boolean(v) {
 }
 
 /* jshint strict: true, undef: true */
+/* globals spec, to_string, is_something */
+/* globals exports */
+spec(is_error, [ new Error("anything") ], true);
+
+spec(is_error, [ "anything" ], false);
+
+exports.is_error = is_error;
+
+function is_error(v) {
+    "use strict";
+    return is_something(v) && v.constructor === Error;
+}
+
+/* jshint strict: true, undef: true */
 /* globals spec, to_string, _, is_enumerable, is_undefined, length, keys_or_indexes */
 /* globals exports */
 // TODO: spec: does not modify arr
@@ -1778,14 +1806,14 @@ function App() {
     if (!App._computer) {
         App._computer = new Computer();
     }
-    if (!is_empty(arguments)) App._computer.apply(null, arguments);
-    return App;
+    return App._computer.apply(null, arguments);
 }
 
 /* jshint strict: true, undef: true */
 /* globals is_array, spec, arguments_are, reduce_eachs, copy_value, do_it, and, is, is_plain_object */
 /* globals is_string, be, not, to_string, apply_function, has_length, is_function, msg_match, function_to_name */
-/* globals exports, is_something, is_empty, _ */
+/* globals reduce, log, exports, is_something, is_empty, _ */
+/* globals is_null, is_undefined, is_regexp, is_error, is_arguments */
 spec(3, function() {
     "use strict";
     var counter = 0;
@@ -1815,18 +1843,31 @@ function Computer() {
             State.is_invalid = true;
             return;
         }
+        var name, old_vals;
         if (State.is_invalid === true) throw new Error("state is invalid.");
         if (!is_array(State.funcs)) State.funcs = [];
         var funcs = State.funcs.slice(0);
         switch (action) {
           case "push into":
             arguments_are(arguments, is("push into"), is_string, is_something);
-            var name = be(not(is_empty), _.trim(arguments[1]));
+            name = be(not(is_empty), _.trim(arguments[1]));
             var new_val = arguments[2];
             if (!is_something(State.values)) State.values = {};
             if (!is_something(State.values[name])) State.values[name] = [];
-            State.values[name] = [].concat(State.values).concat([ new_val ]);
+            old_vals = State.values[name];
+            State.values[name] = [].concat(old_vals).concat([ new_val ]);
             return true;
+
+          case "get":
+            var vals = State.values || {};
+            name = reduce(arguments[1], be(is_string), _.trim, be(not(is_empty)));
+            var val_has_been_set = is_something(State.values) && is_something(State.values[name]);
+            var has_default_val = arguments.length > 2;
+            var default_val = has_default_val && be(is_something, arguments[2]);
+            if (!val_has_been_set && !has_default_val) throw new Error("Not set: " + to_string(name));
+            // log(copy_value(State.values[name], is_function, is_null, is_undefined, is_error, is_arguments, is_regexp) );
+            if (val_has_been_set) return copy_value(State.values[name], is_function, is_null, is_undefined, is_error, is_arguments, is_regexp);
+            return default_val;
 
           case "push":
             arguments_are(arguments, is("push"), and(is_function, has_length(1)));

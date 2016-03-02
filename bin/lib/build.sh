@@ -11,12 +11,13 @@ build () {
     rm -f "$file".map
     names="$@"
     files="$($0 top-build-files $names) $($0 body-build-files $names) $($0 bottom-build-files $names)"
-    jshint $files
     uglifyjs                           \
       -b --comments all                 \
       --screw-ie8                        \
       --source-map "$file".map            \
       $files > "$file"
+
+    { jshint "$file" &>/dev/null; } || { jshint $files; }
 
     dups="$($0 print-dups "$file" || :)"
     if [[ ! -z "$dups" ]]; then
