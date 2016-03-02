@@ -218,6 +218,11 @@ function spec() {
   on_fin({total: specs.length});
   return true;
 
+  function actual_expect(actual, expect) {
+    return _.isEqual(actual, expect) ||
+      (_.isString(actual) && _.isRegExp(expect) && actual.match(expect));
+  }
+
   function returns(expect, f) {
     if (!(arguments.length === 2 && _.isFunction(f)))
       return false;
@@ -226,11 +231,22 @@ function spec() {
       throw new Error('async test not done yet.');
     } // if f.length === 0
 
+    var actual;
     var sig = function_to_name(f);
-    var actual = f();
+
+    try {
+      actual = f();
+    } catch (e) {
+      actual = e;
+      if (_.isString(expect) || _.isRegExp(expect))
+        actual = e.message;
+    }
+
     var msg = to_match_string(actual, expect);
-    if (!_.isEqual(actual,expect))
+    if (!actual_expect(actual,expect)) {
+      log([to_string(expect), to_string(f)]);
       throw new Error("!!! Failed: " + sig + ' -> ' + msg);
+    }
     log('=== Passed: ' + sig + ' -> ' + msg);
     return true;
 
@@ -248,7 +264,7 @@ function spec() {
       var sig = function_to_name(f);
       f(function (actual) {
         var msg = to_match_string(actual, expect);
-        if (!_.isEqual(actual,expect))
+        if (!actual_expect(actual,expect))
           throw new Error("!!! Failed: " + sig + ' -> ' + msg);
         log('=== Passed: ' + sig + ' -> ' + msg);
         fin();
@@ -276,7 +292,7 @@ function spec() {
 
     var msg = to_match_string(actual, expect);
 
-    if (actual !== expect && !_.isEqual(actual, expect)) {
+    if (!actual_expect(actual, expect)) {
       log(f, args, expect);
       throw new Error("!!! Failed: " + sig + ' -> ' + msg );
     }
@@ -679,7 +695,7 @@ function msg_match(pattern, msg) {
     if (is_empty(pattern) !== is_empty(msg))
       return false;
 
-    return !_.detect(_.keys(pattern), function (key) {
+    return !_.find(_.keys(pattern), function (key) {
       var target = pattern[key];
       if (msg[key] === target)
         return !true;
@@ -877,7 +893,7 @@ function is_null(v) {
 }
 /* jshint strict: true, undef: true */
 /* globals spec, _, is_arguments, is_plain_object, is_function */
-/* globals exports */
+/* globals exports, log */
 
 
 
@@ -890,8 +906,6 @@ spec(to_string, [{a:'b', c:'d'}], '{"a":"b","c":"d"}');
 exports.to_string = to_string;
 function to_string(val) {
   "use strict";
-
-  var v = val;
 
   if (val === null)      return 'null';
   if (val === undefined) return 'undefined';
@@ -908,6 +922,7 @@ function to_string(val) {
     return to_string(_.toArray(val));
 
   if (is_plain_object(val)) {
+
     return '{' + _.reduce(_.keys(val), function (acc, k) {
       acc.push(to_string(k) + ':' + to_string(val[k]));
       return acc;
@@ -917,20 +932,22 @@ function to_string(val) {
   if (is_function(val) && val.hasOwnProperty('to_string_name'))
     return val.to_string_name;
 
-  if (_.isFunction(v))
-    return (v.name) ? v.name + ' (function)' : v.toString();
+  if (_.isFunction(val))
+    return (val.name) ? val.name + ' (function)' : val.toString();
 
-  if (_.isString(v))
-    return '"' + v + '"';
+  if (_.isString(val))
+    return '"' + val + '"';
 
-  if (_.isArray(v))
-    return '[' + _.map(_.toArray(v), to_string).join(', ') + '] (Array)';
+  if (_.isArray(val))
+    return '[' + _.map(_.toArray(val), to_string).join(', ') + '] (Array)';
 
-  if (v.constructor === arguments.constructor)
-    return '[' + _.map(_.toArray(v), to_string).join(', ') + '] (arguments)';
+  if (val.constructor === arguments.constructor)
+    return '[' + _.map(_.toArray(val), to_string).join(', ') + '] (arguments)';
 
   return val.toString();
+
 } // === func
+
 /* jshint strict: true, undef: true */
 /* globals to_string, function_sig */
 /* globals exports */
@@ -1014,9 +1031,10 @@ function combine(_vals) {
 /* globals exports */
 
 spec(true, function () { "use strict"; return not(is_something)(null); });
-spec(true, function () { "use strict"; return not(length_gt(2), is_null)([1]); });
+spec(true, function () { "use strict"; return not(length_gt(2))([1]); });
 spec(false, function () { "use strict"; return not(is_something)(1); });
-spec(false, function () { "use strict"; return not(is_something, is_null)(1); });
+spec(false, function () { "use strict"; return not(is(1))(1); });
+spec(not, [is_something, is_null], /should be/);
 
 exports.not = not;
 function not(func) {
@@ -1035,25 +1053,6 @@ function not(func) {
       throw new Error('Function did not return boolean: ' + to_string(func) + ' -> ' + to_string(result));
     return !result;
   };
-}
-/* jshint strict: true, undef: true */
-/* globals spec, is_string, to_string, _ */
-
-
-spec(name_to_function, ["name_to_function"], name_to_function);
-
-exports.name_to_function = name_to_function;
-function name_to_function(raw) {
-  "use strict";
-
-  /* globals window, global */
-/* globals exports */
-  if (!is_string(raw))
-    throw new Error('Not a string: ' + to_string(raw));
-  var str = _.trim(raw);
-  if (typeof str !== 'function')
-    throw new Error('Function not found: ' + to_string(raw));
-  return (typeof 'window' !== 'undefined') ? window[str] : global[str];
 }
 /* jshint strict: true, undef: true */
 /* globals _ */
@@ -1106,7 +1105,7 @@ spec(length,        [[1]], 1);
 spec(length,        [function () {}], 0);
 spec(length,        [function (a) { "use strict"; return a;}], 1);
 spec(length,        [{length: 3}], 3);
-spec(length, [{}],  new Error('invalid value for l(): {}'));
+spec(length, [3],  new Error('Invalid value for length: 3'));
 
 exports.length = length;
 function length(raw_v) {
@@ -1786,16 +1785,20 @@ function to_function() {
 }
 /* jshint strict: true, undef: true */
 /* globals spec, return_arguments, is_something, or, is, is_positive */
-/* globals exports */
+/* globals exports, _, log */
 
 spec(is_arguments, [return_arguments()], true);
 spec(is_arguments, [[]], false);
+spec(is_arguments, [{}], false);
 
 exports.is_arguments = is_arguments;
 function is_arguments(v) {
   "use strict";
 
-  return is_something(v) && v.constructor === arguments.constructor;
+  return is_something(v) &&
+    v.constructor === arguments.constructor &&
+      _.isFinite(v.length) &&
+        !_.isPlainObject(v);
 }
 /* jshint strict: true, undef: true */
 /* globals spec, is_string, is_function, is_num, is_something, is_null, _, length, to_string */
