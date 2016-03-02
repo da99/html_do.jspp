@@ -155,7 +155,7 @@ function spec() {
     if (!spec.allow) return undefined;
     var args = _.toArray(arguments);
     if (length(args) !== 1) {
-        App("insert into", "specs", args);
+        App("push into", "specs", args);
         return true;
     }
     // === switch
@@ -1848,7 +1848,7 @@ function Computer() {
             State.is_invalid = true;
             return;
         }
-        var name, old_vals, default_val;
+        var name, new_val, old_vals, default_val;
         if (State.is_invalid === true) throw new Error("state is invalid.");
         var funcs = State.funcs.slice(0);
         switch (action) {
@@ -1857,10 +1857,9 @@ function Computer() {
             State.funcs = funcs.slice(0).concat([ func ]);
             return true;
 
-          case "insert into":
-            arguments_are(arguments, is("insert into"), is_string, is_something);
-            name = be(not(is_empty), _.trim(arguments[1]));
-            var new_val = arguments[2];
+          case "push into":
+            name = reduce(arguments[1], be(is_string), be(not(is_empty)), _.trim);
+            new_val = reduce(arguments[2], be(is_something));
             if (!is_something(State.values[name])) State.values[name] = [];
             old_vals = State.values[name];
             State.values[name] = [].concat(old_vals).concat([ new_val ]);
