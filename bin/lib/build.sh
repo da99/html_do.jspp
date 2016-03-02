@@ -2,6 +2,7 @@
 # === {{CMD}}
 build () {
 
+  temp="$TEMP/spec"
   ugly () {
     local name="$1"; shift
     local output="build/${name}"
@@ -34,8 +35,9 @@ build () {
   cat $($0 top-build-files $names) $($0 body-build-files $names) $($0 bottom-build-files $names) > build/node.js
   node "lib/node.spec.js" test || { stat=$?; echo -e "=== ${Red}Failed${Color_Off}" 1>&2; exit $stat; }
 
+  echo -e "=== Creating .map file..."
   ugly "node" $names
-  node "lib/node.spec.js" test || { stat=$?; echo -e "=== ${Red}Failed${Color_Off}" 1>&2; exit $stat; }
+  node "lib/node.spec.js" test &>$temp || { stat=$?; cat "$temp"; echo -e "=== ${Red}Failed${Color_Off}" 1>&2; exit $stat; }
   echo -e "=== Done building: ${Green}node.js${Color_Off}"
 
   # === BROWSER: ==============================================================
