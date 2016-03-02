@@ -123,12 +123,20 @@ function spec_dom(cmd) {
 /* globals exports, is_string, is_regexp, spec */
 
 
-// === Examples:
-// spec(my_func, ["my args"], "my expected value");
-// spec("my expected value", function my_custom_spec() {});
+// === Expect:
+// spec(my_func,             ["my args"],           "my expected value");
+// spec("my expected value", function my_custom_spec() {
+//   return "a value";
+// });
 //
+// === Throws:
 // spec(my_func, ["my args"], new Error("my expected thrown error"));
-// spec(new Error("my expected thrown error"), function my_custom_spec() {});
+// spec(
+//   new Error("my expected thrown error"),
+//   function my_custom_spec() {
+//     throw new Error("something");
+//   }
+// );
 //
 // === Run specs:
 // spec('run');
@@ -196,9 +204,14 @@ function spec() {
 
   _.each(specs, function (raw_spec) {
 
-    log(raw_spec);
-    throw new Error('not ready');
-
+    var was_found = _.find(
+      [regular, returns],
+      function (spec_f) {
+        return spec_f.apply(null, raw_spec);
+      }
+    );
+    if (!was_found)
+      throw new Error("Invalid spec: " + to_string(raw_spec));
 
     function spec_throws(f, args, expect) {
       if (is_string(expect))
@@ -210,25 +223,21 @@ function spec() {
       return spec.apply(null, [f, args, expect]);
     } // === function spec_throws
 
-    function spec_returns(expect, f) {
+    function returns(expect, f) {
+      if (!(arguments.length === 2 && _.isFunction(f)))
+        return false;
 
-      if (!_.isFunction(f))
-        throw new Error('Invalid value for func: ' + to_string(f));
-
-      if (length(f) === 0) {
-        return returns(expect, f);
+      if (length(f) !== 0) {
+        throw new Error('async test not done yet.');
       } // if f.length === 0
-      throw new Error('async test not done yet.');
 
-      function returns(expect, f) {
-        var sig = function_to_name(f);
-        var actual = f();
-        var msg = to_match_string(actual, expect);
-        if (!_.isEqual(actual,expect))
-          throw new Error("!!! Failed: " + sig + ' -> ' + msg);
-        log('=== Passed: ' + sig + ' -> ' + msg);
-        return true;
-      }
+      var sig = function_to_name(f);
+      var actual = f();
+      var msg = to_match_string(actual, expect);
+      if (!_.isEqual(actual,expect))
+        throw new Error("!!! Failed: " + sig + ' -> ' + msg);
+      log('=== Passed: ' + sig + ' -> ' + msg);
+      return true;
 
       // === Async func:
       function async_returns(fin) {
@@ -244,13 +253,29 @@ function spec() {
       }
     } // === spec_returns
 
-    function regular_spec(f, args, expect) {
-      var sig    = to_function_string(f, args);
-      var actual = f.apply(null, args);
-      var msg    = to_match_string(actual, expect);
+    function regular(f, args, expect) {
+      if (arguments.length !== 3)
+        return false;
+      if (typeof(f) !== 'function')
+        return false;
 
-      if (actual !== expect && !_.isEqual(actual, expect))
+      var actual;
+      var sig    = to_function_string(f, args);
+
+      try {
+        actual = f.apply(null, args);
+      } catch (e) {
+        actual = e;
+        if (_.isString(expect) || _.isRegExp(expect))
+          actual = e.message;
+      }
+
+      var msg = to_match_string(actual, expect);
+
+      if (actual !== expect && !_.isEqual(actual, expect)) {
+        log(f, args, expect);
         throw new Error("!!! Failed: " + sig + ' -> ' + msg );
+      }
 
       log('=== Passed: ' + sig + ' -> ' + msg);
       return true;
@@ -326,21 +351,6 @@ function wait_max(seconds, func) {
 exports.to_arg = to_arg;
 function to_arg(val) { "use strict"; return function (f) { return f(val); }; }
 /* jshint strict: true, undef: true */
-/* globals spec, is_string */
-/* globals exports */
-
-
-spec(is_function_name, ['is_function'], true);
-spec(is_function_name, ['none none'], false);
-spec(is_function_name, [is_function_name], false);
-
-exports.is_function_name = is_function_name;
-function is_function_name(v) {
-  "use strict";
-
-  return is_string(v) && typeof v === 'function';
-}
-/* jshint strict: true, undef: true */
 /* globals arguments_are, is_positive, is_function */
 /* globals exports */
 
@@ -403,8 +413,8 @@ function and(_funcs) {
   };
 }
 /* jshint strict: true, undef: true */
-/* globals spec, return_arguments, spec_throws, _, to_string */
-/* globals exports */
+/* globals spec, return_arguments, _, to_string */
+/* globals exports, log */
 
 spec(is_empty, [[]], true);
 spec(is_empty, [{}], true);
@@ -414,7 +424,8 @@ spec(is_empty, [[1]],      false);
 spec(is_empty, ["a"],      false);
 spec(is_empty, [return_arguments()],      true);
 spec(is_empty, [return_arguments(1,2,3)], false);
-spec(is_empty, [null], new Error('invalid value for is_empty: null'));
+spec(is_empty, [null], new Error('invalid value: null'));
+spec(is_empty, [undefined], new Error('invalid value: undefined'));
 
 exports.is_empty = is_empty;
 function is_empty(v) {
@@ -423,9 +434,10 @@ function is_empty(v) {
   if (arguments.length !== 1)
     throw new Error("arguments.length !== 1: " + to_string(v));
 
-  var v_type = typeof v;
-  if ( v_type === 'null' || v_type === 'undefined')
-    throw new Error("null and undefined not allowed.");
+  if ( v === null )
+    throw new Error("invalid value: null");
+  if ( v === undefined)
+    throw new Error("invalid value: undefined");
 
   if (_.isPlainObject(v))
     return _.keys(v).length === 0;
@@ -510,7 +522,7 @@ spec(key_to_bool, ['is_happy', {is_happy: true}], true);
 spec(key_to_bool, ['!is_happy', {is_happy: true}], false);
 spec(key_to_bool, ['is_happy',  {is_happy: false}], false);
 spec(key_to_bool, ['!is_happy', {is_happy: false}], true);
-spec(key_to_bool, [['is_factor'], {}], new Error("Value: [\"is_factor\"] !== is_string"));
+spec(key_to_bool, [['is_factor'], {}], new Error("[\"is_factor\"] should be: is_string (function)"));
 
 exports.key_to_bool = key_to_bool;
 function key_to_bool(raw_key, data) {
@@ -532,7 +544,7 @@ function key_to_bool(raw_key, data) {
   var current = data;
   var ans  = false;
 
-  _.detect(keys, function (key) {
+  _.find(keys, function (key) {
     if (_.has(current, key)) {
       current = data[key];
       ans = !!current;
@@ -627,10 +639,9 @@ exports.is_something = is_something;
 function is_something(v) {
   "use strict";
 
-  var t = typeof v;
   if (arguments.length !== 1)
     throw new Error("arguments.length !== 1: " + to_string(v));
-  return t !== 'null' && t !== 'undefined';
+  return v !== null && v !== undefined;
 }
 /* jshint strict: true, undef: true */
 /* globals exports */
@@ -978,15 +989,17 @@ function is_string(v) {
   return typeof v === "string";
 }
 /* jshint strict: true, undef: true */
-/* globals conditional */
-/* globals exports */
-
+/* globals exports, _ */
 
 exports.or = or;
 function or(_funcs) {
   "use strict";
 
-  return conditional('any', arguments);
+  var funcs = _.toArray(arguments);
+
+  return function (v) {
+    return !!_.find(funcs, function (f) { return f(v) === true; });
+  };
 }
 /* jshint strict: true, undef: true */
 /* globals length */
@@ -1833,7 +1846,7 @@ function be(func, val) {
 
   switch(length(arguments)) {
     case 2:
-      if (!func)
+      if (!func(val))
         throw new Error(to_string(val) + ' should be: ' + to_string(func));
       return val;
 
@@ -1842,12 +1855,9 @@ function be(func, val) {
       return function (v) {
         return be(func, v);
       };
-
-    default:
-      throw new Error("Invalid arguments.");
-
   }
 
+  throw new Error("Invalid arguments.");
 }
 
 /* jshint strict: true, undef: true */
