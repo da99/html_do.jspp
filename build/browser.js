@@ -154,7 +154,7 @@ function spec() {
     }
     // === switch
     if (args[0] !== "run" && !is_function(args[0]) && !is_plain_object(args[0])) throw new Error("Unknown value: " + to_string(args[0]));
-    var specs = App("get", "specs", []);
+    var specs = App("read or insert", "specs", []);
     if (is_empty(specs)) throw new Error("No specs found.");
     var on_fin = is_function(arguments[0]) && arguments[0] || function(msg) {
         log("      ======================================");
@@ -1859,7 +1859,7 @@ function Computer() {
             State.values[name] = [].concat(old_vals).concat([ new_val ]);
             return true;
 
-          case "get":
+          case "read":
             var vals = State.values;
             name = reduce(arguments[1], be(is_string), _.trim, be(not(is_empty)));
             var val_has_been_set = is_something(State.values[name]);
@@ -1869,13 +1869,13 @@ function Computer() {
             if (val_has_been_set) return _copy_(State.values[name]);
             return default_val;
 
-          case "get or set":
+          case "read or insert":
             name = be(not(is_empty), _.trim(arguments[1]));
             default_val = be(is_something, arguments[2]);
             if (!State.values.hasOwnProperty(name)) State.values[name] = default_val;
             return _copy_(State.values[name]);
 
-          case "get counter":
+          case "read counter":
             name = be(not(is_empty), _.trim(arguments[1]));
             break;
 
