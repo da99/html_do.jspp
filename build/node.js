@@ -213,111 +213,77 @@ function spec() {
     if (!was_found)
       throw new Error("Invalid spec: " + to_string(raw_spec));
 
-    function spec_throws(f, args, expect) {
-      if (is_string(expect))
-        expect = new Error(expect);
-      if (is_regexp(expect)) {
-        var regexp = expect;
-        expect = function (err) { return err.message.match(regexp); };
-      }
-      return spec.apply(null, [f, args, expect]);
-    } // === function spec_throws
-
-    function returns(expect, f) {
-      if (!(arguments.length === 2 && _.isFunction(f)))
-        return false;
-
-      if (length(f) !== 0) {
-        throw new Error('async test not done yet.');
-      } // if f.length === 0
-
-      var sig = function_to_name(f);
-      var actual = f();
-      var msg = to_match_string(actual, expect);
-      if (!_.isEqual(actual,expect))
-        throw new Error("!!! Failed: " + sig + ' -> ' + msg);
-      log('=== Passed: ' + sig + ' -> ' + msg);
-      return true;
-
-      // === Async func:
-      function async_returns(fin) {
-        var sig = function_to_name(f);
-        f(function (actual) {
-          var msg = to_match_string(actual, expect);
-          if (!_.isEqual(actual,expect))
-            throw new Error("!!! Failed: " + sig + ' -> ' + msg);
-          log('=== Passed: ' + sig + ' -> ' + msg);
-          fin();
-          return true;
-        });
-      }
-    } // === spec_returns
-
-    function regular(f, args, expect) {
-      if (arguments.length !== 3)
-        return false;
-      if (typeof(f) !== 'function')
-        return false;
-
-      var actual;
-      var sig    = to_function_string(f, args);
-
-      try {
-        actual = f.apply(null, args);
-      } catch (e) {
-        actual = e;
-        if (_.isString(expect) || _.isRegExp(expect))
-          actual = e.message;
-      }
-
-      var msg = to_match_string(actual, expect);
-
-      if (actual !== expect && !_.isEqual(actual, expect)) {
-        log(f, args, expect);
-        throw new Error("!!! Failed: " + sig + ' -> ' + msg );
-      }
-
-      log('=== Passed: ' + sig + ' -> ' + msg);
-      return true;
-    } // === function regular_spec
-
-    function throws(f, args, expect) {
-      var actual, err;
-      var sig = to_function_string(f, args);
-
-      try {
-        f.apply(null, args);
-      } catch (e) {
-        err = e;
-        actual = e.message;
-      }
-
-      var msg = to_match_string(actual, expect);
-
-      if (!actual)
-        throw new Error('!!! Failed to throw error: ' + sig + ' -> ' + expect);
-
-      if (_.isEqual(actual, expect)) {
-        log('=== Passed: ' + sig + ' -> ' + expect);
-        return true;
-      }
-
-      log(err);
-      throw new Error('Error message does not match: ' + to_string(actual) + ' !== ' + to_string(expect) );
-    } // === function throws
-
-    // spec('async', {
-    //   i : 'init',
-    //   list: spec.specs.slice(0),
-    //   dones: {},
-    //   on_finish: on_fin,
-    //   total: 0
-    // });
-
   }); // === each
 
   on_fin({total: specs.length});
   return true;
+
+  function returns(expect, f) {
+    if (!(arguments.length === 2 && _.isFunction(f)))
+      return false;
+
+    if (length(f) !== 0) {
+      throw new Error('async test not done yet.');
+    } // if f.length === 0
+
+    var sig = function_to_name(f);
+    var actual = f();
+    var msg = to_match_string(actual, expect);
+    if (!_.isEqual(actual,expect))
+      throw new Error("!!! Failed: " + sig + ' -> ' + msg);
+    log('=== Passed: ' + sig + ' -> ' + msg);
+    return true;
+
+    // === Async func:
+    function async_returns(fin) {
+
+      // spec('async', {
+      //   i : 'init',
+      //   list: spec.specs.slice(0),
+      //   dones: {},
+      //   on_finish: on_fin,
+      //   total: 0
+      // });
+
+      var sig = function_to_name(f);
+      f(function (actual) {
+        var msg = to_match_string(actual, expect);
+        if (!_.isEqual(actual,expect))
+          throw new Error("!!! Failed: " + sig + ' -> ' + msg);
+        log('=== Passed: ' + sig + ' -> ' + msg);
+        fin();
+        return true;
+      });
+    } // == function async_returns
+  } // === function spec_returns
+
+  function regular(f, args, expect) {
+    if (arguments.length !== 3)
+      return false;
+    if (typeof(f) !== 'function')
+      return false;
+
+    var actual;
+    var sig    = to_function_string(f, args);
+
+    try {
+      actual = f.apply(null, args);
+    } catch (e) {
+      actual = e;
+      if (_.isString(expect) || _.isRegExp(expect))
+        actual = e.message;
+    }
+
+    var msg = to_match_string(actual, expect);
+
+    if (actual !== expect && !_.isEqual(actual, expect)) {
+      log(f, args, expect);
+      throw new Error("!!! Failed: " + sig + ' -> ' + msg );
+    }
+
+    log('=== Passed: ' + sig + ' -> ' + msg);
+    return true;
+  } // === function regular_spec
 
 } // === function spec
 
