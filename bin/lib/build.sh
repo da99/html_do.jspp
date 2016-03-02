@@ -32,10 +32,10 @@ build () {
   echo -e "=== Building: ${Bold}node.js${Color_Off}"
   local names="spec base state node"
   cat $($0 top-build-files $names) $($0 body-build-files $names) $($0 bottom-build-files $names) > build/node.js
-  node "lib/node.spec.js" test
+  node "lib/node.spec.js" test || { stat=$?; echo -e "=== ${Red}Failed${Color_Off}" 1>&2; exit $stat; }
 
   ugly "node" $names
-  node "lib/node.spec.js" test
+  node "lib/node.spec.js" test || { stat=$?; echo -e "=== ${Red}Failed${Color_Off}" 1>&2; exit $stat; }
   echo -e "=== Done building: ${Green}node.js${Color_Off}"
 
   # === BROWSER: ==============================================================

@@ -100,12 +100,20 @@ function spec_dom(cmd) {
 /* globals window, _, is_empty, function_to_name, spec_dom */
 /* globals _, is_array, to_string, to_function_string, to_match_string, log */
 /* globals exports, is_string, is_regexp, spec */
-// === Examples:
-// spec(my_func, ["my args"], "my expected value");
-// spec("my expected value", function my_custom_spec() {});
+// === Expect:
+// spec(my_func,             ["my args"],           "my expected value");
+// spec("my expected value", function my_custom_spec() {
+//   return "a value";
+// });
 //
+// === Throws:
 // spec(my_func, ["my args"], new Error("my expected thrown error"));
-// spec(new Error("my expected thrown error"), function my_custom_spec() {});
+// spec(
+//   new Error("my expected thrown error"),
+//   function my_custom_spec() {
+//     throw new Error("something");
+//   }
+// );
 //
 // === Run specs:
 // spec('run');
@@ -124,6 +132,18 @@ exports.spec = spec;
 
 spec.allow = typeof window !== "undefined" && $("#Spec_Stage").length === 1 || typeof process !== "undefined" && process.argv[2] === "test";
 
+// === Is there a specific spec to run?
+(function() {
+    "use strict";
+    if (typeof window === "undefined") return;
+    var href = window.location.href;
+    var target = _.trim(href.split("?").pop() || "");
+    if (!is_empty(target) && target !== href && target !== function_to_name("str_or_func")) return false;
+    // === Reset DOM:
+    spec_dom("reset");
+    spec.target = target;
+})();
+
 function spec() {
     "use strict";
     if (!spec.allow) return undefined;
@@ -135,7 +155,6 @@ function spec() {
     // === switch
     if (args[0] !== "run" && !is_function(args[0]) && !is_plain_object(args[0])) throw new Error("Unknown value: " + to_string(args[0]));
     var specs = App("get", "specs", []);
-    log(specs);
     if (is_empty(specs)) throw new Error("No specs found.");
     var on_fin = is_function(arguments[0]) && arguments[0] || function(msg) {
         log("      ======================================");
@@ -143,87 +162,77 @@ function spec() {
         log("      ======================================");
     };
     _.each(specs, function(raw_spec) {
-        log(raw_spec);
-        // === Is there a specific spec to run?
-        if (typeof window !== "undefined") {
-            var href = window.location.href;
-            var target = _.trim(href.split("?").pop() || "");
-            if (!is_empty(target) && target !== href && target !== function_to_name("str_or_func")) return false;
-            // === Reset DOM:
-            spec_dom("reset");
-        }
-        function spec_throws(f, args, expect) {
-            if (is_string(expect)) expect = new Error(expect);
-            if (is_regexp(expect)) {
-                var regexp = expect;
-                expect = function(err) {
-                    return err.message.match(regexp);
-                };
-            }
-            return spec.apply(null, [ f, args, expect ]);
-        }
-        // === function spec_throws
-        function spec_returns(expect, f) {
-            if (!_.isFunction(f)) throw new Error("Invalid value for func: " + to_string(f));
-            if (length(f) === 0) {
-                return returns(expect, f);
-            }
-            // if f.length === 0
-            throw new Error("async test not done yet.");
-            function returns(expect, f) {
-                var sig = function_to_name(f);
-                var actual = f();
-                var msg = to_match_string(actual, expect);
-                if (!_.isEqual(actual, expect)) throw new Error("!!! Failed: " + sig + " -> " + msg);
-                log("=== Passed: " + sig + " -> " + msg);
-                return true;
-            }
-            // === Async func:
-            function async_returns(fin) {
-                var sig = function_to_name(f);
-                f(function(actual) {
-                    var msg = to_match_string(actual, expect);
-                    if (!_.isEqual(actual, expect)) throw new Error("!!! Failed: " + sig + " -> " + msg);
-                    log("=== Passed: " + sig + " -> " + msg);
-                    fin();
-                    return true;
-                });
-            }
-        }
-        // === spec_returns
-        function regular_spec(f, args, expect) {
-            var sig = to_function_string(f, args);
-            var actual = f.apply(null, args);
-            var msg = to_match_string(actual, expect);
-            if (actual !== expect && !_.isEqual(actual, expect)) throw new Error("!!! Failed: " + sig + " -> " + msg);
-            log("=== Passed: " + sig + " -> " + msg);
-            return true;
-        }
-        // === function regular_spec
-        function throws(f, args, expect) {
-            var actual, err;
-            var sig = to_function_string(f, args);
-            try {
-                f.apply(null, args);
-            } catch (e) {
-                err = e;
-                actual = e.message;
-            }
-            var msg = to_match_string(actual, expect);
-            if (!actual) throw new Error("!!! Failed to throw error: " + sig + " -> " + expect);
-            if (_.isEqual(actual, expect)) {
-                log("=== Passed: " + sig + " -> " + expect);
-                return true;
-            }
-            log(err);
-            throw new Error("Error message does not match: " + to_string(actual) + " !== " + to_string(expect));
-        }
+        var was_found = _.find([ regular, returns ], function(spec_f) {
+            return spec_f.apply(null, raw_spec);
+        });
+        if (!was_found) throw new Error("Invalid spec: " + to_string(raw_spec));
     });
     // === each
     on_fin({
         total: specs.length
     });
     return true;
+    function actual_expect(actual, expect) {
+        return _.isEqual(actual, expect) || _.isString(actual) && _.isRegExp(expect) && actual.match(expect) || actual && actual.constructor === Error && expect && expect.constructor && actual.message === expect.message || actual && actual.constructor === Error && _.isRegExp(expect) && actual.message.match(expect);
+    }
+    function returns(expect, f) {
+        if (!(arguments.length === 2 && _.isFunction(f))) return false;
+        if (length(f) !== 0) {
+            throw new Error("async test not done yet.");
+        }
+        // if f.length === 0
+        var actual;
+        var sig = function_to_name(f);
+        try {
+            actual = f();
+        } catch (e) {
+            actual = e;
+        }
+        var msg = to_match_string(actual, expect);
+        if (!actual_expect(actual, expect)) {
+            log([ to_string(expect), to_string(f) ]);
+            throw new Error("!!! Failed: " + sig + " -> " + msg);
+        }
+        log("=== Passed: " + sig + " -> " + msg);
+        return true;
+        // === Async func:
+        function async_returns(fin) {
+            // spec('async', {
+            //   i : 'init',
+            //   list: spec.specs.slice(0),
+            //   dones: {},
+            //   on_finish: on_fin,
+            //   total: 0
+            // });
+            var sig = function_to_name(f);
+            f(function(actual) {
+                var msg = to_match_string(actual, expect);
+                if (!actual_expect(actual, expect)) throw new Error("!!! Failed: " + sig + " -> " + msg);
+                log("=== Passed: " + sig + " -> " + msg);
+                fin();
+                return true;
+            });
+        }
+    }
+    // === function spec_returns
+    function regular(f, args, expect) {
+        if (arguments.length !== 3) return false;
+        if (typeof f !== "function") return false;
+        var actual;
+        var sig = to_function_string(f, args);
+        try {
+            actual = f.apply(null, args);
+        } catch (e) {
+            actual = e;
+        }
+        var msg = to_match_string(actual, expect);
+        if (!actual_expect(actual, expect)) {
+            log(f, args, expect);
+            throw new Error("!!! Failed: " + sig + " -> " + msg);
+        }
+        log("=== Passed: " + sig + " -> " + msg);
+        return true;
+    }
 }
 
 /* jshint strict: true, undef: true */
@@ -253,22 +262,6 @@ function to_arg(val) {
     return function(f) {
         return f(val);
     };
-}
-
-/* jshint strict: true, undef: true */
-/* globals spec, is_string */
-/* globals exports */
-spec(is_function_name, [ "is_function" ], true);
-
-spec(is_function_name, [ "none none" ], false);
-
-spec(is_function_name, [ is_function_name ], false);
-
-exports.is_function_name = is_function_name;
-
-function is_function_name(v) {
-    "use strict";
-    return is_string(v) && typeof v === "function";
 }
 
 /* jshint strict: true, undef: true */
@@ -334,8 +327,8 @@ function and(_funcs) {
 }
 
 /* jshint strict: true, undef: true */
-/* globals spec, return_arguments, spec_throws, _, to_string */
-/* globals exports */
+/* globals spec, return_arguments, _, to_string */
+/* globals exports, log */
 spec(is_empty, [ [] ], true);
 
 spec(is_empty, [ {} ], true);
@@ -354,15 +347,17 @@ spec(is_empty, [ return_arguments() ], true);
 
 spec(is_empty, [ return_arguments(1, 2, 3) ], false);
 
-spec(is_empty, [ null ], new Error("invalid value for is_empty: null"));
+spec(is_empty, [ null ], new Error("invalid value: null"));
+
+spec(is_empty, [ undefined ], new Error("invalid value: undefined"));
 
 exports.is_empty = is_empty;
 
 function is_empty(v) {
     "use strict";
     if (arguments.length !== 1) throw new Error("arguments.length !== 1: " + to_string(v));
-    var v_type = typeof v;
-    if (v_type === "null" || v_type === "undefined") throw new Error("null and undefined not allowed.");
+    if (v === null) throw new Error("invalid value: null");
+    if (v === undefined) throw new Error("invalid value: undefined");
     if (_.isPlainObject(v)) return _.keys(v).length === 0;
     var l = v.length;
     if (!_.isFinite(l)) throw new Error("!!! Invalid .length property.");
@@ -480,7 +475,7 @@ spec(key_to_bool, [ "!is_happy", {
     is_happy: false
 } ], true);
 
-spec(key_to_bool, [ [ "is_factor" ], {} ], new Error('Value: ["is_factor"] !== is_string'));
+spec(key_to_bool, [ [ "is_factor" ], {} ], new Error('["is_factor"] should be: is_string (function)'));
 
 exports.key_to_bool = key_to_bool;
 
@@ -493,7 +488,7 @@ function key_to_bool(raw_key, data) {
     var keys = _.map(dots, _.trim);
     var current = data;
     var ans = false;
-    _.detect(keys, function(key) {
+    _.find(keys, function(key) {
         if (_.has(current, key)) {
             current = data[key];
             ans = !!current;
@@ -589,9 +584,8 @@ exports.is_something = is_something;
 
 function is_something(v) {
     "use strict";
-    var t = typeof v;
     if (arguments.length !== 1) throw new Error("arguments.length !== 1: " + to_string(v));
-    return t !== "null" && t !== "undefined";
+    return v !== null && v !== undefined;
 }
 
 /* jshint strict: true, undef: true */
@@ -677,7 +671,7 @@ function msg_match(pattern, msg) {
     if (_.isEqual(pattern, msg)) return true;
     if (is_plain_object(pattern) && is_plain_object(msg)) {
         if (is_empty(pattern) !== is_empty(msg)) return false;
-        return !_.detect(_.keys(pattern), function(key) {
+        return !_.find(_.keys(pattern), function(key) {
             var target = pattern[key];
             if (msg[key] === target) return !true;
             if (is_function(target)) return !be(is_boolean, target(msg[key]));
@@ -699,6 +693,15 @@ function reduce(value, _functions) {
     return _.reduce(funcs, function(acc, f) {
         return f(acc);
     }, v);
+}
+
+/* jshint strict: true, undef: true */
+/* globals exports */
+exports.to_arg = to_arg;
+
+function to_arguments() {
+    "use strict";
+    return arguments;
 }
 
 /* jshint strict: true, undef: true */
@@ -876,7 +879,7 @@ function is_null(v) {
 
 /* jshint strict: true, undef: true */
 /* globals spec, _, is_arguments, is_plain_object, is_function */
-/* globals exports */
+/* globals exports, log */
 spec(to_string, [ null ], "null");
 
 spec(to_string, [ undefined ], "undefined");
@@ -894,7 +897,6 @@ exports.to_string = to_string;
 
 function to_string(val) {
     "use strict";
-    var v = val;
     if (val === null) return "null";
     if (val === undefined) return "undefined";
     if (val === false) return "false";
@@ -909,10 +911,11 @@ function to_string(val) {
         }, []).join(",") + "}";
     }
     if (is_function(val) && val.hasOwnProperty("to_string_name")) return val.to_string_name;
-    if (_.isFunction(v)) return v.name ? v.name + " (function)" : v.toString();
-    if (_.isString(v)) return '"' + v + '"';
-    if (_.isArray(v)) return "[" + _.map(_.toArray(v), to_string).join(", ") + "] (Array)";
-    if (v.constructor === arguments.constructor) return "[" + _.map(_.toArray(v), to_string).join(", ") + "] (arguments)";
+    if (_.isFunction(val)) return val.name ? val.name + " (function)" : val.toString();
+    if (_.isString(val)) return '"' + val + '"';
+    if (_.isArray(val)) return "[" + _.map(_.toArray(val), to_string).join(", ") + "] (Array)";
+    if (val.constructor === arguments.constructor) return "[" + _.map(_.toArray(val), to_string).join(", ") + "] (arguments)";
+    if (is_error(val)) return "[Error] " + to_string(val.message);
     return val.toString();
 }
 
@@ -938,13 +941,17 @@ function is_string(v) {
 }
 
 /* jshint strict: true, undef: true */
-/* globals conditional */
-/* globals exports */
+/* globals exports, _ */
 exports.or = or;
 
 function or(_funcs) {
     "use strict";
-    return conditional("any", arguments);
+    var funcs = _.toArray(arguments);
+    return function(v) {
+        return !!_.find(funcs, function(f) {
+            return f(v) === true;
+        });
+    };
 }
 
 /* jshint strict: true, undef: true */
@@ -994,7 +1001,7 @@ spec(true, function() {
 
 spec(true, function() {
     "use strict";
-    return not(length_gt(2), is_null)([ 1 ]);
+    return not(length_gt(2))([ 1 ]);
 });
 
 spec(false, function() {
@@ -1004,8 +1011,10 @@ spec(false, function() {
 
 spec(false, function() {
     "use strict";
-    return not(is_something, is_null)(1);
+    return not(is(1))(1);
 });
+
+spec(not, [ is_something, is_null ], /should be/);
 
 exports.not = not;
 
@@ -1020,22 +1029,6 @@ function not(func) {
         if (!is_boolean(result)) throw new Error("Function did not return boolean: " + to_string(func) + " -> " + to_string(result));
         return !result;
     };
-}
-
-/* jshint strict: true, undef: true */
-/* globals spec, is_string, to_string, _ */
-spec(name_to_function, [ "name_to_function" ], name_to_function);
-
-exports.name_to_function = name_to_function;
-
-function name_to_function(raw) {
-    "use strict";
-    /* globals window, global */
-    /* globals exports */
-    if (!is_string(raw)) throw new Error("Not a string: " + to_string(raw));
-    var str = _.trim(raw);
-    if (typeof str !== "function") throw new Error("Function not found: " + to_string(raw));
-    return typeof "window" !== "undefined" ? window[str] : global[str];
 }
 
 /* jshint strict: true, undef: true */
@@ -1092,7 +1085,7 @@ spec(length, [ {
     length: 3
 } ], 3);
 
-spec(length, [ {} ], new Error("invalid value for l(): {}"));
+spec(length, [ 3 ], new Error("Invalid value for length: 3"));
 
 exports.length = length;
 
@@ -1163,17 +1156,17 @@ spec(is_anything, [ false ], true);
 
 spec(is_anything, [ true ], true);
 
-spec(is_anything, [ null ], new Error("null found"));
+spec(is_anything, [ null ], new Error("null found."));
 
-spec(is_anything, [ undefined ], new Error("undefined found"));
+spec(is_anything, [ undefined ], new Error("undefined found."));
 
 exports.is_anything = is_anything;
 
 function is_anything(v) {
     "use strict";
     if (arguments.length !== 1) throw new Error("Invalid: arguments.length must === 1");
-    if (v === null) throw new Error("'null' found.");
-    if (v === undefined) throw new Error("'undefined' found.");
+    if (v === null) throw new Error("null found.");
+    if (v === undefined) throw new Error("undefined found.");
     return true;
 }
 
@@ -1206,13 +1199,13 @@ function find_key(k, _args) {
 
 /* jshint strict: true, undef: true */
 /* globals spec, identity, _, is_undefined, to_string, be, is_function */
-/* globals exports */
+/* globals exports, log, to_function */
 spec(dot("num"), [ {
     num: 3
 } ], 3);
 
 spec(dot("html()"), [ {
-    html: identity("hyper")
+    html: to_function("hyper")
 } ], "hyper");
 
 spec(dot("num"), [ {
@@ -1227,6 +1220,7 @@ function dot(raw_name) {
     return function _dot_(o) {
         if (is_undefined(o[name])) throw new Error("Property not found: " + to_string(name) + " in " + to_string(o));
         if (name !== raw_name) {
+            log(name, raw_name, o);
             be(is_function, o[name]);
             return o[name]();
         } else return o[name];
@@ -1484,9 +1478,9 @@ function standard_name(str) {
 }
 
 /* jshint strict: true, undef: true */
-/* globals spec, is_arguments, is_num, _, to_string */
+/* globals spec, is_arguments, to_arguments, is_num, _, to_string */
 /* globals exports */
-spec(arguments_are, [ [ 1 ], is_num, is_num ], new Error("Wrong # of arguments: expected: 2 actual: 1)"));
+spec(arguments_are, [ to_arguments(1), is_num, is_num ], new Error("Wrong # of arguments: expected: 2 actual: 1"));
 
 exports.arguments_are = arguments_are;
 
@@ -1664,7 +1658,7 @@ function is_positive(v) {
 
 /* jshint strict: true, undef: true */
 /* globals spec, _, length_gt */
-/* globals exports */
+/* globals exports, log */
 spec(is_array_of_functions, [ [ function() {} ] ], true);
 
 spec(is_array_of_functions, [ [] ], false);
@@ -1677,7 +1671,7 @@ exports.is_array_of_functions = is_array_of_functions;
 
 function is_array_of_functions(a) {
     "use strict";
-    return _.isArray(a) && length_gt(a) > 0 && _.all(a, _.isFunction);
+    return _.isArray(a) && length_gt(0)(a) > 0 && _.every(a, _.isFunction);
 }
 
 /* jshint strict: true, undef: true */
@@ -1740,26 +1734,28 @@ function to_function() {
 
 /* jshint strict: true, undef: true */
 /* globals spec, return_arguments, is_something, or, is, is_positive */
-/* globals exports */
+/* globals exports, _, log */
 spec(is_arguments, [ return_arguments() ], true);
 
 spec(is_arguments, [ [] ], false);
+
+spec(is_arguments, [ {} ], false);
 
 exports.is_arguments = is_arguments;
 
 function is_arguments(v) {
     "use strict";
-    return is_something(v) && v.constructor === arguments.constructor;
+    return is_something(v) && v.constructor === arguments.constructor && _.isFinite(v.length) && !_.isPlainObject(v);
 }
 
 /* jshint strict: true, undef: true */
 /* globals spec, is_string, is_function, is_num, is_something, is_null, _, length, to_string */
 /* globals exports */
-spec(be, [ 1, is_num ], 1);
+spec(be, [ is_num, 1 ], 1);
 
-spec(be, [ is_num, "1" ], new Error('Value: "1" !== is_num'));
+spec(be, [ is_num, "1" ], /"1" should be: is_num/);
 
-spec(be, [ is_string, 2 ], new Error("Value: 2 !== is_string"));
+spec(be, [ is_string, 2 ], /2 should be: is_string/);
 
 exports.be = be;
 
@@ -1767,7 +1763,7 @@ function be(func, val) {
     "use strict";
     switch (length(arguments)) {
       case 2:
-        if (!func) throw new Error(to_string(val) + " should be: " + to_string(func));
+        if (!func(val)) throw new Error(to_string(val) + " should be: " + to_string(func));
         return val;
 
       case 1:
@@ -1775,10 +1771,8 @@ function be(func, val) {
         return function(v) {
             return be(func, v);
         };
-
-      default:
-        throw new Error("Invalid arguments.");
     }
+    throw new Error("Invalid arguments.");
 }
 
 /* jshint strict: true, undef: true */
@@ -1895,6 +1889,23 @@ function Computer() {
             throw new Error("Unknown action for state: " + to_string(action));
         }
     }
+}
+
+/* jshint strict: true, undef: true */
+/* globals spec, is_string, window, is_function */
+/* globals exports */
+spec(is_function_name, [ "is_function" ], true);
+
+spec(is_function_name, [ "none none" ], false);
+
+spec(is_function_name, [ is_function_name ], false);
+
+exports.is_function_name = is_function_name;
+
+function is_function_name(v) {
+    "use strict";
+    if (!is_string(v)) return false;
+    return is_function(window[v]);
 }
 
 /* jshint strict: true, undef: true */
@@ -2286,6 +2297,22 @@ function on_click(msg) {
             dom_id: dom_id
         });
     });
+}
+
+/* jshint strict: true, undef: true */
+/* globals spec, is_string, to_string, _ */
+spec(name_to_function, [ "name_to_function" ], name_to_function);
+
+exports.name_to_function = name_to_function;
+
+function name_to_function(raw) {
+    "use strict";
+    /* globals window, global */
+    /* globals exports */
+    if (!is_string(raw)) throw new Error("Not a string: " + to_string(raw));
+    var str = _.trim(raw);
+    if (typeof str !== "function") throw new Error("Function not found: " + to_string(raw));
+    return typeof "window" !== "undefined" ? window[str] : global[str];
 }
 
 /* jshint strict: true, undef: true */
