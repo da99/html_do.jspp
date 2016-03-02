@@ -30,7 +30,11 @@ build () {
 
   # === NODE: =================================================================
   echo -e "=== Building: ${Bold}node.js${Color_Off}"
-  ugly "node" spec base state node
+  local names="spec base state node"
+  cat $($0 top-build-files $names) $($0 body-build-files $names) $($0 bottom-build-files $names) > build/node.js
+  node "lib/node.spec.js" test
+
+  ugly "node" $names
   node "lib/node.spec.js" test
   echo -e "=== Done building: ${Green}node.js${Color_Off}"
 
