@@ -11,12 +11,14 @@ watch () {
   run_cmd () {
     $cmd && echo -e "=== ${Green}$cmd${Color_Off}" || echo -e "=== ${Red}Failed${Color_Off}"
   }
+
   if [[ -z "$cmd" ]]; then
     $0 test || :
   else
     run_cmd
   fi
 
+  $0 server start
   echo -e "\n=== Watching:"
 
   while read -r CHANGE; do
@@ -44,6 +46,13 @@ watch () {
 
     echo "$path" > "$TEMP/CHANGE"
 
+    if [[ "$file" == www/*.js ]]; then
+      js_setup jshint "$file"
+      # if $0 server is_running; then
+      #   $0 server start
+      # fi
+    fi
+
     if [[ "$file" =~ "www" ]]; then
       { $cmd $path && gui_setup reload-browser google-chrome "Dum"; } || :
       continue
@@ -56,6 +65,7 @@ watch () {
     fi
   done < <(inotifywait --quiet --monitor --event close_write package.json -r lib/ -r bin/) || exit 1
 
+  $0 server stop
   $0 "$THE_ARGS"
 
 } # === end function

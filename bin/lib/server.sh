@@ -5,7 +5,12 @@
 # === {{CMD}}  stop
 server () {
 
+  local PID="tmp/pid.txt"
   case "$1" in
+
+    is_running)
+      [[ -f $PID ]]
+      ;;
 
     start)
       server stop
@@ -13,21 +18,19 @@ server () {
       server_pid="$!"
 
       mkdir -p tmp
-      echo "$server_pid" > tmp/pid.txt
+      echo "$server_pid" > "$PID"
       echo "=== Started server: $server_pid - $$"
       sleep 0.5
       ;;
 
     stop)
-      if [[ -f "tmp/pid.txt"  ]]; then
-        pid="$(cat tmp/pid.txt)"
-        if [[ -n "$pid" ]]; then
-          if kill -0 "$pid" 2>/dev/null; then
-            echo "=== Shutting server down: pid: $pid - \$\$: $$ ..."
-            kill -SIGINT "$pid"
-          fi
+      if [[ -e "$PID"  ]]; then
+        num="$(cat $PID)"
+        if [[ -n "$num" ]] && kill -0 "$num" 2>/dev/null; then
+          echo "=== Shutting server down: pid: $num..."
+          kill -SIGINT "$num"
         fi
-        rm tmp/pid.txt || :
+        rm -f "$PID"
       fi
       ;;
 

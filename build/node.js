@@ -783,7 +783,8 @@ function copy_value(v) {
   if (return_val)
     return v;
 
-  throw new Error('Value can\'t be copied: ' + to_string(v));
+  return v;
+  // throw new Error('Value can\'t be copied: ' + to_string(v));
 }
 /* jshint strict: true, undef: true */
 /* globals spec, spec, is_function, arguments_are, is_something, to_string */
