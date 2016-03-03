@@ -156,11 +156,8 @@ function spec() {
     if (args[0] !== "run" && !is_function(args[0])) throw new Error("Unknown value: " + to_string(args[0]));
     var specs = App("read or create", "specs", []);
     if (is_empty(specs)) throw new Error("No specs found.");
-    var on_fin = is_function(arguments[0]) && arguments[0] || function(msg) {
-        log("      ======================================");
-        log("      Specs Finish: " + to_string(msg.total) + " tests");
-        log("      ======================================");
-    };
+    App("create or ignore", "spec on finishs", []);
+    if (is_function(arguments[0])) App("push into", "spec on finishs", arguments[0]);
     App("create or ignore", "specs done", []);
     var i = App("read or create", "spec.index", 0);
     while (i < specs.length) {
@@ -169,9 +166,18 @@ function spec() {
     }
     var passed = App("read", "spec.index");
     if (specs.length < passed) throw new Error("Total specs: " + specs.length + " != Passed specs: " + passed);
-    on_fin({
+    var on_fins = App("read", "spec on finishs");
+    if (is_empty(on_fins)) {
+        on_fins.push(function(msg) {
+            log("      ======================================");
+            log("      Specs Finish: " + to_string(msg.total) + " tests");
+            log("      ======================================");
+        });
+    }
+    var msg = {
         total: specs.length
-    });
+    };
+    for (var func_i = 0; func_i < on_fins.length; func_i++) on_fins[func_i](msg);
     return true;
     function actual_equals_expect(actual, expect) {
         if (_.isEqual(actual, expect)) return true;
