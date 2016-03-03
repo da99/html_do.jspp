@@ -9,10 +9,10 @@ const port         = parseInt(process.env.PORT);
 const logger       = require('morgan')('dev');
 const bodyParser   = require('body-parser');
 
-function json(app, o) {
-  app.set('Content-Type', 'application/json');
-  app.set('Access-Control-Allow-Origin', '*');
-  app.send( JSON.stringify(o) );
+function json(resp, o) {
+  resp.set('Content-Type', 'application/json');
+  resp.set('Access-Control-Allow-Origin', '*');
+  resp.send( JSON.stringify(o) );
 }
 
 //Create a server
@@ -51,6 +51,13 @@ app.post("/text", function (req, resp) {
   resp.set('Content-Type', 'text/plain');
   resp.send("Some plain text.");
 });
+
+app.post("/all-specs-pass", function (req, resp) {
+  console.log(req.body);
+  json(resp, {ok: true});
+});
+
+
 
 app.post("/repeat", function (req, resp) {
   resp.send( json(resp, {ok: true, data: req.body, about: 'data received: ' + JSON.stringify(req.body) }) );

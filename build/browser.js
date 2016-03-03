@@ -212,11 +212,7 @@ function spec() {
 
   var on_fins = App('read', 'spec on finishs');
   if (is_empty(on_fins)) {
-    on_fins.push(function (msg) {
-      log('      ======================================');
-      log('      Specs Finish: ' + to_string(msg.total) + ' tests');
-      log('      ======================================');
-    });
+    on_fins.push(spec.default_msg);
   }
 
   var msg = {total: specs.length};
@@ -298,6 +294,13 @@ function spec() {
   } // === function regular_spec
 
 } // === function spec
+
+spec.default_msg = function default_msg(msg) {
+  "use strict";
+  log('      ======================================');
+  log('      Specs Finish: ' + to_string(msg.total) + ' tests');
+  log('      ======================================');
+};
 
 
 /* jshint strict: true, undef: true */

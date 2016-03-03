@@ -70,6 +70,7 @@ build () {
   echo -e "=== Done building: ${Green}node.js${Color_Off}"
 
   # === BROWSER: ==============================================================
+
   echo -e "=== Building: ${Bold}browser.js${Color_Off}"
   names="spec base state dom data-do"
   # ugly "browser"  $names
@@ -78,6 +79,9 @@ build () {
     $($0 body-build-files $names)   \
     $($0 bottom-build-files $names)  \
     > build/browser.js
+
+  jshint www/*.js || { stat=$?; echo -e "${Red}Failed${Color_Off}"; exit $stat; }
+
   echo -n -e "=== Refreshing ${Orange}browser${Color_Off}... "
   { gui_setup reload-browser google-chrome "Dum" && echo -e "${Green}Done${Color_Off}"; } ||
     { echo -e "=== ${Red}Failed$Color_Off}"; }

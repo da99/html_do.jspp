@@ -47,8 +47,8 @@ watch () {
 
     echo "$path" > "$TEMP/CHANGE"
 
-    if [[ "$file" == www/*.js ]]; then
-      js_setup jshint "$file"
+    if [[ "$path" == www/*.js ]]; then
+      js_setup jshint "$path" || continue
       if $0 server is_running; then
         $0 server start
       fi
