@@ -2,14 +2,15 @@
 # === {{CMD}}
 build () {
 
+  rm -rf build/*.js
+  rm -rf build/*.js.map
+
   temp="$TEMP/spec"
   ugly () {
     local name="$1"; shift
     local output="build/${name}"
     local file="$output.js"
 
-    rm -f "$file"
-    rm -f "$file".map
     names="$@"
     files="$($0 top-build-files $names) $($0 body-build-files $names) $($0 bottom-build-files $names)"
     uglifyjs                           \
