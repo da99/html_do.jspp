@@ -70,7 +70,13 @@ build () {
 
   # === BROWSER: ==============================================================
   echo -e "=== Building: ${Bold}browser.js${Color_Off}"
-  ugly "browser"  spec base state dom   data-do
+  names="spec base state dom data-do"
+  # ugly "browser"  $names
+  cat                             \
+    $($0 top-build-files $names)   \
+    $($0 body-build-files $names)   \
+    $($0 bottom-build-files $names)  \
+    > build/browser.js
   echo -e "=== Test for ${Orange}browser.js${Color_Off} not ready yet"
 
 } # === end function

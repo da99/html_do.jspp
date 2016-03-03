@@ -4,20 +4,14 @@ test () {
 
   $0 duplicate-functions || { stat="$?"; echo "!!! Dup found." 1>&2; exit $stat; }
 
-  if [[ -z "$@" ]]; then
-    $0 build
-    exit 0
-  fi
+  if [[ -n "$@" ]]; then
+    js_setup jshint $@
 
-  files="$(find lib -type f -iname "*.js")"
-  target=""
-  target="$1"; shift
+    $0 test
+    return 0
+  fi # === Finish testing single file.
 
-  js_setup jshint "$target"
-
-  if [[ "$target" == lib/* ]]; then
-    name="$(echo "$target" | cut -d'/' -f1)"
-    $0 build "$name"
-  fi
+  $0 build
+  return 0
 
 }  # === end function
