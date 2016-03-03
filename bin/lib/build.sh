@@ -63,12 +63,13 @@ build () {
   done < <(node lib/node.spec.js test 2>&1) # || { stat=$?; echo -e "=== ${Red}Failed${Color_Off}" 1>&2; exit $stat; })
 
   [[ -n "$err_found" ]] && exit 1 || :
-  echo -e "=== Creating .map file..."
-  ugly "node" $names
-  node "lib/node.spec.js" test &>$temp || { stat=$?; cat "$temp"; echo -e "=== ${Red}Failed${Color_Off}" 1>&2; exit $stat; }
+  # echo -e "=== Creating .map file..."
+  # ugly "node" $names
+  # node "lib/node.spec.js" test &>$temp || { stat=$?; cat "$temp"; echo -e "=== ${Red}Failed${Color_Off}" 1>&2; exit $stat; }
   echo -e "=== Done building: ${Green}node.js${Color_Off}"
 
   # === BROWSER: ==============================================================
+  echo -e "=== Building: ${Bold}browser.js${Color_Off}"
   ugly "browser"  spec base state dom   data-do
   echo -e "=== Test for ${Orange}browser.js${Color_Off} not ready yet"
 
