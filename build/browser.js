@@ -2300,10 +2300,10 @@ spec("display: none;", function() {
     // hide: hides element when key is true
     "use strict";
     spec_dom().html('<div data-do="hide is_factor">Factor</div>');
-    App("run", {
+    App("send message", {
         "dom-change": true
     });
-    App("run", {
+    App("send message", {
         is_factor: true
     });
     return spec_dom().find("div").attr("style");
@@ -2313,10 +2313,10 @@ spec("", function() {
     // does not alter element if msg has missing key
     "use strict";
     spec_dom().html('<div data-do="hide is_dog" style="">Dog</div>');
-    App("run", {
+    App("send message", {
         "dom-change": true
     });
-    App("run", {
+    App("send message", {
         is_cat: true
     });
     return spec_dom().find("div").attr("style");
