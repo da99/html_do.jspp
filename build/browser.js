@@ -99,7 +99,7 @@ function spec_dom(cmd) {
 /* globals $, process */
 /* globals window, _, is_empty, function_to_name, spec_dom */
 /* globals _, is_array, to_string, to_function_string, to_match_string, log */
-/* globals exports, is_string, is_regexp, spec */
+/* globals exports, is_error, is_string, is_regexp, spec */
 // === Expect:
 // spec(my_func,             ["my args"],           "my expected value");
 // spec("my expected value", function my_custom_spec() {
@@ -161,41 +161,53 @@ function spec() {
         log("      Specs Finish: " + to_string(msg.total) + " tests");
         log("      ======================================");
     };
-    _.each(specs, function(raw_spec) {
-        var was_found = _.find([ regular, returns ], function(spec_f) {
-            return spec_f.apply(null, raw_spec);
-        });
-        if (!was_found) throw new Error("Invalid spec: " + to_string(raw_spec));
-    });
+    _.each(specs, run_raw_spec);
     // === each
     on_fin({
         total: specs.length
     });
     return true;
     function actual_expect(actual, expect) {
-        return _.isEqual(actual, expect) || _.isString(actual) && _.isRegExp(expect) && actual.match(expect) || actual && actual.constructor === Error && expect && expect.constructor && actual.message === expect.message || actual && actual.constructor === Error && _.isRegExp(expect) && actual.message.match(expect);
+        if (_.isEqual(actual, expect)) return true;
+        if (_.isString(actual) && _.isRegExp(expect) && actual.match(expect)) return true;
+        if (actual && actual.constructor === Error && expect && expect.constructor && actual.message === expect.message) return true;
+        if (actual && actual.constructor === Error && _.isRegExp(expect) && actual.message.match(expect)) return true;
+        if (is_error(actual)) throw actual;
+        return false;
     }
-    function returns(expect, f) {
-        if (!(arguments.length === 2 && _.isFunction(f))) return false;
-        if (length(f) !== 0) {
-            throw new Error("async test not done yet.");
+    function run_raw_spec(raw_spec) {
+        var f, args, expect, actual, is_custom_func = false;
+        if (raw_spec.length === 2 && _.isFunction(raw_spec[1])) {
+            f = raw_spec[1];
+            args = [];
+            expect = raw_spec[0];
+            is_custom_func = true;
+        } else {
+            if (raw_spec.length === 3 && _.isFunction(raw_spec[0])) {
+                f = raw_spec[0];
+                args = raw_spec[1];
+                expect = raw_spec[2];
+            } else {
+                throw new Error("Invalid spec: " + to_string(raw_spec));
+            }
+        }
+        var sig = to_function_string(f, args);
+        if (length(f) !== 0 && is_custom_func) {
+            throw new Error("async test not done yet: " + to_string(f));
         }
         // if f.length === 0
-        var actual;
-        var sig = function_to_name(f);
         try {
-            actual = f();
+            actual = f.apply(null, args);
         } catch (e) {
             actual = e;
         }
         var msg = to_match_string(actual, expect);
         if (!actual_expect(actual, expect)) {
-            log([ to_string(expect), to_string(f) ]);
+            log(f, args, expect, actual);
             throw new Error("!!! Failed: " + sig + " -> " + msg);
         }
         log("=== Passed: " + sig + " -> " + msg);
         return true;
-        // === Async func:
         function async_returns(fin) {
             // spec('async', {
             //   i : 'init',
@@ -213,25 +225,6 @@ function spec() {
                 return true;
             });
         }
-    }
-    // === function spec_returns
-    function regular(f, args, expect) {
-        if (arguments.length !== 3) return false;
-        if (typeof f !== "function") return false;
-        var actual;
-        var sig = to_function_string(f, args);
-        try {
-            actual = f.apply(null, args);
-        } catch (e) {
-            actual = e;
-        }
-        var msg = to_match_string(actual, expect);
-        if (!actual_expect(actual, expect)) {
-            log(f, args, expect);
-            throw new Error("!!! Failed: " + sig + " -> " + msg);
-        }
-        log("=== Passed: " + sig + " -> " + msg);
-        return true;
     }
 }
 
@@ -1353,16 +1346,25 @@ function is_boolean(v) {
 
 /* jshint strict: true, undef: true */
 /* globals spec, to_string, is_something */
-/* globals exports */
+/* globals exports, is_plain_object, is_string */
 spec(is_error, [ new Error("anything") ], true);
 
 spec(is_error, [ "anything" ], false);
 
 exports.is_error = is_error;
 
+spec(is_error, [ new Error("meh") ], true);
+
+spec(is_error, [ new TypeError("meow") ], true);
+
+spec(is_error, [ {
+    stack: "",
+    message: ""
+} ], false);
+
 function is_error(v) {
     "use strict";
-    return is_something(v) && v.constructor === Error;
+    return is_something(v) && (v.constructor === Error || !is_plain_object(v) && is_string(v.stack) && is_string(v.message));
 }
 
 /* jshint strict: true, undef: true */
@@ -1817,7 +1819,16 @@ function App() {
 /* globals is_array, spec, arguments_are, reduce_eachs, copy_value, do_it, and, is, is_plain_object */
 /* globals is_string, be, not, to_string, apply_function, has_length, is_function, msg_match, function_to_name */
 /* globals reduce, log, exports, is_something, is_empty, _ */
-/* globals is_num, to_key, is_null, is_undefined, is_regexp, is_error, is_arguments */
+/* globals or, is_num, is_array_of_functions, to_key, is_null, is_undefined, is_regexp, is_error, is_arguments */
+spec(function throws_on_invalid() {
+    "use strict";
+    var comp = new Computer();
+    comp("create", "a number", 1, function(msg) {
+        return be(is_num, msg.value);
+    });
+    comp("update", "a number", "2");
+}, [], /2. should be: is_num /);
+
 spec(2, function increments_counter() {
     "use strict";
     var comp = new Computer();
@@ -1859,23 +1870,35 @@ exports.Computer = Computer;
 
 function Computer() {
     "use strict";
-    State.values = {};
-    State.msg_funcs = [];
-    return State;
+    ME.values = {};
+    ME.msg_funcs = [];
+    ME.abouts = {};
+    return ME;
+    function _save_(action, name, val) {
+        var fin = reduce_eachs(val, ME.abouts[name], function(val, _i, cleaner) {
+            return cleaner({
+                action: action,
+                name: name,
+                value: val
+            });
+        });
+        ME.values[name] = fin;
+        return _read_and_copy_key_(name);
+    }
     function _read_and_copy_key_(k) {
         var key = _require_key_(k);
-        return _copy_value_(State.values[key]);
+        return _copy_value_(ME.values[key]);
     }
     function _copy_value_(v) {
         return copy_value(v, is_function, is_null, is_undefined, is_error, is_arguments, is_regexp);
     }
     function _replace_with_copy_(raw) {
         var key = _require_key_(raw);
-        State.values[key] = _copy_value_(State.values[key]);
-        return State.values[key];
+        ME.values[key] = _copy_value_(ME.values[key]);
+        return ME.values[key];
     }
     function _has_key_(k) {
-        return State.values.hasOwnProperty(to_key(k));
+        return ME.values.hasOwnProperty(to_key(k));
     }
     function _update_(k, func) {}
     function _key_must_not_exist_(k) {
@@ -1888,25 +1911,25 @@ function Computer() {
         if (!_has_key_(key)) throw new Error("Value has not been created: " + to_string(k));
         return key;
     }
-    function State(action, args) {
+    function ME(action, args) {
         if (action === "invalid") {
-            State.is_invalid = true;
+            ME.is_invalid = true;
             return;
         }
-        if (State.is_invalid === true) throw new Error("state is invalid.");
-        var name, new_args, key, func, new_val, old_vals, default_val, old;
-        var msg_funcs = State.msg_funcs.slice(0);
+        if (ME.is_invalid === true) throw new Error("state is invalid.");
+        var name, new_abouts, new_args, key, func, funcs, tail, new_val, old_vals, default_val, old;
+        var msg_funcs = ME.msg_funcs.slice(0);
         switch (action) {
           case "create message function":
             func = be(and(is_function, has_length(1)), arguments[1]);
-            State.msg_funcs = msg_funcs.slice(0).concat([ func ]);
+            ME.msg_funcs = msg_funcs.slice(0).concat([ func ]);
             return true;
 
           case "push into or create":
             name = to_key(arguments[1]);
-            if (!_has_key_(name)) State("create", name, []);
+            if (!_has_key_(name)) ME("create", name, []);
             new_args = [ "push into" ].concat(_.toArray(arguments).slice(1));
-            return State.apply(null, new_args);
+            return ME.apply(null, new_args);
 
           case "push into":
             name = _require_key_(arguments[1]);
@@ -1915,44 +1938,42 @@ function Computer() {
 
           case "read":
             name = reduce(arguments[1], be(is_string), _.trim, be(not(is_empty)));
-            var val_has_been_set = is_something(State.values[name]);
+            var val_has_been_set = is_something(ME.values[name]);
             var has_default_val = arguments.length > 2;
             default_val = has_default_val && be(is_something, arguments[2]);
             if (!val_has_been_set && !has_default_val) throw new Error("Not set: " + to_string(name));
-            if (val_has_been_set) return _copy_value_(State.values[name]);
+            if (val_has_been_set) return _copy_value_(ME.values[name]);
             return default_val;
 
           case "create":
             name = _key_must_not_exist_(arguments[1]);
-            State.values[name] = reduce(arguments[2], be(is_something));
-            return _read_and_copy_key_(name);
+            new_abouts = _.toArray(arguments).slice(3);
+            if (is_empty(new_abouts)) ME.abouts[name] = []; else ME.abouts[name] = be(is_array_of_functions, new_abouts);
+            return _save_("create", name, reduce(arguments[2], be(is_something)));
 
           case "read or create":
             name = to_key(arguments[1]);
-            default_val = reduce(arguments[2], be(is_something));
-            if (!_has_key_(name)) return State("create", name, default_val);
-            return State("read", name);
-
-          case "update":
-            if (arguments.length !== 3) throw new Error("Wrong # of arguments: " + to_string(arguments));
-            key = arguments[1];
-            new_val = arguments[2];
-            State.values[key] = new_val;
-            return _copy_value_(State.values[key]);
+            tail = _.toArray(arguments).slice(2);
+            if (_has_key_(name)) return ME("read", name);
+            return ME.apply(null, [ "create", name ].concat(tail));
 
           case "read and update":
             key = _require_key_(arguments[1]);
             func = be(is_function, arguments[2]);
-            old = State("read", key);
-            return State("update", key, func(old));
+            old = ME("read", key);
+            return ME("update", key, func(old));
+
+          case "update":
+            if (arguments.length !== 3) throw new Error("Wrong # of arguments: " + to_string(arguments));
+            return _save_("update", _require_key_(arguments[1]), arguments[2]);
 
           case "+1":
-            return State("read and update", arguments[1], function(old) {
+            return ME("read and update", arguments[1], function(old) {
                 return be(is_num, old) + 1;
             });
 
           case "-1":
-            return State("read and update", arguments[1], function(old) {
+            return ME("read and update", arguments[1], function(old) {
                 return be(is_num, old) - 1;
             });
 
@@ -1964,14 +1985,14 @@ function Computer() {
                     var msg_copy = _copy_value_(msg);
                     acc.push(apply_function(func, [ msg_copy ]));
                 } catch (e) {
-                    State("invalid");
+                    ME("invalid");
                     throw e;
                 }
                 return acc;
             });
 
           default:
-            State("invalid");
+            ME("invalid");
             throw new Error("Unknown action for state: " + to_string(action));
         }
     }
