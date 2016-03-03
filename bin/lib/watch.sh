@@ -12,13 +12,14 @@ watch () {
     $cmd && echo -e "=== ${Green}$cmd${Color_Off}" || echo -e "=== ${Red}Failed${Color_Off}"
   }
 
+  $0 server start
+
   if [[ -z "$cmd" ]]; then
     $0 test || :
   else
     run_cmd
   fi
 
-  $0 server start
   echo -e "\n=== Watching:"
 
   while read -r CHANGE; do

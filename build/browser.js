@@ -995,6 +995,7 @@ function is_string(v) {
 /* globals exports, _ */
 
 exports.or = or;
+
 function or(_funcs) {
   "use strict";
 
