@@ -19,6 +19,9 @@
   ],
   "dependencies": {
     "form-to-obj": "chrisdavies/form-to-obj#latest",
-    "alite": "chrisdavies/alite#latest"
+    "alite": "chrisdavies/alite#latest",
+    "lodash": "latest",
+    "jquery": "latest",
+    "mustache.js": "mustache#latest"
   }
 }
