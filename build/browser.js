@@ -116,7 +116,7 @@ function spec_dom(cmd) {
 // );
 //
 // === Run specs:
-// spec('run');
+// spec('send message');
 // spec(function (msg) {
 //  log('Finished specs: ' + msg.total);
 // });
@@ -153,7 +153,7 @@ function spec() {
         return true;
     }
     // === switch
-    if (args[0] !== "run" && !is_function(args[0]) && !is_plain_object(args[0])) throw new Error("Unknown value: " + to_string(args[0]));
+    if (args[0] !== "send message" && !is_function(args[0]) && !is_plain_object(args[0])) throw new Error("Unknown value: " + to_string(args[0]));
     var specs = App("read or create", "specs", []);
     if (is_empty(specs)) throw new Error("No specs found.");
     var on_fin = is_function(arguments[0]) && arguments[0] || function(msg) {
@@ -1818,6 +1818,24 @@ function App() {
 /* globals is_string, be, not, to_string, apply_function, has_length, is_function, msg_match, function_to_name */
 /* globals reduce, log, exports, is_something, is_empty, _ */
 /* globals is_num, to_key, is_null, is_undefined, is_regexp, is_error, is_arguments */
+spec(2, function increments_counter() {
+    "use strict";
+    var comp = new Computer();
+    comp("create", "counter", 0);
+    comp("+1", "counter");
+    comp("+1", "counter");
+    return comp("read", "counter");
+});
+
+spec(-4, function decrements_counter() {
+    "use strict";
+    var comp = new Computer();
+    comp("create", "counter", -2);
+    comp("-1", "counter");
+    comp("-1", "counter");
+    return comp("read", "counter");
+});
+
 spec(3, function runs_message_function() {
     "use strict";
     var counter = 0;
@@ -1832,7 +1850,7 @@ spec(3, function runs_message_function() {
         ++counter;
     });
     do_it(3, function() {
-        state("run", data);
+        state("send message", data);
     });
     return counter;
 });
@@ -1930,16 +1948,16 @@ function Computer() {
 
           case "+1":
             return State("read and update", arguments[1], function(old) {
-                return be(is_num)(old) + 1;
+                return be(is_num, old) + 1;
             });
 
           case "-1":
             return State("read and update", arguments[1], function(old) {
-                return be(is_num)(old) - 1;
+                return be(is_num, old) - 1;
             });
 
-          case "run":
-            arguments_are(arguments, is("run"), is_plain_object);
+          case "send message":
+            arguments_are(arguments, is("send message"), is_plain_object);
             var msg = arguments[1];
             return reduce_eachs([], msg_funcs, function(acc, _ky, func) {
                 try {
@@ -1982,10 +2000,10 @@ spec("", function() {
     // show: shows element when key is true
     "use strict";
     spec_dom().html('<div data-do="show is_factor" style="display: none;">Factor</div>');
-    App("run", {
+    App("send message", {
         "dom-change": true
     });
-    App("run", {
+    App("send message", {
         is_factor: true
     });
     return spec_dom().find("div").attr("style");
@@ -1995,10 +2013,10 @@ spec("display: none;", function() {
     // does not alter element msg is missing key
     "use strict";
     spec_dom().html('<div data-do="show is_pearl" style="display: none;">Pearl</div>');
-    App("run", {
+    App("send message", {
         "dom-change": true
     });
-    App("run", {
+    App("send message", {
         is_factor: true
     });
     return spec_dom().find("div").attr("style");
@@ -2077,10 +2095,10 @@ spec("", function _show_hide() {
     // === show_hide shows element if key = true
     "use strict";
     spec_dom().html('<div data-do="show_hide is_ruby" style="display: none;">Ruby</div>');
-    App("run", {
+    App("send message", {
         "dom-change": true
     });
-    App("run", {
+    App("send message", {
         is_ruby: true
     });
     return spec_dom().find("div").attr("style");
@@ -2090,10 +2108,10 @@ spec("display: none;", function _show_hide() {
     // === show_hide hides element if key = false
     "use strict";
     spec_dom().html('<div data-do="show_hide is_ruby" style="">Perl</div>');
-    App("run", {
+    App("send message", {
         "dom-change": true
     });
-    App("run", {
+    App("send message", {
         is_ruby: false
     });
     return spec_dom().find("div").attr("style");
@@ -2390,17 +2408,17 @@ function name_to_function(raw) {
 spec([ "SCRIPT", "SPAN", "P" ], function template_replaces_elements_by_default() {
     "use strict";
     spec_dom().html('<script type="application/template" data-do="template is_text replace">' + html_escape("<span>{{a1}}</span>") + html_escape("<p>{{a2}}</p>") + "</script>");
-    App("run", {
+    App("send message", {
         "dom-change": true
     });
-    App("run", {
+    App("send message", {
         is_text: true,
         data: {
             a1: "1",
             a2: "2"
         }
     });
-    App("run", {
+    App("send message", {
         is_text: true,
         data: {
             a1: "3",
@@ -2413,10 +2431,10 @@ spec([ "SCRIPT", "SPAN", "P" ], function template_replaces_elements_by_default()
 spec([ "SCRIPT", "P", "DIV" ], function template_renders_elements_below_by_default() {
     "use strict";
     spec_dom().html('<script type="application/template" data-do="template is_text replace">' + html_escape("<p>one</p>") + html_escape("<div>two</div>") + "</script>");
-    App("run", {
+    App("send message", {
         "dom-change": true
     });
-    App("run", {
+    App("send message", {
         is_text: true
     });
     return _.map(spec_dom().children(), dot("tagName"));
@@ -2425,17 +2443,17 @@ spec([ "SCRIPT", "P", "DIV" ], function template_renders_elements_below_by_defau
 spec("123", function template_renders_nested_vars() {
     "use strict";
     spec_dom().html('<script type="application/template" data-do="template is_text replace">' + html_escape("<p>{{a}}</p>") + html_escape("<p>{{b}}</p>") + html_escape('<script type="application/template" data-do="template is_val replace">') + html_escape(html_escape("<p>{{c}}</p>")) + html_escape("</script>") + "</script>");
-    App("run", {
+    App("send message", {
         "dom-change": true
     });
-    App("run", {
+    App("send message", {
         is_text: true,
         data: {
             a: 1,
             b: 2
         }
     });
-    App("run", {
+    App("send message", {
         is_val: true,
         data: {
             c: "3"
@@ -2447,10 +2465,10 @@ spec("123", function template_renders_nested_vars() {
 spec([ "P", "P", "SCRIPT" ], function template_renders_above() {
     "use strict";
     spec_dom().html('<script type="application/template" data-do="template is_text above">' + html_escape("<p>{{a}}</p>") + html_escape("<p>{{b}}</p>") + "</script>");
-    App("run", {
+    App("send message", {
         "dom-change": true
     });
-    App("run", {
+    App("send message", {
         is_text: true,
         data: {
             a: 4,
@@ -2463,10 +2481,10 @@ spec([ "P", "P", "SCRIPT" ], function template_renders_above() {
 spec([ "SCRIPT", "SPAN", "P" ], function template_renders_below() {
     "use strict";
     spec_dom().html('<script type="application/template" data-do="template is_text bottom">' + html_escape("<span>{{a}}</span>") + html_escape("<p>{{b}}</p>") + "</script>");
-    App("run", {
+    App("send message", {
         "dom-change": true
     });
-    App("run", {
+    App("send message", {
         is_text: true,
         data: {
             a: 6,
@@ -2479,13 +2497,13 @@ spec([ "SCRIPT", "SPAN", "P" ], function template_renders_below() {
 spec("none", function template_renders_dum_functionality() {
     "use strict";
     spec_dom().html('<script type="application/template" data-do="template render_template replace">' + html_escape('<div><span id="template_1" data-do="hide is_num">{{num.word}}</span></div>') + "</script>");
-    App("run", {
+    App("send message", {
         "dom-change": true
     });
-    App("run", {
+    App("send message", {
         render_template: true
     });
-    App("run", {
+    App("send message", {
         is_num: true,
         data: {
             num: {
@@ -2525,7 +2543,7 @@ function template(msg) {
         });
         if (pos === "replace" || pos === "bottom") compiled.insertAfter($("#" + id)); else compiled.insertBefore($("#" + id));
         me.elements[id] = [].concat(me.elements[id]).concat(new_ids);
-        App("run", {
+        App("send message", {
             "dom-change": true
         });
         return new_ids;
@@ -2576,12 +2594,12 @@ function submit_form(msg) {
         if (!is_plain_object(result) || !result.ok) {
             data.msg = result.msg || "Computer error. Try again later.";
             data["err_" + form_dom_id] = true;
-            App("run", data);
+            App("send message", data);
             return;
         }
         // === else success:
         data["ok_" + form_dom_id] = true;
-        App("run", data);
+        App("send message", data);
     }).catch(function(err) {
         log(err);
         var data = {
@@ -2591,7 +2609,7 @@ function submit_form(msg) {
             if (is_blank_string(err)) data.msg = "Network error."; else data.msg = err;
         }
         data["err_" + form_dom_id] = true;
-        App("run", data);
+        App("send message", data);
     });
 }
 
@@ -2603,7 +2621,7 @@ function submit_form(msg) {
 spec("yo mo", function button_submit(fin) {
     "use strict";
     spec_dom().html('<form id="the_form" action="/repeat">' + '<script type="application/template" data-do="template ok_the_form replace">' + html_escape("<div>{{val1}} {{val2}}</div>") + '</script><button onclick="return false;" data-do="on_click submit_form">Submit</button>' + '<input type="hidden" name="val1" value="yo" />' + '<input type="hidden" name="val2" value="mo" />' + "</form>");
-    App("run", {
+    App("send message", {
         "dom-change": true
     });
     spec_dom().find("button").click();

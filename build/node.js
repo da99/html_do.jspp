@@ -122,7 +122,7 @@ function spec_dom(cmd) {
 // );
 //
 // === Run specs:
-// spec('run');
+// spec('send message');
 // spec(function (msg) {
 //  log('Finished specs: ' + msg.total);
 // });
@@ -159,7 +159,7 @@ function spec() {
         return true;
     }
     // === switch
-    if (args[0] !== "run" && !is_function(args[0]) && !is_plain_object(args[0])) throw new Error("Unknown value: " + to_string(args[0]));
+    if (args[0] !== "send message" && !is_function(args[0]) && !is_plain_object(args[0])) throw new Error("Unknown value: " + to_string(args[0]));
     var specs = App("read or create", "specs", []);
     if (is_empty(specs)) throw new Error("No specs found.");
     var on_fin = is_function(arguments[0]) && arguments[0] || function(msg) {
@@ -1824,6 +1824,24 @@ function App() {
 /* globals is_string, be, not, to_string, apply_function, has_length, is_function, msg_match, function_to_name */
 /* globals reduce, log, exports, is_something, is_empty, _ */
 /* globals is_num, to_key, is_null, is_undefined, is_regexp, is_error, is_arguments */
+spec(2, function increments_counter() {
+    "use strict";
+    var comp = new Computer();
+    comp("create", "counter", 0);
+    comp("+1", "counter");
+    comp("+1", "counter");
+    return comp("read", "counter");
+});
+
+spec(-4, function decrements_counter() {
+    "use strict";
+    var comp = new Computer();
+    comp("create", "counter", -2);
+    comp("-1", "counter");
+    comp("-1", "counter");
+    return comp("read", "counter");
+});
+
 spec(3, function runs_message_function() {
     "use strict";
     var counter = 0;
@@ -1838,7 +1856,7 @@ spec(3, function runs_message_function() {
         ++counter;
     });
     do_it(3, function() {
-        state("run", data);
+        state("send message", data);
     });
     return counter;
 });
@@ -1936,16 +1954,16 @@ function Computer() {
 
           case "+1":
             return State("read and update", arguments[1], function(old) {
-                return be(is_num)(old) + 1;
+                return be(is_num, old) + 1;
             });
 
           case "-1":
             return State("read and update", arguments[1], function(old) {
-                return be(is_num)(old) - 1;
+                return be(is_num, old) - 1;
             });
 
-          case "run":
-            arguments_are(arguments, is("run"), is_plain_object);
+          case "send message":
+            arguments_are(arguments, is("send message"), is_plain_object);
             var msg = arguments[1];
             return reduce_eachs([], msg_funcs, function(acc, _ky, func) {
                 try {
