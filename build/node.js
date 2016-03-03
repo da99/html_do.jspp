@@ -1823,7 +1823,7 @@ function App() {
 /* globals is_array, spec, arguments_are, reduce_eachs, copy_value, do_it, and, is, is_plain_object */
 /* globals is_string, be, not, to_string, apply_function, has_length, is_function, msg_match, function_to_name */
 /* globals reduce, log, exports, is_something, is_empty, _ */
-/* globals to_key, is_null, is_undefined, is_regexp, is_error, is_arguments */
+/* globals is_num, to_key, is_null, is_undefined, is_regexp, is_error, is_arguments */
 spec(3, function runs_message_function() {
     "use strict";
     var counter = 0;
@@ -1865,7 +1865,8 @@ function Computer() {
     function _has_key_(k) {
         return State.values.hasOwnProperty(to_key(k));
     }
-    function _require_key_is_new_(k) {
+    function _update_(k, func) {}
+    function _key_must_not_exist_(k) {
         var key = to_key(k);
         if (_has_key_(key)) throw new Error("Value already created: " + to_string(key));
         return key;
@@ -1881,18 +1882,18 @@ function Computer() {
             return;
         }
         if (State.is_invalid === true) throw new Error("state is invalid.");
-        var name, new_val, old_vals, default_val;
+        var name, new_args, key, func, new_val, old_vals, default_val, old;
         var msg_funcs = State.msg_funcs.slice(0);
         switch (action) {
           case "create message function":
-            var func = be(and(is_function, has_length(1)), arguments[1]);
+            func = be(and(is_function, has_length(1)), arguments[1]);
             State.msg_funcs = msg_funcs.slice(0).concat([ func ]);
             return true;
 
           case "push into or create":
             name = to_key(arguments[1]);
             if (!_has_key_(name)) State("create", name, []);
-            var new_args = [ "push into" ].concat(_.toArray(arguments).slice(1));
+            new_args = [ "push into" ].concat(_.toArray(arguments).slice(1));
             return State.apply(null, new_args);
 
           case "push into":
@@ -1910,18 +1911,38 @@ function Computer() {
             return default_val;
 
           case "create":
-            name = _require_key_is_new_(arguments[1]);
+            name = _key_must_not_exist_(arguments[1]);
             State.values[name] = reduce(arguments[2], be(is_something));
             return _read_and_copy_key_(name);
 
           case "read or create":
             name = to_key(arguments[1]);
             default_val = reduce(arguments[2], be(is_something));
-            if (!_has_key_(name)) State("create", name, default_val);
-            return _read_and_copy_key_(name);
+            if (!_has_key_(name)) return State("create", name, default_val);
+            return State("read", name);
 
-          case "read counter":
-            return _read_and_copy_key_(arguments[1]);
+          case "update":
+            if (arguments.length !== 3) throw new Error("Wrong # of arguments: " + to_string(arguments));
+            key = arguments[1];
+            new_val = arguments[2];
+            State.values[key] = new_val;
+            return _copy_value_(State.values[key]);
+
+          case "read and update":
+            key = _require_key_(arguments[1]);
+            func = be(is_function, arguments[2]);
+            old = State("read", key);
+            return State("update", key, func(old));
+
+          case "+1":
+            return State("read and update", arguments[1], function(old) {
+                return be(is_num)(old) + 1;
+            });
+
+          case "-1":
+            return State("read and update", arguments[1], function(old) {
+                return be(is_num)(old) - 1;
+            });
 
           case "run":
             arguments_are(arguments, is("run"), is_plain_object);
