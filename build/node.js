@@ -105,7 +105,7 @@ function spec_dom(cmd) {
 /* globals $, process */
 /* globals window, _, is_empty, function_to_name, spec_dom */
 /* globals _, is_array, to_string, to_function_string, to_match_string, log */
-/* globals exports, is_error, is_string, is_regexp, spec */
+/* globals exports, wait_max, is_error, is_string, is_regexp, spec */
 // === Expect:
 // spec(my_func,             ["my args"],           "my expected value");
 // spec("my expected value", function my_custom_spec() {
@@ -159,7 +159,7 @@ function spec() {
         return true;
     }
     // === switch
-    if (args[0] !== "send message" && !is_function(args[0]) && !is_plain_object(args[0])) throw new Error("Unknown value: " + to_string(args[0]));
+    if (args[0] !== "run" && !is_function(args[0])) throw new Error("Unknown value: " + to_string(args[0]));
     var specs = App("read or create", "specs", []);
     if (is_empty(specs)) throw new Error("No specs found.");
     var on_fin = is_function(arguments[0]) && arguments[0] || function(msg) {
@@ -167,13 +167,19 @@ function spec() {
         log("      Specs Finish: " + to_string(msg.total) + " tests");
         log("      ======================================");
     };
-    _.each(specs, run_raw_spec);
-    // === each
+    App("create or ignore", "specs done", []);
+    var i = App("read or create", "spec.index", 0);
+    while (i < specs.length) {
+        if (run_spec(i, specs[i]) === "wait") return false;
+        i = App("read", "spec.index");
+    }
+    var passed = App("read", "spec.index");
+    if (specs.length < passed) throw new Error("Total specs: " + specs.length + " != Passed specs: " + passed);
     on_fin({
         total: specs.length
     });
     return true;
-    function actual_expect(actual, expect) {
+    function actual_equals_expect(actual, expect) {
         if (_.isEqual(actual, expect)) return true;
         if (_.isString(actual) && _.isRegExp(expect) && actual.match(expect)) return true;
         if (actual && actual.constructor === Error && expect && expect.constructor && actual.message === expect.message) return true;
@@ -181,13 +187,12 @@ function spec() {
         if (is_error(actual)) throw actual;
         return false;
     }
-    function run_raw_spec(raw_spec) {
-        var f, args, expect, actual, is_custom_func = false;
+    function run_spec(index, raw_spec) {
+        var f, args, expect, actual;
         if (raw_spec.length === 2 && _.isFunction(raw_spec[1])) {
             f = raw_spec[1];
-            args = [];
+            args = length(f) > 0 ? [ compare_actual ] : [];
             expect = raw_spec[0];
-            is_custom_func = true;
         } else {
             if (raw_spec.length === 3 && _.isFunction(raw_spec[0])) {
                 f = raw_spec[0];
@@ -197,46 +202,54 @@ function spec() {
                 throw new Error("Invalid spec: " + to_string(raw_spec));
             }
         }
-        var sig = to_function_string(f, args);
-        if (length(f) !== 0 && is_custom_func) {
-            throw new Error("async test not done yet: " + to_string(f));
+        // === Handle async specs:
+        if (args[0] === compare_actual) {
+            f.apply(null, args);
+            wait_max(3, function() {
+                if (!_.includes(App("read", "specs done"), index)) return false;
+                spec("run");
+                return true;
+            });
+            return "wait";
         }
-        // if f.length === 0
+        // === if =======================
         try {
             actual = f.apply(null, args);
         } catch (e) {
             actual = e;
         }
-        var msg = to_match_string(actual, expect);
-        if (!actual_expect(actual, expect)) {
-            log(f, args, expect, actual);
-            throw new Error("!!! Failed: " + sig + " -> " + msg);
-        }
-        log("=== Passed: " + sig + " -> " + msg);
+        compare_actual(actual);
         return true;
-        function async_returns(fin) {
-            // spec('async', {
-            //   i : 'init',
-            //   list: spec.specs.slice(0),
-            //   dones: {},
-            //   on_finish: on_fin,
-            //   total: 0
-            // });
-            var sig = function_to_name(f);
-            f(function(actual) {
-                var msg = to_match_string(actual, expect);
-                if (!actual_expect(actual, expect)) throw new Error("!!! Failed: " + sig + " -> " + msg);
-                log("=== Passed: " + sig + " -> " + msg);
-                fin();
-                return true;
-            });
+        function compare_actual(actual) {
+            var sig = to_function_string(f, args);
+            var msg = to_match_string(actual, expect);
+            if (!actual_equals_expect(actual, expect)) {
+                log(f, args, expect, actual);
+                throw new Error("!!! Failed: " + sig + " -> " + msg);
+            }
+            log("=== Passed: " + sig + " -> " + msg);
+            App("+1", "spec.index");
+            App("push into", "specs done", index);
         }
     }
 }
 
 /* jshint strict: true, undef: true */
 /* globals to_string, setTimeout */
-/* globals exports */
+/* globals exports, spec */
+spec(5, function stops_on_return_true(fin) {
+    "use strict";
+    var i = 0;
+    wait_max(2, function() {
+        i = i + 1;
+        if (i === 5) {
+            fin(i);
+            return true;
+        }
+        return false;
+    });
+});
+
 exports.wait_max = wait_max;
 
 function wait_max(seconds, func) {
@@ -1956,6 +1969,9 @@ function Computer() {
             new_abouts = _.toArray(arguments).slice(3);
             if (is_empty(new_abouts)) ME.abouts[name] = []; else ME.abouts[name] = be(is_array_of_functions, new_abouts);
             return _save_("create", name, reduce(arguments[2], be(is_something)));
+
+          case "create or ignore":
+            return ME.apply(null, [ "read or create" ].concat(_.toArray(arguments).slice(1)));
 
           case "read or create":
             name = to_key(arguments[1]);
