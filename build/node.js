@@ -152,22 +152,21 @@ spec.allow = typeof window !== "undefined" && $("#Spec_Stage").length === 1 || t
 
 function spec() {
     "use strict";
-    if (!spec.allow) return undefined;
+    if (!spec.allow) return;
     var args = _.toArray(arguments);
     if (length(args) !== 1) {
-        App("push into or create", "specs", args);
-        return true;
+        return App("push into or create", "specs", args);
     }
     // === switch
     if (args[0] !== "run" && !is_function(args[0])) throw new Error("Unknown value: " + to_string(args[0]));
-    var specs = App("read or create", "specs", []);
-    if (is_empty(specs)) throw new Error("No specs found.");
     App("create or ignore", "spec on finishs", []);
-    if (is_function(arguments[0])) App("push into", "spec on finishs", arguments[0]);
     App("create or ignore", "specs done", []);
+    var specs = App("read or create", "specs", []);
     var i = App("read or create", "spec.index", 0);
+    if (is_empty(specs)) throw new Error("No specs found.");
+    if (is_function(arguments[0])) App("push into", "spec on finishs", arguments[0]);
     while (i < specs.length) {
-        if (run_spec(i, specs[i]) === "wait") return false;
+        if (run_spec(i, specs[i]) === "wait") return "wait";
         i = App("read", "spec.index");
     }
     var passed = App("read", "spec.index");
@@ -184,7 +183,7 @@ function spec() {
         total: specs.length
     };
     for (var func_i = 0; func_i < on_fins.length; func_i++) on_fins[func_i](msg);
-    return true;
+    return "finish";
     function actual_equals_expect(actual, expect) {
         if (_.isEqual(actual, expect)) return true;
         if (_.isString(actual) && _.isRegExp(expect) && actual.match(expect)) return true;
