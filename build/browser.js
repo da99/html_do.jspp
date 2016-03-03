@@ -149,7 +149,7 @@ function spec() {
     if (!spec.allow) return undefined;
     var args = _.toArray(arguments);
     if (length(args) !== 1) {
-        App("push into", "specs", args);
+        App("push into or create", "specs", args);
         return true;
     }
     // === switch
@@ -1096,6 +1096,16 @@ function length(raw_v) {
 }
 
 /* jshint strict: true, undef: true */
+/* globals exports */
+/* globals be, reduce, is_string, not, is_empty, _ */
+exports.to_key = to_key;
+
+function to_key(str) {
+    "use strict";
+    return reduce(str, be(is_string), be(not(is_empty)), _.trim);
+}
+
+/* jshint strict: true, undef: true */
 /* globals spec */
 /* globals exports */
 spec(is_undefined, [ undefined ], true);
@@ -1807,7 +1817,7 @@ function App() {
 /* globals is_array, spec, arguments_are, reduce_eachs, copy_value, do_it, and, is, is_plain_object */
 /* globals is_string, be, not, to_string, apply_function, has_length, is_function, msg_match, function_to_name */
 /* globals reduce, log, exports, is_something, is_empty, _ */
-/* globals is_null, is_undefined, is_regexp, is_error, is_arguments */
+/* globals to_key, is_null, is_undefined, is_regexp, is_error, is_arguments */
 spec(3, function runs_message_function() {
     "use strict";
     var counter = 0;
@@ -1832,59 +1842,87 @@ exports.Computer = Computer;
 function Computer() {
     "use strict";
     State.values = {};
-    State.funcs = [];
+    State.msg_funcs = [];
     return State;
-    function _copy_(v) {
+    function _read_and_copy_key_(k) {
+        var key = _require_key_(k);
+        return _copy_value_(State.values[key]);
+    }
+    function _copy_value_(v) {
         return copy_value(v, is_function, is_null, is_undefined, is_error, is_arguments, is_regexp);
+    }
+    function _replace_with_copy_(raw) {
+        var key = _require_key_(raw);
+        State.values[key] = _copy_value_(State.values[key]);
+        return State.values[key];
+    }
+    function _has_key_(k) {
+        return State.values.hasOwnProperty(to_key(k));
+    }
+    function _require_key_is_new_(k) {
+        var key = to_key(k);
+        if (_has_key_(key)) throw new Error("Value already created: " + to_string(key));
+        return key;
+    }
+    function _require_key_(k) {
+        var key = to_key(k);
+        if (!_has_key_(key)) throw new Error("Value has not been created: " + to_string(k));
+        return key;
     }
     function State(action, args) {
         if (action === "invalid") {
             State.is_invalid = true;
             return;
         }
-        var name, new_val, old_vals, default_val;
         if (State.is_invalid === true) throw new Error("state is invalid.");
-        var funcs = State.funcs.slice(0);
+        var name, new_val, old_vals, default_val;
+        var msg_funcs = State.msg_funcs.slice(0);
         switch (action) {
           case "insert message function":
             var func = be(and(is_function, has_length(1)), arguments[1]);
-            State.funcs = funcs.slice(0).concat([ func ]);
+            State.msg_funcs = msg_funcs.slice(0).concat([ func ]);
             return true;
+
+          case "push into or create":
+            name = to_key(arguments[1]);
+            if (!_has_key_(name)) State("insert", name, []);
+            var new_args = [ "push into" ].concat(_.toArray(arguments).slice(1));
+            return State.apply(null, new_args);
 
           case "push into":
-            name = reduce(arguments[1], be(is_string), be(not(is_empty)), _.trim);
+            name = _require_key_(arguments[1]);
             new_val = reduce(arguments[2], be(is_something));
-            if (!is_something(State.values[name])) State.values[name] = [];
-            old_vals = State.values[name];
-            State.values[name] = [].concat(old_vals).concat([ new_val ]);
-            return true;
+            return _replace_with_copy_(name).push(new_val);
 
           case "read":
-            var vals = State.values;
             name = reduce(arguments[1], be(is_string), _.trim, be(not(is_empty)));
             var val_has_been_set = is_something(State.values[name]);
             var has_default_val = arguments.length > 2;
             default_val = has_default_val && be(is_something, arguments[2]);
             if (!val_has_been_set && !has_default_val) throw new Error("Not set: " + to_string(name));
-            if (val_has_been_set) return _copy_(State.values[name]);
+            if (val_has_been_set) return _copy_value_(State.values[name]);
             return default_val;
 
+          case "insert":
+            name = _require_key_is_new_(arguments[1]);
+            State.values[name] = reduce(arguments[2], be(is_something));
+            return _read_and_copy_key_(name);
+
           case "read or insert":
-            name = be(not(is_empty), _.trim(arguments[1]));
-            default_val = be(is_something, arguments[2]);
-            if (!State.values.hasOwnProperty(name)) State.values[name] = default_val;
-            return _copy_(State.values[name]);
+            name = to_key(arguments[1]);
+            default_val = reduce(arguments[2], be(is_something));
+            if (!_has_key_(name)) State("insert", name, default_val);
+            return _read_and_copy_key_(name);
 
           case "read counter":
-            name = be(not(is_empty), _.trim(arguments[1]));
-            break;
+            return _read_and_copy_key_(arguments[1]);
 
           case "run":
             arguments_are(arguments, is("run"), is_plain_object);
             var msg = arguments[1];
-            return reduce_eachs([], funcs, function(acc, _ky, func) {
+            return reduce_eachs([], msg_funcs, function(acc, _ky, func) {
                 try {
-                    var msg_copy = _copy_(msg);
+                    var msg_copy = _copy_value_(msg);
                     acc.push(apply_function(func, [ msg_copy ]));
                 } catch (e) {
                     State("invalid");
