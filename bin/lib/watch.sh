@@ -34,7 +34,7 @@ watch () {
     if bash_setup is_same_file "$path"; then
       echo "=== No change: $CHANGE"
       continue
-    fi
+    fi # === Has file changed?
 
     # File has changed:
     echo -e "\n=== $CHANGE ($path)"
@@ -48,13 +48,13 @@ watch () {
 
     if [[ "$file" == www/*.js ]]; then
       js_setup jshint "$file"
-      # if $0 server is_running; then
-      #   $0 server start
-      # fi
+      if $0 server is_running; then
+        $0 server start
+      fi
     fi
 
-    if [[ "$file" =~ "www" ]]; then
-      { $cmd $path && gui_setup reload-browser google-chrome "Dum"; } || :
+    if [[ "$path" =~ "www/" ]]; then
+      { gui_setup reload-browser google-chrome "Dum"; } || :
       continue
     fi
 
@@ -63,7 +63,7 @@ watch () {
     else
       run_cmd
     fi
-  done < <(inotifywait --quiet --monitor --event close_write package.json -r lib/ -r bin/) || exit 1
+  done < <(inotifywait --quiet --monitor --event close_write package.json -r www/ lib/ bin/) || exit 1
 
   $0 server stop
   $0 "$THE_ARGS"

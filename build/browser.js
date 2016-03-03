@@ -2292,7 +2292,7 @@ spec(['a', undefined, 'b'], function node_array_returns_raw_text_nodes() {
   "use strict";
 
   var arr = node_array('<div><span>a<span></span>b</span></div>');
-  return _.pluck(arr[0].childs[0].childs, 'nodeValue');
+  return _.map(arr[0].childs[0].childs, 'nodeValue');
 });
 
 function node_array(unknown) {
@@ -2569,7 +2569,7 @@ function on_click(msg) {
     func({dom_id: dom_id});
   });
 }
-/* jshint strict: true, undef: true */
+/* jshint browser: true, strict: true, undef: true */
 /* globals spec, is_string, to_string, _ */
 
 
@@ -2584,7 +2584,8 @@ function name_to_function(raw) {
   if (!is_string(raw))
     throw new Error('Not a string: ' + to_string(raw));
   var str = _.trim(raw);
-  if (typeof str !== 'function')
+  var func = window[str];
+  if (typeof func !== 'function')
     throw new Error('Function not found: ' + to_string(raw));
   return (typeof 'window' !== 'undefined') ? window[str] : global[str];
 }

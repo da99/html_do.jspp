@@ -78,6 +78,7 @@ build () {
     $($0 body-build-files $names)   \
     $($0 bottom-build-files $names)  \
     > build/browser.js
-  echo -e "=== Test for ${Orange}browser.js${Color_Off} not ready yet"
+  echo -e "=== Refreshing ${Orange}browser${Color_Off}..."
+  { gui_setup reload-browser google-chrome "Dum"; } || :
 
 } # === end function
