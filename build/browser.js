@@ -154,7 +154,7 @@ function spec() {
     }
     // === switch
     if (args[0] !== "run" && !is_function(args[0]) && !is_plain_object(args[0])) throw new Error("Unknown value: " + to_string(args[0]));
-    var specs = App("read or insert", "specs", []);
+    var specs = App("read or create", "specs", []);
     if (is_empty(specs)) throw new Error("No specs found.");
     var on_fin = is_function(arguments[0]) && arguments[0] || function(msg) {
         log("      ======================================");
@@ -1825,7 +1825,7 @@ spec(3, function runs_message_function() {
         my_name: "happy"
     };
     var state = new Computer();
-    state("insert message function", function(msg) {
+    state("create message function", function(msg) {
         if (!msg_match({
             my_name: "happy"
         }, msg)) return;
@@ -1878,14 +1878,14 @@ function Computer() {
         var name, new_val, old_vals, default_val;
         var msg_funcs = State.msg_funcs.slice(0);
         switch (action) {
-          case "insert message function":
+          case "create message function":
             var func = be(and(is_function, has_length(1)), arguments[1]);
             State.msg_funcs = msg_funcs.slice(0).concat([ func ]);
             return true;
 
           case "push into or create":
             name = to_key(arguments[1]);
-            if (!_has_key_(name)) State("insert", name, []);
+            if (!_has_key_(name)) State("create", name, []);
             var new_args = [ "push into" ].concat(_.toArray(arguments).slice(1));
             return State.apply(null, new_args);
 
@@ -1903,15 +1903,15 @@ function Computer() {
             if (val_has_been_set) return _copy_value_(State.values[name]);
             return default_val;
 
-          case "insert":
+          case "create":
             name = _require_key_is_new_(arguments[1]);
             State.values[name] = reduce(arguments[2], be(is_something));
             return _read_and_copy_key_(name);
 
-          case "read or insert":
+          case "read or create":
             name = to_key(arguments[1]);
             default_val = reduce(arguments[2], be(is_something));
-            if (!_has_key_(name)) State("insert", name, default_val);
+            if (!_has_key_(name)) State("create", name, default_val);
             return _read_and_copy_key_(name);
 
           case "read counter":
@@ -1987,7 +1987,7 @@ function show(msg) {
     "use strict";
     var dom_id = be(is_string, msg.dom_id);
     var key = be(is_string, msg.args[0]);
-    App("insert message function", function _show_(msg) {
+    App("create message function", function _show_(msg) {
         var answer = key_to_bool(key, msg);
         if (is_boolean(answer) !== true) return;
         $("#" + dom_id).show();
@@ -2082,7 +2082,7 @@ function show_hide(msg) {
     "use strict";
     var dom_id = be(is_string, msg.dom_id);
     var key = be(is_string, msg.args[0]);
-    App("insert message function", function _show_hide_(msg) {
+    App("create message function", function _show_hide_(msg) {
         if (!is_plain_object(msg)) return;
         var answer = key_to_bool(key, msg);
         if (!is_boolean(answer)) return;
@@ -2287,7 +2287,7 @@ function hide(msg) {
     "use strict";
     var dom_id = be(is_string, msg.dom_id);
     var key = be(is_string, msg.args[0]);
-    App("insert message function", function _hide_(msg) {
+    App("create message function", function _hide_(msg) {
         if (key_to_bool(key, msg) !== true) return;
         $("#" + dom_id).hide();
         return "hide: " + msg.dom_id;
@@ -2509,7 +2509,7 @@ function template(msg) {
         });
         return new_ids;
     }
-    App("insert message function", _template_);
+    App("create message function", _template_);
 }
 
 /* jshint strict: true, undef: true */
@@ -2596,7 +2596,7 @@ spec("yo mo", function button_submit(fin) {
 
 // === Adds functionality:
 //     <div data-do="my_func arg1 arg2">content</div>
-App("insert message function", function process_data_dos(msg) {
+App("create message function", function process_data_dos(msg) {
     "use strict";
     var WHITESPACE = /\s+/g;
     // The other functions
