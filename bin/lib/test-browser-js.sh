@@ -27,10 +27,12 @@ test-browser-js () {
 
   local waiting=0
   while [[ $waiting -lt 30 ]] && ! gui_setup reload-browser google-chrome "Dum" 2>/dev/null; do
-    sleep 0.5
     echo -n "."
     waiting=$(($waiting + 1))
+    sleep 0.5
   done
+
+  echo ""
 
   if [[ $waiting -gt 29 ]]; then
     echo -e "=== ${Red}Failed${Color_Off}"

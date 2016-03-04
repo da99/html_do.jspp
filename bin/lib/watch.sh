@@ -47,7 +47,7 @@ watch () {
 
     echo "$path" > "$TEMP/CHANGE"
 
-    if [[ "$path" == html-specs/**/*.html || "$path" == html-specs/**/*.json ]]; then
+    if [[ "$path" == html_specs/**/*.html || "$path" == html_specs/**/*.json ]]; then
       { $0 test-html specs/"$(echo "$path" | cut -d'/' -f2)" && $0 test-html; } || :
       continue
     fi

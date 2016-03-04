@@ -11,26 +11,27 @@ test-html () {
   if [[ -z "$@" ]]; then # ==================================================
 
     js_setup jshint lib/html.js
+
     while read DIR; do
 
       if [[ -n "$last_failed" && "$last_failed" != "$DIR" ]]; then
         continue
       fi
 
-      $0 test "$DIR" || { stat="$?"; echo "$DIR" > "$TEMP/last_failed"; exit $stat; }
+      $0 test-html "$DIR" || { stat="$?"; echo "$DIR" > "$TEMP/last_failed"; exit $stat; }
 
       if [[ -n "$last_failed" ]]; then
         rm -f "$TEMP/last_failed"
         break
       fi
 
-    done < <(find specs/ -maxdepth 1 -mindepth 1 -type d)
+    done < <(find html_specs/ -maxdepth 1 -mindepth 1 -type d)
 
     if [[ -z "$last_failed" ]]; then
       echo -e "=== All ${BGreen}pass${Color_Off}."
     else
       echo "=== Starting over all other tests: "
-      $0 test
+      $0 test-html
     fi
 
     exit 0
