@@ -1,8 +1,9 @@
 "use strict";
-/* jshint esnext: true, globalstrict: true, strict: true, undef: true, unused: true */
+/* jshint node: true, esnext: true, globalstrict: true, strict: true, undef: true, unused: true */
 /* globals console, require, process */
 
 
+const FS           = require('fs');
 const app          = require('express')();
 const serve_static = require('serve-static')('./www');
 const port         = parseInt(process.env.PORT);
@@ -53,11 +54,9 @@ app.post("/text", function (req, resp) {
 });
 
 app.post("/all-specs-pass", function (req, resp) {
-  console.log(req.body);
+  FS.writeFileSync("tmp/browser.js.results", JSON.stringify(req.body));
   json(resp, {ok: true});
 });
-
-
 
 app.post("/repeat", function (req, resp) {
   resp.send( json(resp, {ok: true, data: req.body, about: 'data received: ' + JSON.stringify(req.body) }) );
