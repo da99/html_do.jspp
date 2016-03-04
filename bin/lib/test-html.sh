@@ -10,7 +10,7 @@ test-html () {
 
   if [[ -z "$@" ]]; then # ==================================================
 
-    js_setup jshint main/main.js
+    js_setup jshint lib/html.js
     while read DIR; do
 
       if [[ -n "$last_failed" && "$last_failed" != "$DIR" ]]; then

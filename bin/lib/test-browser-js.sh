@@ -1,6 +1,9 @@
 
 test-browser-js () {
 
+  # === BROWSER: ==============================================================
+  $0 server start
+
   local OUTPUT="build/browser.js"
   local browser_results="tmp/browser.js.results"
 
@@ -8,7 +11,6 @@ test-browser-js () {
   rm -rf "$OUTPUT".map
   rm -f "$browser_results"
 
-  # === BROWSER: ==============================================================
 
   echo -e "=== Building: ${Bold}browser.js${Color_Off}"
   names="spec base state dom data-do"
@@ -21,15 +23,26 @@ test-browser-js () {
 
   jshint www/*.js || { stat=$?; echo -e "${Red}Failed${Color_Off}"; exit $stat; }
 
-  echo -n -e "=== Refreshing ${Orange}browser${Color_Off}... "
-  { gui_setup reload-browser google-chrome "Dum" && echo -e "${Green}Done${Color_Off}"; } ||
-    { echo -e "=== ${Red}Failed${Color_Off}"; exit 1; }
+  echo -n -e "=== Refreshing ${Orange}browser${Color_Off}"
+
+  local waiting=0
+  while [[ $waiting -lt 30 ]] && ! gui_setup reload-browser google-chrome "Dum" 2>/dev/null; do
+    sleep 0.5
+    echo -n "."
+    waiting=$(($waiting + 1))
+  done
+
+  if [[ $waiting -gt 29 ]]; then
+    echo -e "=== ${Red}Failed${Color_Off}"
+    exit 1
+  fi
 
   local count="0"
   while [[ ! -s "$browser_results" && $count -lt 100 ]]; do
     count=$((count + 1))
     sleep 0.1
   done
+
   if [[ -s "$browser_results" ]]; then
     echo -e "=== Browser specs: ${Green}$(cat "$browser_results")${Color_Off}"
   else
@@ -38,5 +51,6 @@ test-browser-js () {
   fi
 
   echo -e "=== Done building: ${Green}browser.js${Color_Off}"
+  $0 server stop
 
 } # end function test-browser-js
