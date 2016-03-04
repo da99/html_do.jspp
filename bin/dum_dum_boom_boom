@@ -6,8 +6,8 @@ THIS_DIR="$(bash_setup dirname_of_bin "$0")"
 PORT=${PORT:-"4567"}
 
 export PORT
-TEMP="/tmp/dum_dum_js"
-TEMP_DIR=${TEMP_DIR:-"/temp/dum_dum_js"}
+TEMP="/tmp/dum_dum_boom_boom"
+TEMP_DIR=${TEMP_DIR:-"/tmp/dum_dum_boom_boom"}
 TEMP_SPLITS="$TEMP/splits"
 export TEMP_DIR
 mkdir -p $TEMP_SPLITS

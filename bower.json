@@ -1,5 +1,5 @@
 {
-  "name": "dum_dum_js",
+  "name": "dum_dum_boom_boom",
   "authors": [
     "da99 <i-hate-spam-1234567@mailinator.com>"
   ],
@@ -7,7 +7,7 @@
   "main": "build/browser.js",
   "moduleType": [],
   "license": "MIT",
-  "homepage": "https://github.com/da99/dum_dum_js",
+  "homepage": "https://github.com/da99/dum_dum_boom_boom",
   "private": true,
   "ignore": [
     "**/.*",
