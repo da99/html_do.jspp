@@ -1,5 +1,5 @@
 
-Don't use Dum\_Dum\_JS.
+Don't use Dum\_Dum\_Boom\_Boom.
 =================================
 
 You should be using this instead (in order of awesomeness):
@@ -39,7 +39,7 @@ Message Standardization:
 The previous designs were prone to creating matching DSLs on messages.
 Anytime you have to introduce mini-languages/DSLs and clever tricks, you are limiting
 flexibility and creating future dead-ends. It adds more things to learn and more complexity
-to the implementation of `dum_dum_js`.
+to the implementation of `dum_dum_boom_boom`.
 
 
 2 - Previous design:
@@ -94,5 +94,58 @@ Extremes:
   * AJAX request/response -> message -> processed data structure
   * message -> processed data structure (inspiration Mustache)
   * processed data structure -> markup/view
+
+
+
+HTML
+==============
+
+`cheerio` is used instead of `jsdom\jquery` because it is a lot
+easier to use despite its incompatibility w/ jQuery.
+`whacko` was considered, but it was harder to use when it came to
+changing non-standard tags (e.g. `template`) to `script` tags.
+
+Specs
+=====
+
+```bash
+  dum_dum_boom_boom test
+  dum_dum_boom_boom test spec/my_file.template.html
+```
+
+Create a `.template.html` file in specs:
+```html
+
+  <div>my input</div>
+
+<!-- EXPECT: -->
+
+  <div>my expected output</div>
+
+```
+Layout for HTML:
+========
+
+* /layouts
+* /pages
+* /snippets
+
+Output Dir:
+* /
+  * page-name-of-file.html
+  * page-name-of-file.markup.html (including head, tail, etc.)
+  * page-name-of-file.style.css
+  * page-name-of-file.script.css
+  * snippet-name-of-file.html
+  * snippet-name-of-file.markup.html (including head, tail, etc.)
+  * snippet-name-of-file.style.css
+  * snippet-name-of-file.script.css
+
+
+
+Links:
+=====
+* Uses `he`. Alternative encode/decode of html entities: https://github.com/substack/node-ent
+
 
 

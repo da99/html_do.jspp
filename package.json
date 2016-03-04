@@ -1,17 +1,16 @@
 {
-  "name": "dum_dum_js",
+  "name": "dum_dum_boom_boom",
   "version": "2.0.0",
   "main": "build/node.js",
-  "description": "Personal way of writing nodejs and browser apps",
+  "description": "Personal way of writing nodejs and browser/html apps",
   "repository": {
     "type": "git",
-    "url": "git@github:da99/dum_dum_js.git"
+    "url": "git@github:da99/dum_dum_boom_boom.git"
   },
   "keywords": [],
   "bin": {},
   "author": "da99",
   "license": "MIT",
-
   "devDependencies": {
     "body-parser": "latest",
     "express": "latest",
@@ -20,7 +19,11 @@
     "serve-static": "latest"
   },
   "dependencies": {
-    "lodash": "latest"
+    "cheerio": "^0.20.0",
+    "handlebars": "^4.0.5",
+    "he": "^0.5.0",
+    "lodash": "latest",
+    "stylus": "^0.53.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
