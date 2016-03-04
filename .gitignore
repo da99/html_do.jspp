@@ -1,4 +1,15 @@
+# Compiled binary addons (http://nodejs.org/api/addons.html)
+# Dependency directory
+# https://www.npmjs.org/doc/misc/npm-faq.html#should-i-check-my-node_modules-folder-into-git
 
+/npm-debug.log
+/scripts
+/tags
+/www/bower_components
+/bower_components
 /bower_components
 /node_modules
+/node_modules
 /tmp
+/npm-shrinkwrap.json
+
