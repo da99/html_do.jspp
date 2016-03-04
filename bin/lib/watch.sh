@@ -47,6 +47,11 @@ watch () {
 
     echo "$path" > "$TEMP/CHANGE"
 
+    if [[ "$path" == html-specs/**/*.html || "$path" == html-specs/**/*.json ]]; then
+      { $0 test-html specs/"$(echo "$path" | cut -d'/' -f2)" && $0 test-html; } || :
+      continue
+    fi
+
     if [[ "$path" == www/*.js ]]; then
       js_setup jshint "$path" || continue
       if $0 server is_running; then

@@ -1,0 +1,63 @@
+
+test-html () {
+  # === __   test
+  # ==  __   spec/dir
+  if [[ -s "$TEMP/last_failed" ]]; then
+    last_failed="$(cat "$TEMP/last_failed")"
+  else
+    last_failed=""
+  fi
+
+  if [[ -z "$@" ]]; then # ==================================================
+
+    js_setup jshint main/main.js
+    while read DIR; do
+
+      if [[ -n "$last_failed" && "$last_failed" != "$DIR" ]]; then
+        continue
+      fi
+
+      $0 test "$DIR" || { stat="$?"; echo "$DIR" > "$TEMP/last_failed"; exit $stat; }
+
+      if [[ -n "$last_failed" ]]; then
+        rm -f "$TEMP/last_failed"
+        break
+      fi
+
+    done < <(find specs/ -maxdepth 1 -mindepth 1 -type d)
+
+    if [[ -z "$last_failed" ]]; then
+      echo -e "=== All ${BGreen}pass${Color_Off}."
+    else
+      echo "=== Starting over all other tests: "
+      $0 test
+    fi
+
+    exit 0
+  fi # ======================================================================
+
+  DIR="$1"; shift
+  ACTUAL="$TEMP/actual"
+
+  rm -rf "$ACTUAL"; mkdir -p "$ACTUAL" # === Re-set sandbox:
+
+  echo -e "=== Testing: ${Bold}$DIR${Color_Off}"
+  for FILE in "$DIR/input"/*.html; do
+    [[ "$(basename "$FILE")" == _.* ]] && continue || :
+    { [[ ! -f "$FILE" ]] && echo "=== No html files." && exit 1; } || :
+
+    { $0 "$FILE" "$ACTUAL" "$TEMP"; } || \
+      { stat=$?; echo -e "=== ${Red}Failed${Color_Off} ($stat)"; exit $stat; }
+  done
+
+  if ! bash_setup dirs-are-equal "$ACTUAL" "$DIR/expect"; then
+    echo -e "=== ${Red}Failed${Color_Off}"
+    exit 1
+  else
+    tput cuu1; tput el
+    echo -e "=== ${Green}$DIR${Color_Off}"
+  fi
+
+  # echo -e "=== split: $Green$FILE$Reset"
+
+} # end function test-html
