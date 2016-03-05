@@ -5,8 +5,10 @@ test-browser-js () {
   $0 server start
 
   local OUTPUT="build/browser.js"
+  local BROWSER_ERROR="tmp/catch.browser.js.txt"
   local browser_results="tmp/browser.js.results"
 
+  rm -rf "$BROWSER_ERROR"
   rm -rf "$OUTPUT"
   rm -rf "$OUTPUT".map
   rm -f "$browser_results"
