@@ -66,10 +66,10 @@ watch () {
       fi
     fi
 
-    if [[ "$path" =~ "www/" ]]; then
-      { gui_setup reload-browser google-chrome "Dum"; } || :
-      continue
-    fi
+    # if [[ "$path" =~ "www/" ]]; then
+    #   { gui_setup reload-browser google-chrome "Dum"; } || :
+    #   continue
+    # fi
 
     if [[ -z "$cmd" ]]; then
       $0 test "$path" || :

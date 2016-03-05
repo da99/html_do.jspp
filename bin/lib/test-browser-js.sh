@@ -23,12 +23,12 @@ test-browser-js () {
     $($0 bottom-build-files $names)  \
     > build/browser.js
 
-  jshint www/*.js || { stat=$?; echo -e "${Red}Failed${Color_Off}"; exit $stat; }
+  js_setup jshint www/*.js || { stat=$?; echo -e "${Red}Failed${Color_Off}"; exit $stat; }
 
   echo -n -e "=== Refreshing ${Orange}browser${Color_Off}"
 
   local waiting=0
-  while [[ $waiting -lt 30 ]] && ! gui_setup reload-browser google-chrome "Dum" 2>/dev/null; do
+  while [[ $waiting -lt 30 ]] && ! gui_setup reload-browser google-chrome "Dum" 2>/dev/null && ! gui_setup reload-browser google-chrome "specs.html" 2>/dev/null; do
     echo -n "."
     waiting=$(($waiting + 1))
     sleep 0.5

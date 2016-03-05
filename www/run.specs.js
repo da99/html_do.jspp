@@ -9,7 +9,9 @@ try {
     "use strict";
     alite({url: "/all-specs-pass", method: "POST", data: msg}).then(
       function (result) {
+        var dt = new Date();
         spec.default_msg(msg);
+        log(dt.toLocaleString('en-US'));
       }
     ).catch(function (err) {
       log(err);
