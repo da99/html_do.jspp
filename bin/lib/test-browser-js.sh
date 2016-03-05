@@ -23,7 +23,7 @@ test-browser-js () {
     $($0 bottom-build-files $names)  \
     > build/browser.js
 
-  js_setup jshint www/*.js || { stat=$?; echo -e "${Red}Failed${Color_Off}"; exit $stat; }
+  js_setup jshint www/*.js || { stat=$?; bash_setup RED "Failed"; exit $stat; }
 
   echo -n -e "=== Refreshing ${Orange}browser${Color_Off}"
 
@@ -37,7 +37,7 @@ test-browser-js () {
   echo ""
 
   if [[ $waiting -gt 29 ]]; then
-    echo -e "=== ${Red}Failed${Color_Off}"
+    bash_setup RED "=== Failed"
     exit 1
   fi
 
@@ -50,7 +50,7 @@ test-browser-js () {
   if [[ -s "$browser_results" ]]; then
     echo -e "=== Browser specs: ${Green}$(cat "$browser_results")${Color_Off}"
   else
-    echo -e "=== Browser specs: ${Red}Failed${Color_Off}" 1>&2
+    bash_setup RED "=== Browser specs: Failed" 1>&2
     exit 1
   fi
 
