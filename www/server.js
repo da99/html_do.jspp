@@ -59,11 +59,16 @@ app.post("/all-specs-pass", function (req, resp) {
 });
 
 app.post("/repeat", function (req, resp) {
-  resp.send( json(resp, {ok: true, data: req.body, about: 'data received: ' + JSON.stringify(req.body) }) );
+  json(resp, {ok: true, data: req.body, about: 'data received: ' + JSON.stringify(req.body) });
 });
 
 app.post("/json", function (req, resp) {
-  resp.send( json(resp, {msg: 'get smart'}) );
+  json(resp, {msg: 'get smart'});
+});
+
+app.post("/client-error-to-stdout", function (req, resp) {
+  FS.writeFileSync("tmp/catch.browser.js.txt", req.body.message + "\n" + req.body.stack);
+  json(resp, {ok: true});
 });
 
 app.use(function (req, resp) {

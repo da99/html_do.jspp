@@ -2,6 +2,7 @@
 # === {{CMD}}
 # === {{CMD}} "cmd with args"
 watch () {
+  local BROWSER_ERROR="tmp/catch.browser.js.txt"
   # for FILE in $(git ls-files --cached --others --exclude-standard | grep --extended-regexp '.js|.html|bin'); do
   #   [[ -f "$FILE" ]] && bash_setup is_same_file "$FILE" || :
   # done
@@ -30,6 +31,12 @@ watch () {
 
     # Make sure this is not a temp/swap file:
     { [[ ! -f "$path" ]] && continue; } || :
+
+    # === Browser errors:
+    if [[ "$path" == "$BROWSER_ERROR" ]]; then
+      cat "$BROWSER_ERROR" | js_setup map-errors-to-files lib/
+      continue
+    fi
 
     # Check if file has changed:
     if bash_setup is_same_file "$path"; then
