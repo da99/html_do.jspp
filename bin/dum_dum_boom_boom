@@ -49,22 +49,6 @@ case $action in
       exit 0
     fi
 
-    # === IF: Compile HTML file:
-    if [[ -f "$action" && "$action" == *.html ]]; then
-      node $THIS_DIR/lib/html.js $THE_ARGS
-      # TODO: remove duplicate nodes: link, src, meta
-      # vnu="$(echo tmp/validator/*/dist/vnu.jar)"
-      # final="$(node $THIS_DIR/lib/html.js $THE_ARGS)"
-
-      # # === If <body is found, validate whole document:
-      # if echo "$final" | grep -i '<body' &>/dev/null; then
-      #   echo "$final" | java -jar "$vnu" - || { stat="$?"; echo $action 1>&2; exit $stat; }
-      # fi
-
-      # echo "$final"
-      exit 0
-    fi
-
     # === It's an error:
     echo "!!! Unknown action: $action" 1>&2
     exit 1
