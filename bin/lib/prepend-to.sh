@@ -1,5 +1,6 @@
 
 # === {{CMD}} [dom|base|etc.]   "my text"
+# === Used to prepend text to all files in a directory: dom, base, etc.
 prepend-to () {
     name="$1"; shift
     text="$@"

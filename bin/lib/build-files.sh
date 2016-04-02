@@ -1,5 +1,5 @@
 
-# === __ build-files  [dom|node|etc.]
+# === {{CMD} build-files  [dom|node|etc.]
 build-files () {
   for name in $@; do
     dir="lib/$name"

@@ -1,8 +1,8 @@
-#!/usr/bin/env bash
+#!/usr/bin/env mksh
 #
 #
 THE_ARGS="$@"
-THIS_DIR="$(bash_setup dirname_of_bin "$0")"
+THIS_DIR="$(mksh_setup dirname_of_bin "$0")"
 PORT=${PORT:-"4567"}
 
 export PORT
@@ -37,7 +37,7 @@ BOrange='\e[1;33m'
 
 case $action in
   help|--help)
-    bash_setup print_help $0
+    mksh_setup print_help $0
     ;;
 
   *)

@@ -28,7 +28,7 @@ test-html () {
     done < <(find html_specs/ -maxdepth 1 -mindepth 1 -type d)
 
     if [[ -z "$last_failed" ]]; then
-      bash_setup GREEN "=== All pass."
+      mksh_setup GREEN "=== All pass."
     else
       echo "=== Starting over all other tests: "
       $0 test-html
@@ -48,11 +48,11 @@ test-html () {
     { [[ ! -f "$FILE" ]] && echo "=== No html files." && exit 1; } || :
 
     { $0 html "$FILE" "$ACTUAL" "$TEMP"; } || \
-      { stat=$?; bash_setup RED "=== Failed ($stat)"; exit $stat; }
+      { stat=$?; mksh_setup RED "=== Failed ($stat)"; exit $stat; }
   done
 
-  if ! bash_setup dirs-are-equal "$ACTUAL" "$DIR/expect"; then
-    bash_setup RED "=== Failed"
+  if ! mksh_setup dirs-are-equal "$ACTUAL" "$DIR/expect"; then
+    mksh_setup RED "=== Failed"
     exit 1
   else
     tput cuu1; tput el

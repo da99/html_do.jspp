@@ -10,6 +10,12 @@ You should be using this instead (in order of awesomeness):
 Someone beat me to this: [https://twitter.com/d0rc/status/685544307533545472](https://twitter.com/d0rc/status/685544307533545472)
     ![Example in erlang](./docs/CYJSUDfWcAU9dVQ.png?raw=true)
 
+Dependencies:
+
+* Bower
+* NodeJS and NPM
+* [mksh](https://www.mirbsd.org/mksh.htm) shell and [mksh_setup](https://github.com/da99/mksh_setup)
+
 Links:
 =====
 * Uses `he`. Alternative encode/decode of html entities: https://github.com/substack/node-ent
@@ -49,6 +55,8 @@ The `browser.js` build contains all the require libs: lodash, jquery, etc.
 Use [js_setup](https://github.com/da99/js_setup) to upgrade bower components.
 
 *NOTE*: Use version numbers in `package.json`, and `latest` for bower.json.
+The `latest` version only works with `bower`, not `npm`.  However, `js_setup upgrade`
+upgrades both versions. It also notifies you if there are newer versions available.
 
 
 HTML
