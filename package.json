@@ -12,11 +12,11 @@
   "author": "da99",
   "license": "MIT",
   "devDependencies": {
-    "body-parser": "latest",
-    "express": "latest",
-    "lodash": "latest",
-    "morgan": "latest",
-    "serve-static": "latest"
+    "body-parser": "^1.15.0",
+    "express": "^4.13.4",
+    "lodash": "^4.7.0",
+    "morgan": "^1.7.0",
+    "serve-static": "^1.10.2"
   },
   "dependencies": {
     "cheerio": "^0.20.0",
