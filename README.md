@@ -59,6 +59,13 @@ The `latest` version only works with `bower`, not `npm`.  However, `js_setup upg
 upgrades both versions. It also notifies you if there are newer versions available.
 
 
+Development:
+=================
+
+  1. `dum_dum_boom_boom build-browserjs`
+  1. `dum_dum_boom_boom build-nodejs`
+
+
 HTML
 ==============
 
