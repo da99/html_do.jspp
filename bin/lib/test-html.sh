@@ -1,18 +1,22 @@
 
+source "$THIS_DIR/bin/lib/html.sh"
+
 # === {{CMD}}
 # ==  {{CMD}}  spec/dir
 test-html () {
+  local +x IFS=$'\n'
+
   if [[ -s "$TEMP/last_failed" ]]; then
-    last_failed="$(cat "$TEMP/last_failed")"
+    local +x last_failed="$(cat "$TEMP/last_failed")"
   else
-    last_failed=""
+    local +x last_failed=""
   fi
 
   if [[ -z "$@" ]]; then # ==================================================
 
     js_setup jshint lib/html.js
 
-    while read DIR; do
+    for DIR in $(find html_specs/ -maxdepth 1 -mindepth 1 -type d); do
 
       if [[ -n "$last_failed" && "$last_failed" != "$DIR" ]]; then
         continue
@@ -25,38 +29,38 @@ test-html () {
         break
       fi
 
-    done < <(find html_specs/ -maxdepth 1 -mindepth 1 -type d)
+    done # === for
 
     if [[ -z "$last_failed" ]]; then
       mksh_setup GREEN "=== All pass."
     else
       echo "=== Starting over all other tests: "
-      $0 test-html
+      test-html
     fi
 
     exit 0
   fi # ======================================================================
 
-  DIR="$1"; shift
-  ACTUAL="$TEMP/actual"
+  local +x DIR="$1"; shift
+  local +x ACTUAL="$TEMP/actual"
 
   rm -rf "$ACTUAL"; mkdir -p "$ACTUAL" # === Re-set sandbox:
 
-  echo -e "=== Testing: ${Bold}$DIR${Color_Off}"
+  mksh_setup BOLD "=== Testing: {{$DIR}}"
   for FILE in "$DIR/input"/*.html; do
     [[ "$(basename "$FILE")" == _.* ]] && continue || :
     { [[ ! -f "$FILE" ]] && echo "=== No html files." && exit 1; } || :
 
-    { $0 html "$FILE" "$ACTUAL" "$TEMP"; } || \
+    { html "$FILE" "$ACTUAL" "$TEMP"; } || \
       { stat=$?; mksh_setup RED "=== Failed ($stat)"; exit $stat; }
   done
 
   if ! mksh_setup dirs-are-equal "$ACTUAL" "$DIR/expect"; then
-    mksh_setup RED "=== Failed"
+    mksh_setup RED "=== {{Failed}}"
     exit 1
   else
     tput cuu1; tput el
-    echo -e "=== ${Green}$DIR${Color_Off}"
+    mksh_setup GREEN "=== {{$DIR}}"
   fi
 
   # echo -e "=== split: $Green$FILE$Reset"

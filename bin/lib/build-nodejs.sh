@@ -4,6 +4,7 @@ source "$THIS_DIR/bin/lib/find-build-files.sh"
 # === {{CMD}}
 build-nodejs () {
 
+  duplicate-functions || { stat="$?"; echo "!!! Dup found." 1>&2; exit $stat; }
   local +x IFS=$'\n'
   local +x temp="$TEMP/spec"
   local +x err_found=""
@@ -13,6 +14,7 @@ build-nodejs () {
   rm -f "$OUTPUT"
   rm -f "$OUTPUT".map
 
+  test-node-js
   mksh_setup "=== Building: {{$OUTPUT}}"
 
   cat \

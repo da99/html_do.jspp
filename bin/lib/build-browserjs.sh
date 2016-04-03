@@ -5,6 +5,7 @@ source "$THIS_DIR/bin/lib/server.sh"
 # === {{CMD}}
 build-browserjs () {
 
+  duplicate-functions || { stat="$?"; echo "!!! Dup found." 1>&2; exit $stat; }
   local +x OUTPUT="build/browser.js"
   local +x browser_results="tmp/browser.js.results"
   local +x names="spec base state dom data-do"
@@ -17,6 +18,7 @@ build-browserjs () {
 
   # === BROWSER: ==============================================================
 
+  test-browser-js
   mksh_setup BOLD "=== Building: {{$OUTPUT}}"
 
   paste --delimiter=\\n --serial                \

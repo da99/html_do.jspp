@@ -1,4 +1,6 @@
 
+source "$THIS_DIR/bin/lib/server.sh"
+
 # === {{CMD}}
 # === {{CMD}} "cmd with args"
 watch () {
@@ -10,10 +12,10 @@ watch () {
 
   cmd="$@"
   run_cmd () {
-    $cmd && echo -e "=== ${Green}$cmd${Color_Off}" || echo -e "=== ${Red}Failed${Color_Off}"
+    $cmd && mksh_setup GREEN "=== {{$cmd}}" || mksh_setup RED "=== {{Failed}}"
   }
 
-  $0 server start
+  server start
 
   if [[ -z "$cmd" ]]; then
     $0 test || :
@@ -23,7 +25,7 @@ watch () {
 
   echo -e "\n=== Watching:"
 
-  while read -r CHANGE; do
+  inotifywait --quiet --monitor --event close_write $PWD -r browserjs_specs/ lib/ bin/ || while read -r CHANGE; do
     dir=$(echo "$CHANGE" | cut -d' ' -f 1)
     path="${dir}$(echo "$CHANGE" | cut -d' ' -f 3)"
     file="$(basename $path)"
@@ -61,8 +63,8 @@ watch () {
 
     if [[ "$path" == browserjs_specs/*.js ]]; then
       js_setup jshint "$path" || continue
-      if $0 server is-running; then
-        $0 server start
+      if server is-running; then
+        server start
       fi
     fi
 
@@ -71,12 +73,14 @@ watch () {
     #   continue
     # fi
 
-    if [[ -z "$cmd" ]]; then
-      $0 test "$path" || :
-    else
+    if [[ "$path" == *.js ]]; then
+      js_setup jshint "$path"
+    fi
+
+    if [[ -n "$cmd" ]]; then
       run_cmd
     fi
-  done < <(inotifywait --quiet --monitor --event close_write package.json -r browserjs_specs/ lib/ bin/) || exit 1
+  done
 
   $0 server stop
   $0 "$THE_ARGS"
