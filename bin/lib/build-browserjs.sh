@@ -6,9 +6,9 @@ source "$THIS_DIR/bin/lib/server.sh"
 build-browserjs () {
 
   duplicate-functions || { stat="$?"; echo "!!! Dup found." 1>&2; exit $stat; }
-  local +x OUTPUT="build/browser.js"
+  local +x OUTPUT="lib/browser/build/browser.js"
   local +x browser_results="tmp/browser.js.results"
-  local +x names="spec base state dom data-do"
+  local +x names="$(ls -d lib/common/*/) lib/browser/dom lib/browser/data-do"
 
   rm -f "$OUTPUT"
   rm -f "$OUTPUT".map
