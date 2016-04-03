@@ -21,8 +21,10 @@ build-nodejs () {
     $(find-build-files bottom $names) \
     > "$OUTPUT"
 
-  local +x TEST_RESULTS;
-  TEST_RESULTS=$(node lib/node.spec.js test 2>&1 || { stat=$?; echo -e "=== ${Red}Failed${Color_Off}" 1>&2; exit $stat; } )
+  local +x TEST_RESULTS=$(
+    node nodejs_specs/spec.js test 2>&1 || {
+    stat=$?; echo -e "=== ${Red}Failed${Color_Off}" 1>&2; exit $stat;
+  })
 
   for LINE in $TEST_RESULTS; do
     if [[ "$LINE" != *"   at "* ]]; then
@@ -54,7 +56,7 @@ build-nodejs () {
   [[ -n "$err_found" ]] && exit 1 || :
   # echo -e "=== Creating .map file..."
   # ugly "node" $names
-  # node "lib/node.spec.js" test &>$temp || { stat=$?; cat "$temp"; echo -e "=== ${Red}Failed${Color_Off}" 1>&2; exit $stat; }
+  # node "nodejs_specs/spec.js" test &>$temp || { stat=$?; cat "$temp"; echo -e "=== ${Red}Failed${Color_Off}" 1>&2; exit $stat; }
   echo -e "=== Done building: ${Green}$OUTPUT${Color_Off}"
 
 } # === end function

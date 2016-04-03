@@ -14,7 +14,7 @@ test-node-js () {
     $($0 body-build-files $names)     \
     $($0 bottom-build-files $names) > build/node.js
 
-  node lib/node.spec.js test 2>&1 | js_setup map-errors-to-files
+  node nodejs_specs/spec.js test 2>&1 | js_setup map-errors-to-files
 
   echo -e "=== Done testing: ${Green}node.js${Color_Off}"
 } # === end function test-node-js

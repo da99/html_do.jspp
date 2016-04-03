@@ -1,17 +1,26 @@
 
+source "$THIS_DIR/bin/lib/duplicate-functions.sh"
+source "$THIS_DIR/bin/lib/test-node-js.sh"
+source "$THIS_DIR/bin/lib/test-browser-js.sh"
+source "$THIS_DIR/bin/lib/test-html.sh"
+
+
+
 # === {{CMD}}
 test () {
 
-  $0 duplicate-functions || { stat="$?"; echo "!!! Dup found." 1>&2; exit $stat; }
+  duplicate-functions || { stat="$?"; echo "!!! Dup found." 1>&2; exit $stat; }
 
   if [[ -n "$@" && "$1" == *.js ]]; then
     js_setup jshint $@
 
-    $0 test
+    test
     return 0
   fi # === Finish testing single file.
 
-  $0 test-node-js
-  $0 test-browser-js
-  $0 test-html
+  test-node-js
+  test-browser-js
+  test-html
 }  # === end function
+
+
