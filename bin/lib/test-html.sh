@@ -55,7 +55,7 @@ test-html () {
       { stat=$?; mksh_setup RED "=== Failed ($stat)"; exit $stat; }
   done
 
-  if ! mksh_setup dirs-are-equal --suppress-blank-empty --ignore-blank-lines --ignore-space-change "$ACTUAL" "$DIR/expect"; then
+  if ! mksh_setup dirs-are-equal ignore-whitespace "$ACTUAL" "$DIR/expect"; then
     mksh_setup RED "=== {{Failed}}"
     exit 1
   else
