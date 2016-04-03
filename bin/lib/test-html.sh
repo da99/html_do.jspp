@@ -22,7 +22,7 @@ test-html () {
         continue
       fi
 
-      $0 test-html "$DIR" || { stat="$?"; echo "$DIR" > "$TEMP/last_failed"; exit $stat; }
+      test-html "$DIR" || { stat="$?"; echo "$DIR" > "$TEMP/last_failed"; exit $stat; }
 
       if [[ -n "$last_failed" ]]; then
         rm -f "$TEMP/last_failed"
@@ -55,7 +55,7 @@ test-html () {
       { stat=$?; mksh_setup RED "=== Failed ($stat)"; exit $stat; }
   done
 
-  if ! mksh_setup dirs-are-equal "$ACTUAL" "$DIR/expect"; then
+  if ! mksh_setup dirs-are-equal --suppress-blank-empty --ignore-blank-lines --ignore-space-change "$ACTUAL" "$DIR/expect"; then
     mksh_setup RED "=== {{Failed}}"
     exit 1
   else
@@ -66,3 +66,5 @@ test-html () {
   # echo -e "=== split: $Green$FILE$Reset"
 
 } # end function test-html
+
+
