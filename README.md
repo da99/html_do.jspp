@@ -52,7 +52,7 @@ Browsers:
 
 The `browser.js` build contains all the require libs: lodash, jquery, etc.
 
-Use [js_setup](https://github.com/da99/js_setup) to upgrade bower components.
+Use [js\_setup](https://github.com/da99/js_setup) to upgrade bower components.
 
 *NOTE*: Use version numbers in `package.json`, and `latest` for bower.json.
 The `latest` version only works with `bower`, not `npm`.  However, `js_setup upgrade`

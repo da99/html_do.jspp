@@ -1,5 +1,5 @@
 
-source "$THIS_DIR/bin/lib/ugly.sh"
+source "$THIS_DIR/bin/lib/find-build-files.sh"
 
 # === {{CMD}}
 build-browserjs () {
@@ -18,10 +18,10 @@ build-browserjs () {
 
   mksh_setup BOLD "=== Building: {{$OUTPUT}}"
 
-  cat                             \
-    $($0 top-build-files $names)   \
-    $($0 body-build-files $names)   \
-    $($0 bottom-build-files $names)  \
+  cat                                  \
+    $(find-build-files top    $names)   \
+    $(find-build-files body   $names)    \
+    $(find-build-files bottom $names)     \
     > "$OUTPUT"
 
   jshint www/*.js || { stat=$?; mksh_setup RED "{{Failed}}"; exit $stat; }
@@ -35,10 +35,11 @@ build-browserjs () {
     count=$((count + 1))
     sleep 0.1
   done
+
   if [[ -s "$browser_results" ]]; then
-    echo -e "=== Browser specs: ${Green}$(cat "$browser_results")${Color_Off}"
+    mksh_setup GREEN "=== Browser specs: {{$(cat "$browser_results")}}"
   else
-    mksh_setup RED "=== Browser specs: {{Failed}}"
+    mksh_setup RED "!!! Browser specs: {{Failed}}"
     exit 1
   fi
 
