@@ -19,7 +19,12 @@ build-browserjs () {
 
   mksh_setup BOLD "=== Building: {{$OUTPUT}}"
 
-  cat                                  \
+  paste --delimiter=\\n --serial                \
+    bower_components/jquery/dist/jquery.min.js   \
+    bower_components/lodash/dist/lodash.min.js    \
+    bower_components/mustache.js/mustache.min.js   \
+    bower_components/form-to-obj/form-to-obj.min.js \
+    bower_components/alite/alite.min.js              \
     $(find-build-files top    $names)   \
     $(find-build-files body   $names)    \
     $(find-build-files bottom $names)     \
@@ -48,7 +53,7 @@ build-browserjs () {
     exit 1
   fi
 
-  mksh_setup GREEN "=== Done building: {{$OUTPUT}}"
+  mksh_setup GREEN "=== Done building: {{$OUTPUT}} $(($(stat --printf="%s" "$OUTPUT") / 1024)) Kb"
 
 } # === end function
 
