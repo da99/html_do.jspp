@@ -25,7 +25,7 @@ build-browserjs () {
     $(find-build-files bottom $names)     \
     > "$OUTPUT"
 
-  jshint www/*.js || { stat=$?; mksh_setup RED "{{Failed}} jshint"; exit $stat; }
+  jshint browserjs_specs/*.js || { stat=$?; mksh_setup RED "{{Failed}} jshint"; exit $stat; }
 
   if ! server is-running; then
     server start

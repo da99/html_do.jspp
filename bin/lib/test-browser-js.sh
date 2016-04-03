@@ -23,7 +23,7 @@ test-browser-js () {
     $($0 bottom-build-files $names)  \
     > build/browser.js
 
-  js_setup jshint www/*.js || { stat=$?; mksh_setup RED "Failed"; exit $stat; }
+  js_setup jshint browserjs_specs/*.js || { stat=$?; mksh_setup RED "Failed"; exit $stat; }
 
   echo -n -e "=== Refreshing ${Orange}browser${Color_Off}"
 

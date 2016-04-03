@@ -59,14 +59,14 @@ watch () {
       continue
     fi
 
-    if [[ "$path" == www/*.js ]]; then
+    if [[ "$path" == browserjs_specs/*.js ]]; then
       js_setup jshint "$path" || continue
       if $0 server is-running; then
         $0 server start
       fi
     fi
 
-    # if [[ "$path" =~ "www/" ]]; then
+    # if [[ "$path" =~ "browserjs_specs/" ]]; then
     #   { gui_setup reload-browser google-chrome "Dum"; } || :
     #   continue
     # fi
@@ -76,7 +76,7 @@ watch () {
     else
       run_cmd
     fi
-  done < <(inotifywait --quiet --monitor --event close_write package.json -r www/ lib/ bin/) || exit 1
+  done < <(inotifywait --quiet --monitor --event close_write package.json -r browserjs_specs/ lib/ bin/) || exit 1
 
   $0 server stop
   $0 "$THE_ARGS"
