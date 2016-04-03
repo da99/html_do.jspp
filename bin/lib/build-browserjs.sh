@@ -1,5 +1,6 @@
 
 source "$THIS_DIR/bin/lib/find-build-files.sh"
+source "$THIS_DIR/bin/lib/server.sh"
 
 # === {{CMD}}
 build-browserjs () {
@@ -24,11 +25,15 @@ build-browserjs () {
     $(find-build-files bottom $names)     \
     > "$OUTPUT"
 
-  jshint www/*.js || { stat=$?; mksh_setup RED "{{Failed}}"; exit $stat; }
+  jshint www/*.js || { stat=$?; mksh_setup RED "{{Failed}} jshint"; exit $stat; }
 
-  echo -n -e "=== Refreshing ${Orange}browser${Color_Off}... "
-  { gui_setup reload-browser google-chrome "Dum" && echo -e "${Green}Done${Color_Off}"; } ||
-    { mksh_setup RED "=== {{Failed}}"; exit 1; }
+  if ! server is-running; then
+    server start
+  fi
+
+  mksh_setup BOLD "=== Refreshing browser to re-run specs {{browser}}... "
+  gui_setup reload-browser google-chrome "Dum" ||
+    { stat=$?; mksh_setup RED "=== {{Failed}} opening: BOLD{{$(server index)}}"; exit $stat; }
 
   local count="0"
   while [[ ! -s "$browser_results" && $count -lt 100 ]]; do

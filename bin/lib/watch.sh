@@ -61,7 +61,7 @@ watch () {
 
     if [[ "$path" == www/*.js ]]; then
       js_setup jshint "$path" || continue
-      if $0 server is_running; then
+      if $0 server is-running; then
         $0 server start
       fi
     fi

@@ -4,12 +4,26 @@
 # === Shutdowns down dev/test server.
 # === {{CMD}}  stop
 server () {
+  local +x PID="tmp/pid.txt"
+  mkdir -p tmp
 
-  local PID="tmp/pid.txt"
   case "$1" in
 
-    is_running)
+    is-running)
       [[ -f $PID ]]
+      ;;
+
+    port)
+      if ! server is-running ; then
+        mksh_setup RED "!!! Server is {{not running}}."
+        exit 1
+      fi
+
+      netstat -tulpn 2>/dev/null | grep "$(cat $PID)/node" | grep -Po ':::\K(\d+)'
+      ;;
+
+    index)
+      echo "http://localhost:$(server port)/$(find "$THIS_DIR/www/" -mindepth 1 -maxdepth 1 -type f -name "specs*html" | xargs -I FILE basename FILE)"
       ;;
 
     start)
