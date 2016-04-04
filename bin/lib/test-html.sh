@@ -14,7 +14,7 @@ test-html () {
 
   if [[ -z "$@" ]]; then # ==================================================
 
-    js_setup jshint lib/html.js
+    js_setup jshint lib/html/html.js
 
     for DIR in $(find lib/html/specs/ -maxdepth 1 -mindepth 1 -type d); do
 

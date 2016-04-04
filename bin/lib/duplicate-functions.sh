@@ -1,10 +1,11 @@
 
-# === {{CMD}}
+# === {{CMD}} file
 duplicate-functions () {
+
   local +x IFS=$'\n'
 
   local +x dups="$(
-    find lib/ -type f -name "_.*.js" -prune -o -name "*.js" -print | \
+    find lib/*/*/ -type f -name "_.*.js" -o -path "*/build/*.js" -prune -o -name "*.js" -print | \
       xargs -I FILE basename FILE       | \
       sort                              | \
       uniq --count                      | \
@@ -14,14 +15,17 @@ duplicate-functions () {
   )"
 
   if [[ -z "$dups" ]]; then
-    exit 0
+    return 0
   fi
 
+  local +x IFS=' '
   for NAME in $dups; do
-    echo lib/*/$NAME | tr ' ' '\n'
+    for DIR in lib/*/*/$NAME; do
+      echo $DIR
+    done
   done
 
-  exit 1
+  return 1
 } # === end function
 
 specs () {
@@ -34,8 +38,12 @@ specs () {
   # ===========================================================================
   reset-fs
   cd "$TMP"
-  mkdir -p lib/aquaman/a.js
-  mkdir -p lib/superman/a.js
+  mkdir -p lib/browser/aquaman
+  touch    lib/browser/aquaman/a.js
+
+  mkdir -p lib/nodejs/superman
+  toucn    lib/nodejs/superman/a.js
+
   should-exit 1 'dum_dum_boom_boom duplicate-functions'
   # ===========================================================================
 

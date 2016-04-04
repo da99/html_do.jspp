@@ -2,6 +2,8 @@
 # === {{CMD}}  all|top|bottom|body|file.name.js  lib/path/to/dom lib/path/to/state etc.
 find-build-files () {
   local +x NAME="$1"; shift
+
+  local +x IFS=" "  # ensure IFS has not been set in another function.
   local +x CMD="find $@ -maxdepth 1 -mindepth 1 -type f "
 
   case "$NAME" in

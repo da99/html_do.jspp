@@ -4,16 +4,15 @@ source "$THIS_DIR/bin/lib/find-build-files.sh"
 # === {{CMD}}
 build-node () {
 
-  duplicate-functions || { stat="$?"; echo "!!! Dup found." 1>&2; exit $stat; }
   local +x IFS=$'\n'
   local +x err_found=""
   local +x OUTPUT="lib/node/build/node.js"
   local +x names="$(ls -d lib/common/*/) lib/node/node"
 
   rm -f "$OUTPUT"
-  rm -f "$OUTPUT".map
+  rm -f "$OUTPUT".*
 
-  mksh_setup "=== Building: {{$OUTPUT}}"
+  mksh_setup BOLD "=== Building: {{$OUTPUT}}"
 
   cat \
     $(find-build-files top    $names) \

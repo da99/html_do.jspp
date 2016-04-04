@@ -13,3 +13,5 @@
 /tmp
 /npm-shrinkwrap.json
 
+/lib/browser/build/browser.js.body
+/lib/browser/build/browser.js.head

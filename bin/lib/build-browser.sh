@@ -5,13 +5,12 @@ source "$THIS_DIR/bin/lib/server.sh"
 # === {{CMD}}
 build-browser () {
 
-  duplicate-functions || { stat="$?"; echo "!!! Dup found." 1>&2; exit $stat; }
   local +x OUTPUT="lib/browser/build/browser.js"
   local +x browser_results="tmp/browser.js.results"
   local +x names="$(ls -d lib/common/*/) lib/browser/dom lib/browser/data-do"
 
   rm -f "$OUTPUT"
-  rm -f "$OUTPUT".map
+  rm -f "$OUTPUT".*
   rm -f "$browser_results"
 
   temp="$TEMP/spec"
@@ -20,18 +19,27 @@ build-browser () {
 
   mksh_setup BOLD "=== Building: {{$OUTPUT}}"
 
-  paste --delimiter=\\n --serial                \
+  paste --delimiter=\\n --serial \
     bower_components/jquery/dist/jquery.min.js   \
     bower_components/lodash/dist/lodash.min.js    \
     bower_components/mustache.js/mustache.min.js   \
     bower_components/form-to-obj/form-to-obj.min.js \
     bower_components/alite/alite.min.js              \
+    > "$OUTPUT".head
+
+  paste --delimiter=\\n --serial \
     $(find-build-files top    $names)   \
     $(find-build-files body   $names)    \
     $(find-build-files bottom $names)     \
-    > "$OUTPUT"
+    > "$OUTPUT".body
 
-  js_setup jshint lib/browser/specs/*.js || { stat=$?; mksh_setup RED "{{Failed}} jshint"; exit $stat; }
+  paste --delimiter=\\n --serial "$OUTPUT".head "$OUTPUT".body > "$OUTPUT"
+
+  js_setup jshint lib/browser/build/browser.js.body $(find lib/browser/specs/ -type f -name "*.js" -and -not -name "browser.js" -print | tr '\n' ' ') || {
+    stat=$?;
+    mksh_setup RED "{{Failed}} jshint";
+    exit $stat;
+  }
 
   if ! server is-running; then
     server start
