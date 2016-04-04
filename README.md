@@ -64,7 +64,8 @@ Development:
 =================
 
   1. `dum_dum_boom_boom build-browser`
-  1. `dum_dum_boom_boom build-node`
+  2. `dum_dum_boom_boom build-node`
+  3. Adding a new function: add `exports.name =func_name;` for use in node.
 
 
 HTML
