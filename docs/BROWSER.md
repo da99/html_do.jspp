@@ -50,11 +50,11 @@ you want to process.
 
 data-do is the only pre-installed message function:
 ============================
+It is actually named `process_data_dos` inside
+the App object:
+[source code](https://github.com/da99/dum_dum_boom_boom/blob/master/lib/browser/data-do/_.bottom.js).
 
-[Source code for data-do](https://github.com/da99/dum_dum_boom_boom/blob/master/lib/browser/data-do/_.bottom.js).
-
-This is the only message processing function. It is actually named `process_data_dos` inside
-the App object.  You associate DOM elements with the `data-do` attribute:
+You associate DOM elements with the `data-do` attribute:
 
 ```html
   <div data-do="my_func with args;  my_other_func with other args; simply_my_func">Test</div>
