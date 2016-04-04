@@ -25,7 +25,7 @@ watch () {
 
   echo -e "\n=== Watching:"
 
-  inotifywait --quiet --monitor --event close_write $PWD -r browserjs_specs/ lib/ bin/ || while read -r CHANGE; do
+  inotifywait --quiet --monitor --event close_write $PWD -r lib/ bin/ | while read -r CHANGE; do
     dir=$(echo "$CHANGE" | cut -d' ' -f 1)
     path="${dir}$(echo "$CHANGE" | cut -d' ' -f 3)"
     file="$(basename $path)"
@@ -56,19 +56,19 @@ watch () {
 
     echo "$path" > "$TEMP/CHANGE"
 
-    if [[ "$path" == html_specs/**/*.html || "$path" == html_specs/**/*.json ]]; then
-      { $0 test-html specs/"$(echo "$path" | cut -d'/' -f2)" && $0 test-html; } || :
+    if [[ "$path" == lib/html/specs/**/*.html || "$path" == lib/html/specs/**/*.json ]]; then
+      { $0 test-html lib/html/specs/"$(echo "$path" | cut -d'/' -f2)" && $0 test-html; } || :
       continue
     fi
 
-    if [[ "$path" == browserjs_specs/*.js ]]; then
+    if [[ "$path" == lib/browser/specs/*.js ]]; then
       js_setup jshint "$path" || continue
       if server is-running; then
         server start
       fi
     fi
 
-    # if [[ "$path" =~ "browserjs_specs/" ]]; then
+    # if [[ "$path" =~ "lib/browser/specs/" ]]; then
     #   { gui_setup reload-browser google-chrome "Dum"; } || :
     #   continue
     # fi

@@ -2,7 +2,7 @@
 source "$THIS_DIR/bin/lib/find-build-files.sh"
 
 # === {{CMD}}
-build-nodejs () {
+build-node () {
 
   duplicate-functions || { stat="$?"; echo "!!! Dup found." 1>&2; exit $stat; }
   local +x IFS=$'\n'

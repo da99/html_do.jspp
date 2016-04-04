@@ -1,14 +1,14 @@
 
 source "$THIS_DIR/bin/lib/test-html.sh"
-source "$THIS_DIR/bin/lib/build-nodejs.sh"
-source "$THIS_DIR/bin/lib/build-browserjs.sh"
+source "$THIS_DIR/bin/lib/build-node.sh"
+source "$THIS_DIR/bin/lib/build-browser.sh"
 
 # === {{CMD}}
-# === This is a shortcut  build-nodejs, build-browserjs, test-html
+# === This is a shortcut  build-node, build-browser, test-html
 build () {
 
   test-html
-  build-nodejs
-  build-browserjs
+  build-node
+  build-browser
 
 } # === end function

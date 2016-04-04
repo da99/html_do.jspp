@@ -15,6 +15,7 @@ Dependencies:
 * Bower
 * NodeJS and NPM
 * [mksh](https://www.mirbsd.org/mksh.htm) shell and [mksh_setup](https://github.com/da99/mksh_setup)
+* [js_setup](https://github.com/da99/js_setup)
 
 Links:
 =====
@@ -62,8 +63,8 @@ upgrades both versions. It also notifies you if there are newer versions availab
 Development:
 =================
 
-  1. `dum_dum_boom_boom build-browserjs`
-  1. `dum_dum_boom_boom build-nodejs`
+  1. `dum_dum_boom_boom build-browser`
+  1. `dum_dum_boom_boom build-node`
 
 
 HTML

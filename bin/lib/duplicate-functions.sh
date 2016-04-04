@@ -25,7 +25,7 @@ duplicate-functions () {
 } # === end function
 
 specs () {
-  local +x TMP="/tmp/dum_dum_specs"
+  local +x TMP="/tmp/dum_dum_boom_boom"
   reset-fs () {
     rm -rf "$TMP"
     mkdir -p "$TMP"

@@ -3,7 +3,7 @@ source "$THIS_DIR/bin/lib/find-build-files.sh"
 source "$THIS_DIR/bin/lib/server.sh"
 
 # === {{CMD}}
-build-browserjs () {
+build-browser () {
 
   duplicate-functions || { stat="$?"; echo "!!! Dup found." 1>&2; exit $stat; }
   local +x OUTPUT="lib/browser/build/browser.js"
@@ -18,7 +18,6 @@ build-browserjs () {
 
   # === BROWSER: ==============================================================
 
-  test-browser-js
   mksh_setup BOLD "=== Building: {{$OUTPUT}}"
 
   paste --delimiter=\\n --serial                \
@@ -32,13 +31,25 @@ build-browserjs () {
     $(find-build-files bottom $names)     \
     > "$OUTPUT"
 
-  jshint browserjs_specs/*.js || { stat=$?; mksh_setup RED "{{Failed}} jshint"; exit $stat; }
+  js_setup jshint lib/browser/specs/*.js || { stat=$?; mksh_setup RED "{{Failed}} jshint"; exit $stat; }
 
   if ! server is-running; then
     server start
   fi
 
   mksh_setup BOLD "=== Refreshing browser to re-run specs {{browser}}... "
+
+  local waiting=0
+  while [[ $waiting -lt 30 ]] && ! gui_setup reload-browser google-chrome "Dum" 2>/dev/null && ! gui_setup reload-browser google-chrome "specs.html" 2>/dev/null; do
+    echo -n "."
+    waiting=$(($waiting + 1))
+    sleep 0.5
+  done
+  if [[ $waiting -gt 29 ]]; then
+    mksh_setup RED "=== Failed"
+    exit 1
+  fi
+
   gui_setup reload-browser google-chrome "Dum" ||
     { stat=$?; mksh_setup RED "=== {{Failed}} opening: BOLD{{$(server index)}}"; exit $stat; }
 

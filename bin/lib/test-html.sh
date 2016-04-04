@@ -16,7 +16,7 @@ test-html () {
 
     js_setup jshint lib/html.js
 
-    for DIR in $(find html_specs/ -maxdepth 1 -mindepth 1 -type d); do
+    for DIR in $(find lib/html/specs/ -maxdepth 1 -mindepth 1 -type d); do
 
       if [[ -n "$last_failed" && "$last_failed" != "$DIR" ]]; then
         continue
