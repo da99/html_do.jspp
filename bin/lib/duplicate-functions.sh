@@ -25,7 +25,7 @@ duplicate-functions () {
     done
   done
 
-  return 1
+  exit 1
 } # === end function
 
 specs () {
