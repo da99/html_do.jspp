@@ -11,6 +11,12 @@ MOPs is focused on experiments, recovering from those failed experiments,
 
 ![Message Oriented Pipelines](./docs/MOPs.png?raw=true)
 
+For the specs...
+=================
+Someone beat me to this: [https://twitter.com/d0rc/status/685544307533545472](https://twitter.com/d0rc/status/685544307533545472)
+    ![Example in erlang](./docs/CYJSUDfWcAU9dVQ.png?raw=true)
+
+
 Extremes:
 =========
 

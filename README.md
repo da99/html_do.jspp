@@ -7,15 +7,13 @@ You should be using this instead (in order of awesomeness):
   * [RiotJS](https://muut.com/riotjs/)
   * [TypeScript](http://www.typescriptlang.org/)
 
-Someone beat me to this: [https://twitter.com/d0rc/status/685544307533545472](https://twitter.com/d0rc/status/685544307533545472)
-    ![Example in erlang](./docs/CYJSUDfWcAU9dVQ.png?raw=true)
-
 Manuals:
 ===========
 
   * [Browser](./docs/BROWSER.md)
   * [NodeJS](./docs/NODEJS.md)
   * [HTML](./docs/HTML.md)
+  * [Design](./docs/DESIGN.md)
 
 
 Dependencies for the dum\_dum\_boom\_boom binary:
