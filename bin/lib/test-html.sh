@@ -59,7 +59,7 @@ test-html () {
 
     STAT=0
     OUTPUT="$ACTUAL/error.msg"
-    html "$FILE" "$ACTUAL" "$TEMP" 2>"$OUTPUT" || { STAT=$?; }
+    html "$FILE" "$ACTUAL" "$TEMP" >"$OUTPUT" 2>&1 || { STAT=$?; }
     if [[ "$STAT" -ne 0 && ! -f "$DIR/expect/error.msg" ]]; then
       mksh_setup RED "=== html command failed with: {{$STAT}}"
       exit $STAT

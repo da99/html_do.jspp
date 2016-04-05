@@ -1,6 +1,12 @@
 
-Note:
+Features:
 ======
+
+  * `_.file.html` vs `file.html`
+  * `{{MY}}` scoping
+  * `locals`
+  * `paste` and removing duplicate `script`, `meta`, `link` tags
+  * concat/create/link `SCRIPT` tags to `script.js` file.
 
 
 

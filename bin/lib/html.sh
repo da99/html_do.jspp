@@ -2,6 +2,17 @@
 # === {{CMD}} dum-dum.file.html
 html () {
   node $THIS_DIR/lib/html/html.js $@
+  local +x TEMPLATE="$1";     shift
+  local +x OUTPUT_DIR="$1";   shift
+  local +x PUBLIC_PATH="$1";  shift
+  local +x IFS=$'\n'
+
+  local +x SCRIPTS="$(find "$OUTPUT_DIR" -type f -name "*.js")"
+  if [[ ! -z "$SCRIPTS" ]]; then
+    for FILE in $SCRIPTS; do
+      js_setup jshint $FILE
+    done
+  fi
   # TODO: remove duplicate nodes: link, src, meta
   # vnu="$(echo tmp/validator/*/dist/vnu.jar)"
   # final="$(node $THIS_DIR/lib/html/html.js $THE_ARGS)"
