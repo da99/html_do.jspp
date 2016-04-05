@@ -22,7 +22,11 @@ test-html () {
         continue
       fi
 
-      test-html "$DIR" || { stat="$?"; echo "$DIR" > "$TEMP/last_failed"; exit $stat; }
+      test-html "$DIR" || {
+        stat="$?"
+        echo "$DIR" > "$TEMP/last_failed"
+        exit $stat
+      }
 
       if [[ -n "$last_failed" ]]; then
         rm -f "$TEMP/last_failed"
@@ -38,11 +42,13 @@ test-html () {
       test-html
     fi
 
-    exit 0
+    return 0
   fi # ======================================================================
 
   local +x DIR="$1"; shift
   local +x ACTUAL="$TEMP/actual"
+  local +x STAT=0
+  local +x OUTPUT=""
 
   rm -rf "$ACTUAL"; mkdir -p "$ACTUAL" # === Re-set sandbox:
 
@@ -51,8 +57,16 @@ test-html () {
     [[ "$(basename "$FILE")" == _.* ]] && continue || :
     { [[ ! -f "$FILE" ]] && echo "=== No html files." && exit 1; } || :
 
-    { html "$FILE" "$ACTUAL" "$TEMP"; } || \
-      { stat=$?; mksh_setup RED "=== Failed ($stat)"; exit $stat; }
+    STAT=0
+    OUTPUT="$ACTUAL/error.msg"
+    html "$FILE" "$ACTUAL" "$TEMP" 2>"$OUTPUT" || { STAT=$?; }
+    if [[ "$STAT" -ne 0 && ! -f "$DIR/expect/error.msg" ]]; then
+      mksh_setup RED "=== html command failed with: {{$STAT}}"
+      exit $STAT
+    fi
+    if [[ "$STAT" -eq 0 && ! -s "$OUTPUT" ]]; then
+      rm "$OUTPUT"
+    fi
   done
 
   if ! mksh_setup dirs-are-equal ignore-whitespace "$ACTUAL" "$DIR/expect"; then
