@@ -10,7 +10,7 @@ html () {
   local +x SCRIPTS="$(find "$OUTPUT_DIR" -type f -name "*.js")"
   if [[ ! -z "$SCRIPTS" ]]; then
     for FILE in $SCRIPTS; do
-      js_setup jshint $FILE
+      js_setup eslint $FILE
     done
   fi
   # TODO: remove duplicate nodes: link, src, meta
