@@ -59,12 +59,13 @@ test-html () {
 
     STAT=0
     OUTPUT="$ACTUAL/error.msg"
-    html "$FILE" "$ACTUAL" "$TEMP" >"$OUTPUT" 2>&1 || { STAT=$?; }
+
+    html --template "$FILE" --input-dir "$ACTUAL" --public-dir "$TEMP" >"$OUTPUT" 2>&1 || { STAT=$?; }
     if [[ "$STAT" -ne 0 && -f "$DIR/expect/error.msg" ]]; then
       find "$ACTUAL" -type f -not -name "error.msg" -print | xargs -I FILE rm FILE
     fi
     if [[ "$STAT" -ne 0 && ! -f "$DIR/expect/error.msg" ]]; then
-      mksh_setup RED "=== html command failed with: {{$STAT}}"
+      mksh_setup RED "=== html command failed with: {{$STAT}} $(cat "$OUTPUT")"
       exit $STAT
     fi
     if [[ "$STAT" -eq 0 && ! -s "$OUTPUT" ]]; then
@@ -73,7 +74,8 @@ test-html () {
   done
 
   if ! mksh_setup dirs-are-equal ignore-whitespace "$ACTUAL" "$DIR/expect"; then
-    mksh_setup RED "=== {{Failed}}"
+    mksh_setup RED "=== {{Failed}}: dirs are not equal "
+    test -f "$OUTPUT" && cat "$OUTPUT"
     exit 1
   else
     tput cuu1; tput el

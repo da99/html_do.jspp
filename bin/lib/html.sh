@@ -1,7 +1,9 @@
 
-# === {{CMD}} dum-dum.file.html
+# === {{CMD}} dum-dum.file.html  output/dir/   public/dir/
+# === {{CMD}} --template dum-dum.file.html  --output-dir my/dir/  --public-dir
 html () {
-  node $THIS_DIR/lib/html/html.js $@
+  node $THIS_DIR/lib/html/html.js "$@"
+
   local +x TEMPLATE="$1";     shift
   local +x OUTPUT_DIR="$1";   shift
   local +x PUBLIC_PATH="$1";  shift
