@@ -60,7 +60,7 @@ test-html () {
     STAT=0
     OUTPUT="$ACTUAL/error.msg"
 
-    html --template "$FILE" --input-dir "$ACTUAL" --public-dir "$TEMP" >"$OUTPUT" 2>&1 || { STAT=$?; }
+    html --template "$FILE" --output-dir "$ACTUAL" --public-dir "$TEMP" >"$OUTPUT" 2>&1 || { STAT=$?; }
     if [[ "$STAT" -ne 0 && -f "$DIR/expect/error.msg" ]]; then
       find "$ACTUAL" -type f -not -name "error.msg" -print | xargs -I FILE rm FILE
     fi

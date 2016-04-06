@@ -4,13 +4,13 @@
 html () {
   node $THIS_DIR/lib/html/html.js "$@"
 
-  local +x OUTPUT_DIR="$(mksh_setup read-arg --template "$@")";   shift
+  local +x OUTPUT_DIR="$(mksh_setup read-arg --output-dir "$@")";   shift
   local +x IFS=$'\n'
 
   local +x SCRIPTS="$(find "$OUTPUT_DIR" -type f -name "*.js")"
   if [[ ! -z "$SCRIPTS" ]]; then
     for FILE in $SCRIPTS; do
-      js_setup eslint $FILE
+      js_setup eslint browser $FILE
     done
   fi
   # TODO: remove duplicate nodes: link, src, meta
@@ -22,3 +22,5 @@ html () {
   # fi
   # echo "$final"
 } # === end function
+
+
