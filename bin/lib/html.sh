@@ -4,9 +4,7 @@
 html () {
   node $THIS_DIR/lib/html/html.js "$@"
 
-  local +x TEMPLATE="$1";     shift
-  local +x OUTPUT_DIR="$1";   shift
-  local +x PUBLIC_PATH="$1";  shift
+  local +x OUTPUT_DIR="$(mksh_setup read-arg --template "$@")";   shift
   local +x IFS=$'\n'
 
   local +x SCRIPTS="$(find "$OUTPUT_DIR" -type f -name "*.js")"

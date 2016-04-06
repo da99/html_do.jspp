@@ -74,7 +74,7 @@ test-html () {
   done
 
   if ! mksh_setup dirs-are-equal ignore-whitespace "$ACTUAL" "$DIR/expect"; then
-    mksh_setup RED "=== {{Failed}}: dirs are not equal "
+    mksh_setup RED "=== {{Failed}}: spec failed "
     test -f "$OUTPUT" && cat "$OUTPUT"
     exit 1
   else
