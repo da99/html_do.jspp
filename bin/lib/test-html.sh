@@ -1,6 +1,4 @@
 
-source "$THIS_DIR/bin/lib/html.sh"
-
 # === {{CMD}}
 # ==  {{CMD}}  spec/dir
 test-html () {
@@ -58,25 +56,28 @@ test-html () {
   STAT=0
   OUTPUT="$ACTUAL/error.msg"
 
-  html --input-dir "$DIR/input" --output-dir "$ACTUAL" --public-dir "$TEMP" >"$OUTPUT" 2>&1 || { STAT=$?; }
-  if [[ "$STAT" -ne 0 && -f "$DIR/expect/error.msg" ]]; then
-    find "$ACTUAL" -type f -not -name "error.msg" -print | xargs -I FILE rm FILE
-  fi
+  $0 html --input-dir "$DIR/input" --output-dir "$ACTUAL" --public-dir "$TEMP" >"$OUTPUT" 2>&1 || { STAT=$?; }
+
   if [[ "$STAT" -ne 0 && ! -f "$DIR/expect/error.msg" ]]; then
     mksh_setup RED "=== html command failed with: {{$STAT}} $(cat "$OUTPUT")"
     exit $STAT
   fi
+
   if [[ "$STAT" -eq 0 && ! -s "$OUTPUT" ]]; then
     rm "$OUTPUT"
   fi
 
-  if ! mksh_setup dirs-are-equal ignore-whitespace "$ACTUAL" "$DIR/expect"; then
-    mksh_setup RED "=== {{Failed}}: spec failed "
-    test -f "$OUTPUT" && cat "$OUTPUT"
-    exit 1
+  if [[ -f "$DIR/expect/error.msg" ]]; then
+    diff "$DIR/expect/error.msg"  "$ACTUAL/error.msg"
   else
-    tput cuu1; tput el
-    mksh_setup GREEN "=== {{$DIR}}"
+    if ! mksh_setup dirs-are-equal ignore-whitespace "$ACTUAL" "$DIR/expect"; then
+      mksh_setup RED "=== {{Failed}}: spec failed "
+      test -f "$OUTPUT" && cat "$OUTPUT"
+      exit 1
+    else
+      tput cuu1; tput el
+      mksh_setup GREEN "=== {{$DIR}}"
+    fi
   fi
 
   # echo -e "=== split: $Green$FILE$Reset"
