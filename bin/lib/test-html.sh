@@ -74,13 +74,11 @@ test-html () {
       mksh_setup RED "=== {{Failed}}: spec failed "
       test -f "$OUTPUT" && cat "$OUTPUT"
       exit 1
-    else
-      tput cuu1; tput el
-      mksh_setup GREEN "=== {{$DIR}}"
     fi
   fi
 
-  # echo -e "=== split: $Green$FILE$Reset"
+  tput cuu1; tput el
+  mksh_setup GREEN "=== {{$DIR}}"
 
 } # end function test-html
 
