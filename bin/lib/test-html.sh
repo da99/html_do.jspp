@@ -53,25 +53,22 @@ test-html () {
   rm -rf "$ACTUAL"; mkdir -p "$ACTUAL" # === Re-set sandbox:
 
   mksh_setup BOLD "=== Testing: {{$DIR}}"
-  for FILE in "$DIR/input"/*.html; do
-    [[ "$(basename "$FILE")" == _.* ]] && continue || :
-    { [[ ! -f "$FILE" ]] && echo "=== No html files." && exit 1; } || :
 
-    STAT=0
-    OUTPUT="$ACTUAL/error.msg"
 
-    html --template "$FILE" --output-dir "$ACTUAL" --public-dir "$TEMP" >"$OUTPUT" 2>&1 || { STAT=$?; }
-    if [[ "$STAT" -ne 0 && -f "$DIR/expect/error.msg" ]]; then
-      find "$ACTUAL" -type f -not -name "error.msg" -print | xargs -I FILE rm FILE
-    fi
-    if [[ "$STAT" -ne 0 && ! -f "$DIR/expect/error.msg" ]]; then
-      mksh_setup RED "=== html command failed with: {{$STAT}} $(cat "$OUTPUT")"
-      exit $STAT
-    fi
-    if [[ "$STAT" -eq 0 && ! -s "$OUTPUT" ]]; then
-      rm "$OUTPUT"
-    fi
-  done
+  STAT=0
+  OUTPUT="$ACTUAL/error.msg"
+
+  html --input-dir "$DIR/input" --output-dir "$ACTUAL" --public-dir "$TEMP" >"$OUTPUT" 2>&1 || { STAT=$?; }
+  if [[ "$STAT" -ne 0 && -f "$DIR/expect/error.msg" ]]; then
+    find "$ACTUAL" -type f -not -name "error.msg" -print | xargs -I FILE rm FILE
+  fi
+  if [[ "$STAT" -ne 0 && ! -f "$DIR/expect/error.msg" ]]; then
+    mksh_setup RED "=== html command failed with: {{$STAT}} $(cat "$OUTPUT")"
+    exit $STAT
+  fi
+  if [[ "$STAT" -eq 0 && ! -s "$OUTPUT" ]]; then
+    rm "$OUTPUT"
+  fi
 
   if ! mksh_setup dirs-are-equal ignore-whitespace "$ACTUAL" "$DIR/expect"; then
     mksh_setup RED "=== {{Failed}}: spec failed "
