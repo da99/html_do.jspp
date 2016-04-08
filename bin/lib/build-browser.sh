@@ -47,7 +47,6 @@ build-browser () {
 
   mksh_setup BOLD "=== Refreshing browser to re-run specs {{browser}}... "
 
-  set -x
   local waiting=0
   while [[ $waiting -lt 30 ]] && ! gui_setup reload-browser google-chrome "Dum" 2>/dev/null && ! gui_setup reload-browser google-chrome "specs.html" 2>/dev/null; do
     echo -n "."
@@ -58,7 +57,6 @@ build-browser () {
     mksh_setup RED "=== {{Failed}} opening: BOLD{{$(server index)}}"
     exit 1
   fi
-  set +x
 
   local count="0"
   while [[ ! -s "$browser_results" && $count -lt 100 ]]; do
