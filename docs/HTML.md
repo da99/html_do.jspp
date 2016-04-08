@@ -7,6 +7,7 @@ Features:
   * `locals`
   * `paste` and removing duplicate `script`, `meta`, `link` tags
   * concat/create/link `SCRIPT` tags to `script.js` file.
+  * copy files (.css, .js, .png, etc) to output dir
 
 
 

@@ -4,41 +4,22 @@
 test-html () {
   local +x IFS=$'\n'
 
-  if [[ -s "$TEMP/last_failed" ]]; then
-    local +x last_failed="$(cat "$TEMP/last_failed")"
-  else
-    local +x last_failed=""
+  if [[ -z "$@" && -s "$TEMP/last_failed" ]]; then
+    $0 test-html "$(cat "$TEMP/last_failed")"
   fi
+
+  rm -f "$TEMP/last_failed"
+  local +x last_failed=""
 
   if [[ -z "$@" ]]; then # ==================================================
 
     js_setup jshint lib/html/html.js
 
     for DIR in $(find lib/html/specs/ -maxdepth 1 -mindepth 1 -type d); do
-
-      if [[ -n "$last_failed" && "$last_failed" != "$DIR" ]]; then
-        continue
-      fi
-
-      test-html "$DIR" || {
-        stat="$?"
-        echo "$DIR" > "$TEMP/last_failed"
-        exit $stat
-      }
-
-      if [[ -n "$last_failed" ]]; then
-        rm -f "$TEMP/last_failed"
-        break
-      fi
-
+      test-html "$DIR"
     done # === for
 
-    if [[ -z "$last_failed" ]]; then
-      mksh_setup GREEN "=== All pass."
-    else
-      echo "=== Starting over all other tests: "
-      test-html
-    fi
+    mksh_setup GREEN "=== All pass."
 
     return 0
   fi # ======================================================================
@@ -73,6 +54,7 @@ test-html () {
     if ! mksh_setup dirs-are-equal ignore-whitespace "$ACTUAL" "$DIR/expect"; then
       mksh_setup RED "=== {{Failed}}: spec failed "
       test -f "$OUTPUT" && cat "$OUTPUT"
+      echo "$DIR" > "$TEMP/last_failed"
       exit 1
     fi
   fi

@@ -4,6 +4,9 @@ source "$THIS_DIR/bin/lib/server.sh"
 # === {{CMD}}
 # === {{CMD}} "cmd with args"
 watch () {
+  mksh_setup watch "-r bin -r lib" "$@"
+  return 0
+
   local BROWSER_ERROR="tmp/catch.browser.js.txt"
   # for FILE in $(git ls-files --cached --others --exclude-standard | grep --extended-regexp '.js|.html|bin'); do
   #   [[ -f "$FILE" ]] && mksh_setup is_same_file "$FILE" || :
