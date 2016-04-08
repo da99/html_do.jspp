@@ -5,7 +5,7 @@ duplicate-functions () {
   local +x IFS=$'\n'
 
   local +x dups="$(
-    find lib/*/*/ -type f -name "_.*.js" -o -path "*/build/*.js" -prune -o -name "*.js" -print | \
+    find lib/*/* -type f -name "_.*.js" -o -path "lib/html/specs/*"  -o -path "*/build/*.js" -prune -o -path "lib/*/*/*.js" -and -name "*.js" -print | \
       xargs -I FILE basename FILE       | \
       sort                              | \
       uniq --count                      | \
@@ -18,11 +18,9 @@ duplicate-functions () {
     return 0
   fi
 
-  local +x IFS=' '
+  local +x IFS=$'\n'
   for NAME in $dups; do
-    for DIR in lib/*/*/$NAME; do
-      echo $DIR
-    done
+    find lib/ -type f -name "$(basename "$NAME")"
   done
 
   exit 1

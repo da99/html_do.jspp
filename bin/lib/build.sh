@@ -8,7 +8,7 @@ source "$THIS_DIR/bin/lib/duplicate-functions.sh"
 # === This is a shortcut  build-node, build-browser, test-html
 build () {
 
-  duplicate-functions || { stat="$?"; echo "!!! Dup found." 1>&2; exit $stat; }
+  $0 duplicate-functions || { stat="$?"; mksh_setup RED "!!! {{Dup found}}."; exit $stat; }
 
 
   build-browser

@@ -11,8 +11,6 @@ test-html () {
     return 0
   fi
 
-  local +x last_failed=""
-
   if [[ -z "$@" ]]; then # ==================================================
 
     js_setup jshint lib/html/html.js
