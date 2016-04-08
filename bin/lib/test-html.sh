@@ -6,9 +6,11 @@ test-html () {
 
   if [[ -z "$@" && -s "$TEMP/last_failed" ]]; then
     $0 test-html "$(cat "$TEMP/last_failed")"
+    rm -f "$TEMP/last_failed"
+    $0 test-html
+    return 0
   fi
 
-  rm -f "$TEMP/last_failed"
   local +x last_failed=""
 
   if [[ -z "$@" ]]; then # ==================================================
@@ -39,6 +41,8 @@ test-html () {
 
   $0 html --input-dir "$DIR/input" --output-dir "$ACTUAL" --public-dir "$TEMP" >"$OUTPUT" 2>&1 || { STAT=$?; }
 
+  echo "$DIR" > "$TEMP/last_failed"
+
   if [[ "$STAT" -ne 0 && ! -f "$DIR/expect/error.msg" ]]; then
     mksh_setup RED "=== html command failed with: {{$STAT}} $(cat "$OUTPUT")"
     exit $STAT
@@ -54,11 +58,11 @@ test-html () {
     if ! mksh_setup dirs-are-equal ignore-whitespace "$ACTUAL" "$DIR/expect"; then
       mksh_setup RED "=== {{Failed}}: spec failed "
       test -f "$OUTPUT" && cat "$OUTPUT"
-      echo "$DIR" > "$TEMP/last_failed"
       exit 1
     fi
   fi
 
+  rm -f "$TEMP/last_failed"
   tput cuu1; tput el
   mksh_setup GREEN "=== {{$DIR}}"
 
