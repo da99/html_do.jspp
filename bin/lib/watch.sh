@@ -4,7 +4,8 @@ source "$THIS_DIR/bin/lib/server.sh"
 # === {{CMD}}
 # === {{CMD}} "cmd with args"
 watch () {
-  mksh_setup watch "-r bin -r lib" "$@"
+  # === NOTE: We exclude 'build/' files to prevent an endless loop.
+  mksh_setup watch "-r bin -r lib --exclude /build/" "$@"
   return 0
 
   local BROWSER_ERROR="tmp/catch.browser.js.txt"
@@ -35,7 +36,13 @@ watch () {
     echo "" > "$TEMP/CHANGE"
 
     # Make sure this is not a temp/swap file:
-    { [[ ! -f "$path" ]] && continue; } || :
+    if [[ ! -f "$path" ]]; then
+      continue
+    fi
+
+    if [[ "$path" == */build/* ]]; then
+      continue
+    fi
 
     # === Browser errors:
     if [[ "$path" == "$BROWSER_ERROR" ]]; then

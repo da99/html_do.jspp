@@ -21,8 +21,9 @@ build-node () {
     > "$OUTPUT"
 
   mksh_setup BOLD "=== Testing: {{node.js}}"
-  node lib/node/spec.js test 2>&1  | js_setup map-errors-to-files || {
-    stat=$?; echo -e "=== ${Red}Failed${Color_Off}" 1>&2; exit $stat;
+  #| js_setup map-errors-to-files || {
+  node lib/node/spec.js test 2>&1 || {
+    stat=$?; mksh_setup RED "=== {{Spec run failed}}"; exit $stat;
   }
   mksh_setup GREEN "=== Done building and testing: {{$OUTPUT}}"
 } # === end function
