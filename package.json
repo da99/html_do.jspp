@@ -21,8 +21,8 @@
   "dependencies": {
     "cheerio": "^0.20.0",
     "handlebars": "^4.0.5",
-    "he": "^0.5.0",
-    "lodash": "^4.7.0",
+    "he": "^1.0.0",
+    "lodash": "^4.9.0",
     "stylus": "^0.54.2"
   },
   "scripts": {
