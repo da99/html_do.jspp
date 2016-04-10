@@ -28,6 +28,7 @@ test-html () {
   local +x ACTUAL="$TEMP/actual"
   local +x STAT=0
   local +x OUTPUT=""
+  local +x DIFF_OUTPUT="$(mktemp)"
 
   rm -rf "$ACTUAL"; mkdir -p "$ACTUAL" # === Re-set sandbox:
 
@@ -62,11 +63,14 @@ test-html () {
       fi
     fi
   else
-    if ! mksh_setup dirs-are-equal ignore-whitespace "$ACTUAL" "$DIR/expect"; then
+    if ! mksh_setup dirs-are-equal ignore-whitespace "$ACTUAL" "$DIR/expect" >"$DIFF_OUTPUT" ; then
       mksh_setup RED "=== {{Failed}}: spec failed "
+      cat "$DIFF_OUTPUT"
+      rm "$DIFF_OUTPUT"
       test -f "$OUTPUT" && cat "$OUTPUT"
       exit 1
     fi
+    rm -f "$DIFF_OUTPUT"
   fi
 
   rm -f "$TEMP/last_failed"
