@@ -45,7 +45,7 @@ build-browser () {
     server start
   fi
 
-  mksh_setup BOLD "=== Refreshing browser to re-run specs {{browser}}... "
+  mksh_setup BOLD "-n" "=== Refreshing {{http://localhost:$(server port)/specs.html}} to re-run specs"
 
   local waiting=0
   while [[ $waiting -lt 30 ]] && ! gui_setup reload-browser google-chrome "Dum" 2>/dev/null && ! gui_setup reload-browser google-chrome "specs.html" 2>/dev/null; do
@@ -53,6 +53,7 @@ build-browser () {
     waiting=$(($waiting + 1))
     sleep 0.5
   done
+  echo ""
   if [[ $waiting -gt 29 ]]; then
     mksh_setup RED "=== {{Failed}} opening: BOLD{{$(server index)}}"
     exit 1
