@@ -8,6 +8,9 @@ Features:
   * `paste` and removing duplicate `script`, `meta`, `link` tags
   * concat/create/link `SCRIPT` tags to `script.js` file.
   * copy files (.css, .js, .png, etc) to output dir
+  * locals:
+    `<local name="name" value="value" />`
+    `<local name="name">value</local>`
 
 
 
