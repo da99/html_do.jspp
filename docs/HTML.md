@@ -9,8 +9,15 @@ Features:
   * concat/create/link `SCRIPT` tags to `script.js` file.
   * copy files (.css, .js, .png, etc) to output dir
   * locals:
-    `<local name="name" value="value" />`
-    `<local name="name">value</local>`
+    ```html
+      <local name="name" value="value" />
+      <local name="name">value</local>
+    ```
+  * templates:
+    ```html
+      <template data-do="template data_key  replace|top|bottom">
+      </template>
+    ```
 
 
 
