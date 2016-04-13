@@ -56,8 +56,8 @@ test-html () {
     if ! diff "$DIR/expect/error.msg"  "$ACTUAL/error.msg" >/dev/null 2>&1 ; then
       if ! grep -P "$(cat $DIR/expect/error.msg )" "$ACTUAL/error.msg" >/dev/null 2>&1; then
         mksh_setup RED "=== {{FAILED}}: BOLD{{error messages do not match}}:"
-        mksh_setup RED "{{$(cat "$ACTUAL/error.msg")}}"
-        mksh_setup RED "!=="
+        mksh_setup RED "{{"$(cat "$ACTUAL/error.msg" || echo "[no error msg]")"}}"
+        mksh_setup RED "   !=="
         mksh_setup RED "BOLD{{$(cat "$DIR/expect/error.msg")}}"
         exit 1
       fi

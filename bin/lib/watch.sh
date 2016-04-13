@@ -4,9 +4,45 @@ source "$THIS_DIR/bin/lib/server.sh"
 # === {{CMD}}
 # === {{CMD}} "cmd with args"
 watch () {
-  # === NOTE: We exclude 'build/' files to prevent an endless loop.
-  mksh_setup watch "-r bin -r lib --exclude /build/" "$@"
-  return 0
+  local +x CMD="$@"
+  local +x FILES="$PWD -r lib/ bin/"
+
+  mksh_setup BOLD "=== Watching: {{$FILES}} CMD: {{$CMD}}"
+  $CMD || :
+
+  inotifywait --quiet --monitor --exclude .git/ --event close_write $FILES | while read -r CHANGE; do
+    dir=$(echo "$CHANGE" | cut -d' ' -f 1)
+    path="${dir}$(echo "$CHANGE" | cut -d' ' -f 3)"
+    file="$(basename $path)"
+
+
+    # === NOTE: We exclude 'build/' files to prevent an endless loop.
+    if [[ "$path" == */build/* ]]; then
+      mksh_setup ORANGE  "=== Skipping: {{$CHANGE}}"
+    fi
+
+    if [[ ! -f "$path" ]]; then
+      mksh_setup BOLD "=== Skipping {{non-file}}: $CHANGE"
+      continue
+    fi
+
+    if [[ "$path" == *"/bin/lib/watch.sh" ]]; then
+      mksh_setup ORANGE "=== watch.sh changed. {{Reloading}}..."
+      exec $0 watch "$CMD"
+    fi
+
+    mksh_setup ORANGE "=== Changed: {{$path}} ($CHANGE)"
+
+    if [[ "$path" == "*.js" ]]; then
+      js_setup jshint "$path" && "$CMD" || :
+      continue
+    fi
+
+    $CMD || :
+  done # === while
+
+  return 0 # ===================================================================
+  # mksh_setup watch "-r bin -r lib --exclude /build/" "$@"
 
   local BROWSER_ERROR="tmp/catch.browser.js.txt"
   # for FILE in $(git ls-files --cached --others --exclude-standard | grep --extended-regexp '.js|.html|bin'); do
