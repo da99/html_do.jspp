@@ -1,8 +1,0 @@
-{
-  "conditionals.big-screen": {
-    "screen_size": "1920x1080"
-  },
-  "conditionals.small-screen": {
-    "screen_size": "800x600"
-  }
-}
