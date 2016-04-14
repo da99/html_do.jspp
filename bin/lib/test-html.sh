@@ -25,6 +25,16 @@ test-html () {
   fi # ======================================================================
 
   local +x DIR="$1"; shift
+  local +x TARGET_DIR="$DIR"
+  if [[ ! -d "$DIR" ]]; then
+    DIR="$(find lib/html/specs -maxdepth 1 -type d -name "$DIR")"
+  fi
+
+  if [[ ! -d "$DIR" ]]; then
+    mksh_setup RED "=== Dir not found: {{$TARGET_DIR}}"
+    exit 1
+  fi
+
   local +x ACTUAL="$TEMP/actual"
   local +x STAT=0
   local +x OUTPUT=""
