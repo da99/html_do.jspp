@@ -16,6 +16,7 @@ Features:
       |- script.js   ->  {{script_js}}
     ```
 
+  * `to-global` has *no* `to-local` counterpart.
   * globals & locals must be on the top:
     ```html
       <local name="name" value="value" />
@@ -24,6 +25,7 @@ Features:
         <local name="this_is_ignored">my value</local>
       </div>
     ```
+
 
   * templates:
     ```html
