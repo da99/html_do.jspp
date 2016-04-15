@@ -9,6 +9,13 @@ Features:
   * concat/create/link `SCRIPT` tags to `script.js` file.
   * copy files (.css, .js, .png, etc) to output dir
 
+  * files relative to the template file are turn into `locals`:
+    ```
+      |- my.template.html
+      |- style.css   ->  {{style_css}}
+      |- script.js   ->  {{script_js}}
+    ```
+
   * globals & locals must be on the top:
     ```html
       <local name="name" value="value" />
