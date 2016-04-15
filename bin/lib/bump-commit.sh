@@ -1,7 +1,7 @@
 
 # === {{CMD}}  major|minor|patch
-# === runs `js_setup upgrade`, then `{{BIN}} bin`, then runs `js_setup bump $@`
-bump () {
+# === runs `js_setup upgrade`, then `{{BIN}} build`, then runs `js_setup bump-commit $@`
+bump-commit () {
   mksh_setup BOLD "=== Upgrading..."
   js_setup upgrade
 
@@ -9,5 +9,5 @@ bump () {
   $0 build
 
   mksh_setup BOLD "=== {{Bumping}} $@"
-  js_setup bump $@
+  js_setup bump-commit $@
 } # === end function
