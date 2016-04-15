@@ -22,6 +22,6 @@ bump-commit () {
   mksh_setup BOLD "=== Bumping and pushing..."
   git add package.json
   git commit -m "Bump: $NEW_VERSION"
-  git_setup bump-commit
+  git tag "$NEW_VERSION"
   git_setup push-latest-version
 } # === end function
