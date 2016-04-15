@@ -8,16 +8,38 @@ Features:
   * `paste` and removing duplicate `script`, `meta`, `link` tags
   * concat/create/link `SCRIPT` tags to `script.js` file.
   * copy files (.css, .js, .png, etc) to output dir
-  * locals:
+
+  * globals & locals must be on the top:
     ```html
       <local name="name" value="value" />
       <local name="name">value</local>
+      <div>
+        <local name="this_is_ignored">my value</local>
+      </div>
     ```
+
   * templates:
     ```html
       <template data-do="template data_key  replace|top|bottom">
       </template>
     ```
+
+  * pastes (ie partials):
+    ```html
+      <paste src="my_file.html" />
+    ```
+
+  * Appending/Prepending to other elements is allowed IF the element
+  is already defined.
+  ```html
+    <top    to="my_id">This is an error.</top>
+    <div id="my_id">
+      content goes around here.
+    </div>
+    <!-- This is ok: -->
+    <top    to="my_id">my content</top>
+    <bottom to="my_id">my bottom content</bottom>
+  ```
 
 
 
