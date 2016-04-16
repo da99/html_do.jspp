@@ -2,7 +2,7 @@
 # === Starts server for development and testing purposes:
 # === {{CMD}}  start
 # === Shutdowns down dev/test server.
-# === {{CMD}}  stop
+# === {{CMD}}  quit
 server () {
   local +x PID="tmp/pid.txt"
   mkdir -p tmp
@@ -27,7 +27,7 @@ server () {
       ;;
 
     start)
-      server stop
+      server quit
       (node lib/browser/specs/server.js) &
       server_pid="$!"
 
@@ -37,7 +37,7 @@ server () {
       sleep 0.5
       ;;
 
-    stop)
+    quit)
       if [[ -e "$PID"  ]]; then
         num="$(cat $PID)"
         if [[ -n "$num" ]] && kill -0 "$num" 2>/dev/null; then

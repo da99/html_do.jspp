@@ -128,7 +128,7 @@ watch () {
     fi
   done
 
-  $0 server stop
+  $0 server quit
   $0 "$THE_ARGS"
 
 } # === end function
