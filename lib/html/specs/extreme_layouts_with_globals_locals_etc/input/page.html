@@ -1,6 +1,6 @@
-<paste src="_.layout.html">
-  <local name="THE_TITLE">My Page</local>
-</paste>
+<run src="_.layout.html">
+  <local name="THE_TITLE">{{SITE_NAME}} - My Page</local>
+</run>
 
 <head>
 	  <link rel="stylesheet" media="all" href="{{styles_css}}">
@@ -12,7 +12,7 @@
     <local name="my_ignored_local">yo</local>
     <global name="my_ignored_global">yo</global>
   </div>
-  <paste src="footer/_.footer.html" />
+  <run src="footer/_.footer.html" />
 </body>
 
 <top>
