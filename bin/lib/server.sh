@@ -10,7 +10,7 @@ server () {
   case "$1" in
 
     is-running)
-      [[ -f $PID ]]
+      [[ -f $PID ]] && ( ps aux | grep "$(cat  $PID)" >/dev/null )
       ;;
 
     port)
@@ -26,15 +26,25 @@ server () {
       echo "http://localhost:$(server port)/$(find "$THIS_DIR/lib/browser/specs/" -mindepth 1 -maxdepth 1 -type f -name "specs*html" | xargs -I FILE basename FILE)"
       ;;
 
+    restart)
+      $0 server quit
+      $0 server start
+      ;;
+
     start)
-      server quit
+      if $0 server is-running ; then
+        mksh_setup BOLD "=== Server {{already}} running."
+        return 0
+      fi
+
       (node lib/browser/specs/server.js) &
       server_pid="$!"
 
       mkdir -p tmp
       echo "$server_pid" > "$PID"
-      echo "=== Started server: $server_pid - $$"
       sleep 0.5
+      mksh_setup max-wait 3s  "$0 server is-running"
+      echo "=== Started server: $server_pid - $$"
       ;;
 
     quit)

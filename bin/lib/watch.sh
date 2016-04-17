@@ -55,7 +55,7 @@ watch () {
     $cmd && mksh_setup GREEN "=== {{$cmd}}" || mksh_setup RED "=== {{Failed}}"
   }
 
-  server start
+  server restart
 
   if [[ -z "$cmd" ]]; then
     $0 test || :
@@ -110,7 +110,7 @@ watch () {
     if [[ "$path" == lib/browser/specs/*.js ]]; then
       js_setup jshint "$path" || continue
       if server is-running; then
-        server start
+        server restart
       fi
     fi
 

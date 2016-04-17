@@ -41,9 +41,7 @@ build-browser () {
     exit $stat;
   }
 
-  if ! server is-running; then
-    server start
-  fi
+  server start
 
   mksh_setup BOLD "-n" "=== Refreshing {{http://localhost:$(server port)/specs.html}} to re-run specs"
 
