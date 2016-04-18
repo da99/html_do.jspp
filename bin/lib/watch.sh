@@ -46,7 +46,7 @@ watch () {
 
   local BROWSER_ERROR="tmp/catch.browser.js.txt"
   # for FILE in $(git ls-files --cached --others --exclude-standard | grep --extended-regexp '.js|.html|bin'); do
-  #   [[ -f "$FILE" ]] && mksh_setup is_same_file "$FILE" || :
+  #   [[ -f "$FILE" ]] && mksh_setup is-same-file "$FILE" || :
   # done
   echo "" > "$TEMP/CHANGE"
 
@@ -87,7 +87,7 @@ watch () {
     fi
 
     # Check if file has changed:
-    if mksh_setup is_same_file "$path"; then
+    if mksh_setup is-same-file "$path"; then
       echo "=== No change: $CHANGE"
       continue
     fi # === Has file changed?
