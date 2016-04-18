@@ -1,1 +1,1 @@
-Error: "my_title" not defined in .object Object.
+"my_title" not defined in .object Object.
