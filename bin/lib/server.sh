@@ -10,7 +10,7 @@ server () {
   case "$1" in
 
     is-running)
-      [[ -f $PID ]] && ( ps aux | grep "$(cat  $PID)" >/dev/null )
+      [[ -f $PID ]] && kill -0 "$(cat  $PID)" 2>/dev/null
       ;;
 
     port)
