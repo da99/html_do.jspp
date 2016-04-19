@@ -5,7 +5,7 @@ source "$THIS_DIR/bin/lib/server.sh"
 # === {{CMD}}
 build-browser () {
 
-  local +x OUTPUT="lib/browser/build/browser.js"
+  local +x OUTPUT="lib/browser/build/browser"
   local +x browser_results="tmp/browser.js.results"
   local +x names="$(ls -d lib/common/*/) lib/browser/dom lib/browser/data-do"
 
@@ -25,45 +25,68 @@ build-browser () {
     bower_components/mustache.js/mustache.min.js   \
     bower_components/form-to-obj/form-to-obj.min.js \
     bower_components/alite/alite.min.js              \
-    > "$OUTPUT".head
+    > "$OUTPUT".vendor
 
   paste --delimiter=\\n --serial \
     $(find-build-files top    $names)   \
-    > "$OUTPUT".body
+    > "$OUTPUT".head
 
   local +x IFS=$'\n'
   local +x LAST_CAT=""
+  local +x LAST_MAIN=""
+
+  write_to_body () {
+    tee -a "$OUTPUT".body "$OUTPUT".browser.body >/dev/null
+  }
+
   for FILE in $(find-build-files body   $names) ; do
     local +x NAME="$(basename $FILE .js)"
-    local +x CATEGORY=$(basename "$(dirname "$FILE")")
-    CATEGORY=${CATEGORY//"-"/"_"}
-    if [[ "$LAST_CAT" != "$CATEGORY" ]]; then
-      echo -e "\nfuncs.${CATEGORY} = {};" >> "$OUTPUT".body
-      LAST_CAT="$CATEGORY"
+    local +x MAIN="$(echo "$FILE" | cut -d'/' -f2 )"
+    local +x CATEGORY="$(echo "$FILE" | cut -d'/' -f3 )"
+
+    local +x THIS_CAT="${CATEGORY}"
+    THIS_CAT=${THIS_CAT//"-"/"_"}
+
+    local +x THIS_MAIN="$MAIN"
+    THIS_MAIN=${THIS_MAIN//"-"/"_"}
+
+    if [[ "$LAST_MAIN" != "$THIS_MAIN" ]]; then
+      echo -e "\nfuncs.${MAIN}     = {};" | write_to_body
+      LAST_MAIN="$THIS_MAIN"
     fi
-    echo -e "\nfuncs.${CATEGORY}.${NAME}=${NAME};" >> "$OUTPUT".body
+
+    if [[ "$LAST_CAT" != "$THIS_CAT" ]]; then
+      echo -e "\nfuncs.${MAIN}.${THIS_CAT} = {};"  | write_to_body
+      LAST_CAT="$THIS_CAT"
+    fi
+
+    echo -e "\nfuncs.${MAIN}.${THIS_CAT}.${NAME}=${NAME};"  | write_to_body
+    grep -Pzo '(?s)function\ '${NAME//'$'/'\$'}'\(.+'  "$FILE"  >> "$OUTPUT".browser.body
     cat "$FILE" >> "$OUTPUT".body
-  done
+  done # === for
 
   paste --delimiter=\\n --serial \
     $(find-build-files bottom $names)     \
-    >> "$OUTPUT".body
+    > "$OUTPUT".tail
 
-  paste --delimiter=\\n --serial "$OUTPUT".head "$OUTPUT".body > "$OUTPUT"
+  paste --delimiter=\\n --serial                  "$OUTPUT".head "$OUTPUT".body         "$OUTPUT".tail > "$OUTPUT".main.js
+  paste --delimiter=\\n --serial "$OUTPUT".vendor "$OUTPUT".head "$OUTPUT".body         "$OUTPUT".tail > "$OUTPUT".js
+  paste --delimiter=\\n --serial "$OUTPUT".vendor "$OUTPUT".head "$OUTPUT".browser.body "$OUTPUT".tail > "$OUTPUT".min.js
+  paste --delimiter=\\n --serial "$OUTPUT".vendor "$OUTPUT".head "$OUTPUT".body         "$OUTPUT".tail > "$OUTPUT".specs.js
 
   local +x IFS=' '
-  js_setup jshint lib/browser/build/browser.js.body $(find lib/browser/specs/ -type f -name "*.js" -and -not -name "browser.js" -print | tr '\n' ' ') || {
+  js_setup jshint "$OUTPUT".main.js $(find lib/browser/specs/ -type f -name "*.js" -and -not -name "browser.js" -print | tr '\n' ' ') || {
     stat=$?;
     mksh_setup RED "{{Failed}} jshint";
     exit $stat;
   }
 
-  server start
+  server start $THIS_DIR/lib/browser/specs /browser.js /run.specs.js
 
-  mksh_setup BOLD "-n" "=== Refreshing {{http://localhost:$(server port)/specs.html}} to re-run specs"
+  mksh_setup BOLD "-n" "=== Refreshing {{http://localhost:$(server port)/specs}} to re-run specs"
 
   local waiting=0
-  while [[ $waiting -lt 30 ]] && ! gui_setup reload-browser google-chrome "Dum" 2>/dev/null && ! gui_setup reload-browser google-chrome "specs.html" 2>/dev/null; do
+  while [[ $waiting -lt 30 ]] && ! gui_setup reload-browser google-chrome "Dum" 2>/dev/null && ! gui_setup reload-browser google-chrome "specs" 2>/dev/null; do
     echo -n "."
     waiting=$(($waiting + 1))
     sleep 0.5
@@ -87,7 +110,8 @@ build-browser () {
     exit 1
   fi
 
-  mksh_setup GREEN "=== Done building: {{$OUTPUT}} $(($(stat --printf="%s" "$OUTPUT") / 1024)) Kb"
+  mksh_setup GREEN "=== Done building: {{$OUTPUT}}.js     $(($(stat --printf="%s" "$OUTPUT".js)     / 1024)) Kb"
+  mksh_setup GREEN "=== Done building: {{$OUTPUT}}.min.js $(($(stat --printf="%s" "$OUTPUT".min.js) / 1024)) Kb"
 
 } # === end function
 

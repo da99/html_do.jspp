@@ -27,17 +27,19 @@ server () {
       ;;
 
     restart)
+      shift
       $0 server quit
-      $0 server start
+      $0 server start "$@"
       ;;
 
     start)
+      shift
       if $0 server is-running ; then
         mksh_setup BOLD "=== Server {{already}} running."
         return 0
       fi
 
-      (node lib/browser/specs/server.js) &
+      (node lib/browser/specs/server.js $THIS_DIR/lib/browser/specs/specs.html "$@") &
       server_pid="$!"
 
       mkdir -p tmp
