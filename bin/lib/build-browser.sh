@@ -4,6 +4,7 @@ source "$THIS_DIR/bin/lib/server.sh"
 
 # === {{CMD}}
 build-browser () {
+  cd "$THIS_DIR"
 
   local +x OUTPUT="lib/browser/build/browser"
   local +x browser_results="tmp/browser.js.results"
@@ -69,19 +70,18 @@ build-browser () {
     $(find-build-files bottom $names)     \
     > "$OUTPUT".tail
 
-  paste --delimiter=\\n --serial                  "$OUTPUT".head "$OUTPUT".body         "$OUTPUT".tail > "$OUTPUT".main.js
-  paste --delimiter=\\n --serial "$OUTPUT".vendor "$OUTPUT".head "$OUTPUT".body         "$OUTPUT".tail > "$OUTPUT".js
-  paste --delimiter=\\n --serial "$OUTPUT".vendor "$OUTPUT".head "$OUTPUT".browser.body "$OUTPUT".tail > "$OUTPUT".min.js
-  paste --delimiter=\\n --serial "$OUTPUT".vendor "$OUTPUT".head "$OUTPUT".body         "$OUTPUT".tail > "$OUTPUT".specs.js
+  paste --delimiter=\\n --serial                  "$OUTPUT".head "$OUTPUT".body         "$OUTPUT".tail > "$OUTPUT".no.vendor.js
+  paste --delimiter=\\n --serial "$OUTPUT".vendor "$OUTPUT".head "$OUTPUT".body         "$OUTPUT".tail > "$OUTPUT".with.specs.js
+  paste --delimiter=\\n --serial "$OUTPUT".vendor "$OUTPUT".head "$OUTPUT".browser.body "$OUTPUT".tail > "$OUTPUT".js
 
   local +x IFS=' '
-  js_setup jshint "$OUTPUT".main.js $(find lib/browser/specs/ -type f -name "*.js" -and -not -name "browser.js" -print | tr '\n' ' ') || {
+  js_setup jshint "$OUTPUT".no.vendor.js $(find lib/browser/specs/ -type f -name "*.js" -and -not -name "browser.js" -print | tr '\n' ' ') || {
     stat=$?;
     mksh_setup RED "{{Failed}} jshint";
     exit $stat;
   }
 
-  server start $THIS_DIR/lib/browser/specs /browser.js /run.specs.js
+  server restart $THIS_DIR/lib/browser/specs /browser.with.specs.js /run.specs.js
 
   mksh_setup BOLD "-n" "=== Refreshing {{http://localhost:$(server port)/specs}} to re-run specs"
 
@@ -110,8 +110,8 @@ build-browser () {
     exit 1
   fi
 
-  mksh_setup GREEN "=== Done building: {{$OUTPUT}}.js     $(($(stat --printf="%s" "$OUTPUT".js)     / 1024)) Kb"
-  mksh_setup GREEN "=== Done building: {{$OUTPUT}}.min.js $(($(stat --printf="%s" "$OUTPUT".min.js) / 1024)) Kb"
+  mksh_setup GREEN "=== Done building: {{$OUTPUT}}.js            $(($(stat --printf="%s" "$OUTPUT".js)            / 1024)) Kb"
+  mksh_setup GREEN "=== Done building: {{$OUTPUT}}.with.specs.js $(($(stat --printf="%s" "$OUTPUT".with.specs.js) / 1024)) Kb"
 
 } # === end function
 
