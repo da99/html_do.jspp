@@ -11,8 +11,12 @@ find-build-files () {
       $CMD -type f -iname "*.js" -print
       ;;
 
-    top|bottom)
+    top)
       $CMD -name "_.${NAME}.js" -print
+      ;;
+
+    bottom)
+      $CMD -name "_.${NAME}.js" -print | tac
       ;;
 
     body)

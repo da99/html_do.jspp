@@ -29,12 +29,29 @@ build-browser () {
 
   paste --delimiter=\\n --serial \
     $(find-build-files top    $names)   \
-    $(find-build-files body   $names)    \
-    $(find-build-files bottom $names)     \
     > "$OUTPUT".body
+
+  local +x IFS=$'\n'
+  local +x LAST_CAT=""
+  for FILE in $(find-build-files body   $names) ; do
+    local +x NAME="$(basename $FILE .js)"
+    local +x CATEGORY=$(basename "$(dirname "$FILE")")
+    CATEGORY=${CATEGORY//"-"/"_"}
+    if [[ "$LAST_CAT" != "$CATEGORY" ]]; then
+      echo -e "\nfuncs.${CATEGORY} = {};" >> "$OUTPUT".body
+      LAST_CAT="$CATEGORY"
+    fi
+    echo -e "\nfuncs.${CATEGORY}.${NAME}=${NAME};" >> "$OUTPUT".body
+    cat "$FILE" >> "$OUTPUT".body
+  done
+
+  paste --delimiter=\\n --serial \
+    $(find-build-files bottom $names)     \
+    >> "$OUTPUT".body
 
   paste --delimiter=\\n --serial "$OUTPUT".head "$OUTPUT".body > "$OUTPUT"
 
+  local +x IFS=' '
   js_setup jshint lib/browser/build/browser.js.body $(find lib/browser/specs/ -type f -name "*.js" -and -not -name "browser.js" -print | tr '\n' ' ') || {
     stat=$?;
     mksh_setup RED "{{Failed}} jshint";
