@@ -81,7 +81,7 @@ build-browser () {
     exit $stat;
   }
 
-  server restart $THIS_DIR/lib/browser/specs /browser.with.specs.js /run.specs.js
+  server restart $THIS_DIR/lib/browser/specs /browser.with.specs.js
 
   mksh_setup BOLD "-n" "=== Refreshing {{http://localhost:$(server port)/specs}} to re-run specs"
 
