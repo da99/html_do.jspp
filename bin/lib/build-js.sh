@@ -1,20 +1,17 @@
 
-# === {{CMD}} path/to/file                dir1  dir2  dir3 ...
-# === {{CMD}} path/to/file  template.js   dir1  dir2  dir3 ...
+# === {{CMD}} path/to/file        dir1  dir2  dir3 ...
+# === {{CMD}} path/to/file  CMD   dir1  dir2  dir3 ...
 # === Produces:  path/to/file.js   path/to/file.specs.js
 # === Does not initialize files (delete, re-create), so you
 # ===   can add to the top of the file before build-js writes to it.
-# === The template file is evaluated after each concat:
-# ===
-# ===    exports.{{NAME}}         = {{NAME}};
-# ===    exports.{{CAT}}.{{NAME}} = {{NAME}};
-# ===    var PATH = "{{PATH}}";
+# === The optional CMD receives 4 values:
+# ===   "FILE"  "PREVIOUS FILE"  "OUTPUT-FILE.js"  "OUTPUT-FILE.specs.js"
 # ===
 build-js () {
   local +x OUTPUT="$1"; shift
-  local +x TEMPLATE=""
-  if [[ -f "$1" ]]; then
-    TEMPLATE="$(cat "$1")"; shift
+  local +x CMD=""
+  if [[ ! -d "$1" ]]; then
+    CMD="$1"; shift
   fi
 
   local +x DIRS="$@"
@@ -31,8 +28,7 @@ build-js () {
   paste --delimiter=\\n --serial "$TOP"    | append_to_both
 
   local +x IFS=$'\n'
-  local +x LAST_CAT=""
-  local +x LAST_MAIN=""
+  local +x PREV_FILE=""
 
   for FILE in $MIDDLE ; do
     local +x NAME="$(basename $FILE .js)"
@@ -50,14 +46,10 @@ build-js () {
     }
     cat "$FILE"                                                  >> "$OUTPUT".specs.js
 
-    if [[ ! -z "$TEMPLATE" ]]; then
-      local +x CURRENT_TEMPLATE="$TEMPLATE"
-      CURRENT_TEMPLATE="${CURRENT_TEMPLATE//"{{NAME}}"/"$NAME"}"
-      CURRENT_TEMPLATE="${CURRENT_TEMPLATE//"{{CAT}}"/"$CAT"}"
-      CURRENT_TEMPLATE="${CURRENT_TEMPLATE//"{{DIR}}"/"$DIR"}"
-      CURRENT_TEMPLATE="${CURRENT_TEMPLATE//"{{PATH}}"/"$FILE"}"
-      echo "$CURRENT_TEMPLATE" | append_to_both
+    if [[ ! -z "$CMD" ]]; then
+      $CMD "$FILE" "$PREV_FILE" "$OUTPUT".js "$OUTPUT".specs.js
     fi
+    PREV_FILE="$FILE"
   done # === for
 
   paste --delimiter=\\n --serial "$BOTTOM" | append_to_both
