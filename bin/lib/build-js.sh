@@ -44,6 +44,9 @@ build-js () {
   }
 
   for TOP_FILE in "$TOP"; do
+    if [[ ! -f "$TOP_FILE" ]]; then
+      continue
+    fi
     append_comment "START" "$TOP_FILE"
     cat "$TOP_FILE" | append_to_both
     echo "\n" | append_to_both
@@ -53,6 +56,9 @@ build-js () {
   local +x IFS=$'\n'
 
   for FILE in $MIDDLE ; do
+    if [[ ! -f "$FILE" ]]; then
+      continue
+    fi
     local +x NAME="$(basename $FILE .js)"
 
     append_comment "START" "$FILE"
@@ -69,6 +75,9 @@ build-js () {
   done # === for
 
   for BOTTOM_FILE in "$BOTTOM"; do
+    if [[ ! -f "$BOTTOM_FILE" ]]; then
+      continue
+    fi
     append_comment "START" "$BOTTOM_FILE"
     cat "$BOTTOM_FILE" | append_to_both
     echo "\n" | append_to_both
@@ -101,11 +110,15 @@ specs () {
   }
 
 
-  reset-fs
-  dum_dum_boom_boom build-js "$TEMP/actual/basic" "basic/input"
-  should-match-dirs  "$TEMP/actual/"  "basic/expect"
+  for DIR in $(find . -maxdepth 1 -mindepth 1 -type d ); do
+    local +x NAME="$(basename $DIR)"
+    reset-fs
+    if [[ -f "$NAME/run.sh" ]]; then
+      source "$NAME/run.sh"
+    else
+      dum_dum_boom_boom build-js "$TEMP/actual/$NAME" "$NAME/input"
+    fi
+    should-match-dirs          "$TEMP/actual/"      "$NAME/expect"
+  done
 
-  reset-fs
-  dum_dum_boom_boom build-js "$TEMP/actual/with_comments" "BUILDJS" "with_comments/input"
-  should-match-dirs "$TEMP/actual/"  "with_comments/expect"
 } # === specs
