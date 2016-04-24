@@ -1,58 +1,79 @@
 
-# === {{CMD}} path/to/file        dir1  dir2  dir3 ...
-# === {{CMD}} path/to/file  CMD   dir1  dir2  dir3 ...
+# === {{CMD}} path/to/file            dir1  dir2  dir3 ...
+# === {{CMD}} path/to/file  "STRING"  dir1  dir2  dir3 ...
+# ===
 # === Produces:  path/to/file.js   path/to/file.specs.js
+# ===
 # === Does not initialize files (delete, re-create), so you
 # ===   can add to the top of the file before build-js writes to it.
-# === The optional CMD receives 4 values:
-# ===   "FILE"  "PREVIOUS FILE"  "OUTPUT-FILE.js"  "OUTPUT-FILE.specs.js"
+# ===
+# === The optional STRING is used in the comments between files:
+# ===   /* STRING START: path/to/file.js */
+# ===        ... content of file ...
+# ===   /* STRING STOP: path/to/file.js */
 # ===
 build-js () {
+
   local +x OUTPUT="$1"; shift
-  local +x CMD=""
+  local +x COMMENT=""
   if [[ ! -d "$1" ]]; then
-    CMD="$1"; shift
+    COMMENT="$1"; shift
   fi
 
+  # NOTE: Instead of using `find $DIRS`, we use `print ..$DIRS.. | xargs ... find DIR`
+  # because `find` does not guarantee the order of files found based on the order of $DIRS.
+  # Using `xargs in this case gives more control on order of files at the expense of efficiency.
+
   local +x DIRS="$@"
-  local +x ALL="$(find "$DIRS" -type f -name "*.js")"
+  local +x ALL="$(printf "%s\n" "$@" | xargs -I DIR find DIR -type f -name "*.js")"
   local +x TOP=$(echo "$ALL" | grep "_.top.js")
   local +x MIDDLE=$(echo "$ALL" | grep -v "_.\(top\|bottom\).js" | sort)
   local +x BOTTOM=$(echo "$ALL" | grep "_.bottom.js" | tac)
-
 
   append_to_both () {
     tee -a "$OUTPUT".js "$OUTPUT".specs.js >/dev/null
   }
 
-  paste --delimiter=\\n --serial "$TOP"    | append_to_both
+  append_comment () {
+    if [[ -z "$COMMENT" ]]; then
+      return 0
+    fi
+    local +x POSITION="$1"; shift
+    local +x FILE="$1"; shift
+    echo "/* $COMMENT $POSITION: $FILE */" | append_to_both
+  }
+
+  for TOP_FILE in "$TOP"; do
+    append_comment "START" "$TOP_FILE"
+    cat "$TOP_FILE" | append_to_both
+    echo "\n" | append_to_both
+    append_comment "STOP" "$TOP_FILE"
+  done
 
   local +x IFS=$'\n'
-  local +x PREV_FILE=""
 
   for FILE in $MIDDLE ; do
     local +x NAME="$(basename $FILE .js)"
-    local +x DIR="$(dirname "$FILE")"
-    local +x MAIN="$(echo "$FILE" | cut -d'/' -f2 )"
-    local +x CATEGORY="$(echo "$FILE" | cut -d'/' -f3 )"
-    local +x CAT="${DIR//"/"/"."}"
-    CAT="${CAT//"-"/"_"}"
 
-    THIS_CAT=${THIS_CAT//"-"/"_"}
+    append_comment "START" "$FILE"
 
     grep -Pzo '(?s)function\ +'${NAME//'$'/'\$'}'\(.+'  "$FILE"  >> "$OUTPUT".js || {
       mksh_setup RED "!!! Function BOLD{{$NAME}} RED{{not}} found in: BOLD{{$FILE}}"
       exit 1
     }
-    cat "$FILE"                                                  >> "$OUTPUT".specs.js
 
-    if [[ ! -z "$CMD" ]]; then
-      $CMD "$FILE" "$PREV_FILE" "$OUTPUT".js "$OUTPUT".specs.js
-    fi
-    PREV_FILE="$FILE"
+    cat "$FILE"  >> "$OUTPUT".specs.js
+    echo "\n"    >> "$OUTPUT".specs.js
+
+    append_comment "STOP" "$FILE"
   done # === for
 
-  paste --delimiter=\\n --serial "$BOTTOM" | append_to_both
+  for BOTTOM_FILE in "$BOTTOM"; do
+    append_comment "START" "$BOTTOM_FILE"
+    cat "$BOTTOM_FILE" | append_to_both
+    echo "\n" | append_to_both
+    append_comment "STOP" "$BOTTOM_FILE"
+  done
 
   mksh_setup GREEN "=== wrote $OUTPUT.js"
   mksh_setup GREEN "=== wrote $OUTPUT.specs.js"
@@ -63,7 +84,9 @@ specs () {
   mkdir -p "$TEMP"
   cd "$THIS_DIR/bin/lib/build-js"
 
-  rm -rf "$TEMP/actual"; mkdir "$TEMP/actual"
+  reset-fs () {
+    rm -rf "$TEMP/actual"; mkdir "$TEMP/actual"
+  }
 
   should-match-dirs () {
     local +x ACTUAL="$1"; shift
@@ -78,6 +101,11 @@ specs () {
   }
 
 
+  reset-fs
   dum_dum_boom_boom build-js "$TEMP/actual/basic" "basic/input"
   should-match-dirs  "$TEMP/actual/"  "basic/expect"
+
+  reset-fs
+  dum_dum_boom_boom build-js "$TEMP/actual/with_comments" "BUILDJS" "with_comments/input"
+  should-match-dirs "$TEMP/actual/"  "with_comments/expect"
 } # === specs
