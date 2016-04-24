@@ -40,7 +40,7 @@ specs () {
   touch    lib/browser/aquaman/a.js
 
   mkdir -p lib/nodejs/superman
-  toucn    lib/nodejs/superman/a.js
+  touch    lib/nodejs/superman/a.js
 
   should-exit 1 'dum_dum_boom_boom duplicate-functions'
   # ===========================================================================
