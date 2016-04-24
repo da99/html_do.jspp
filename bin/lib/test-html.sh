@@ -48,7 +48,7 @@ test-html () {
   STAT=0
   OUTPUT="$ACTUAL/error.msg"
 
-  $0 html --input-dir "$DIR/input" --output-dir "$ACTUAL" --public-dir "$TEMP" >"$OUTPUT" 2>&1 || { STAT=$?; }
+  $0 build-html --input-dir "$DIR/input" --output-dir "$ACTUAL" --public-dir "$TEMP" >"$OUTPUT" 2>&1 || { STAT=$?; }
 
   echo "$DIR" > "$TEMP/last_failed"
 

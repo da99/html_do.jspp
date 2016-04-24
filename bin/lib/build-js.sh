@@ -84,8 +84,8 @@ build-js () {
     append_comment "STOP" "$BOTTOM_FILE"
   done
 
-  mksh_setup GREEN "=== wrote $OUTPUT.js"
-  mksh_setup GREEN "=== wrote $OUTPUT.specs.js"
+  mksh_setup GREEN "=== {{wrote}}: $OUTPUT.js"
+  mksh_setup GREEN "=== {{wrote}}: $OUTPUT.specs.js"
 } # === end function
 
 specs () {
