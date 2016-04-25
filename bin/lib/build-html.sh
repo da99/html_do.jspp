@@ -58,7 +58,8 @@ test-html () {
   local +x TARGET_DIR="$DIR"
   local +x ACTUAL="$TEMP/actual"
   local +x STAT=0
-  local +x OUTPUT=""
+  local +x OUTPUT="$ACTUAL/output"
+  local +x ERROR_MSG="$ACTUAL/error.msg"
   local +x DIFF_OUTPUT="$(mktemp)"
 
   rm -rf "$ACTUAL"; mkdir -p "$ACTUAL" # === Re-set sandbox:
@@ -66,14 +67,23 @@ test-html () {
   mksh_setup BOLD "=== Testing: {{$DIR}}"
 
   STAT=0
-  ERROR_MSG="$ACTUAL/error.msg"
 
-  dum_dum_boom_boom build-html "$DIR/input" "$ACTUAL" "$TEMP" >/dev/null 2>"$ERROR_MSG" || { STAT=$?; }
+  dum_dum_boom_boom build-html "$DIR/input" "$ACTUAL" "$TEMP" >"$OUTPUT" 2>"$ERROR_MSG" || { STAT=$?; }
 
   echo "$DIR" > "$TEMP/last_failed"
 
+  if [[ "$STAT" -eq 0 ]]; then
+    if grep -v wrote "$OUTPUT"; then
+      mksh_setup RED "!!! {{Unexpected}} output:"
+      cat $OUTPUT >&2
+      exit 1
+    else
+      rm "$OUTPUT"
+    fi
+  fi
+
   if [[ "$STAT" -ne 0 && ! -f "$DIR/expect/error.msg" ]]; then
-    mksh_setup RED "=== html command failed with: {{$STAT}} $(cat "$ERROR_MSG")"
+    mksh_setup RED "!!! html command failed with: {{$STAT}} $(cat "$ERROR_MSG")"
     exit $STAT
   fi
 
