@@ -1407,6 +1407,8 @@ function App() {
   return App._computer.apply(null, arguments);
 }
 
+funcs.App = App;
+
 
 funcs.common.state.Computer=Computer;
 function Computer() {

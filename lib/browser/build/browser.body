@@ -2143,7 +2143,7 @@ funcs.common.state.App=App;
 // === Examples:
 // App()
 // App(..args for underlying Computer)
-exports.App = App;
+
 function App() {
 
   if (!App._computer) {
@@ -2152,6 +2152,8 @@ function App() {
 
   return App._computer.apply(null, arguments);
 }
+
+funcs.App = App;
 
 funcs.common.state.Computer=Computer;
 /* jshint strict: true, undef: true */

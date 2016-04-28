@@ -5,8 +5,6 @@ var Dum_Dum_Boom_Boom = (function Scope_Dum_Dum_Boom_Boom(category) {
   var non_exports = {};
   var funcs   = {};
 
-
-
 /* jshint browser: true, undef: true */
 
 if (typeof window === 'undefined')
