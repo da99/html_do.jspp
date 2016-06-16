@@ -47,6 +47,20 @@ do not want to process.  The function, `msg_match`, is provided to
 let you compare the messages using an object that "looks like" the message
 you want to process.
 
+Suggestion for function design:
+===============================
+
+```html
+   <p data-do="my_func [my_other_func [with optional args]]"></p>
+```
+
+The easiest so far I could find is to think in terms of associations:
+
+  * You are associating a tag (ie `p`) with a function `my_func`.
+  * That function is associated with another: `my_other_func`.
+
+This is the usual pattern. However, you are free to design your functions based on
+need and intuitiveness (ie case-by-case basis).
 
 data-do is the only pre-installed message function:
 ============================
