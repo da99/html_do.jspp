@@ -1,5 +1,5 @@
 
-source "$THIS_DIR/bin/lib/find-build-files.sh"
+source "$THIS_DIR/bin/public/find-build-files/_.sh"
 
 # === {{CMD}}
 build-node () {

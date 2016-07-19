@@ -1,5 +1,5 @@
 
-source "$THIS_DIR/bin/lib/server.sh"
+source "$THIS_DIR/bin/public/server/_.sh"
 
 # === {{CMD}}
 # === {{CMD}} "cmd with args"
@@ -26,7 +26,7 @@ watch () {
       continue
     fi
 
-    if [[ "$path" == *"/bin/lib/watch.sh" ]]; then
+    if [[ "$path" == *"/bin/public/watch/_.sh" ]]; then
       mksh_setup ORANGE "=== watch.sh changed. {{Reloading}}..."
       exec $0 watch "$CMD"
     fi

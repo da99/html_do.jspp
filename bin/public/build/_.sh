@@ -1,8 +1,8 @@
 
-source "$THIS_DIR/bin/lib/test-html.sh"
-source "$THIS_DIR/bin/lib/build-node.sh"
-source "$THIS_DIR/bin/lib/build-browser.sh"
-source "$THIS_DIR/bin/lib/duplicate-functions.sh"
+source "$THIS_DIR/bin/public/test-html/_.sh"
+source "$THIS_DIR/bin/public/build-node/_.sh"
+source "$THIS_DIR/bin/public/build-browser/_.sh"
+source "$THIS_DIR/bin/public/duplicate-functions/_.sh"
 
 # === {{CMD}}
 # === This is a shortcut  build-node, build-browser, test-html

@@ -1,6 +1,6 @@
 
-source "$THIS_DIR/bin/lib/find-build-files.sh"
-source "$THIS_DIR/bin/lib/server.sh"
+source "$THIS_DIR/bin/public/find-build-files/_.sh"
+source "$THIS_DIR/bin/public/server/_.sh"
 
 # === {{CMD}}
 build-browser () {
