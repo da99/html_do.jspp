@@ -16,7 +16,7 @@ specs () {
       fi
 
       if [[ ! -d "$DIR" ]]; then
-        mksh_setup RED "!!! Directory {{not found}}: $DIR"
+        sh_color RED "!!! Directory {{not found}}: $DIR"
         exit 1
       fi
 
@@ -31,7 +31,7 @@ specs () {
     test-html "$DIR" || exit 1
   done # === for
 
-  mksh_setup GREEN "=== All {{pass}}."
+  sh_color GREEN "=== All {{pass}}."
 } # === specs ()
 
 
@@ -49,7 +49,7 @@ test-html () {
 
   rm -rf "$ACTUAL"; mkdir -p "$ACTUAL" # === Re-set sandbox:
 
-  mksh_setup BOLD "=== Testing: {{$DIR}}"
+  sh_color BOLD "=== Testing: {{$DIR}}"
 
   STAT=0
 
@@ -59,7 +59,7 @@ test-html () {
 
   if [[ "$STAT" -eq 0 ]]; then
     if grep -v wrote "$OUTPUT"; then
-      mksh_setup RED "!!! {{Unexpected}} output:"
+      sh_color RED "!!! {{Unexpected}} output:"
       cat $OUTPUT >&2
       exit 1
     else
@@ -68,7 +68,7 @@ test-html () {
   fi
 
   if [[ "$STAT" -ne 0 && ! -f "$DIR/expect/error.msg" ]]; then
-    mksh_setup RED "!!! html command failed with: {{$STAT}} $(cat "$ERROR_MSG")"
+    sh_color RED "!!! html command failed with: {{$STAT}} $(cat "$ERROR_MSG")"
     exit $STAT
   fi
 
@@ -80,16 +80,16 @@ test-html () {
     # If error messages don't match, use EXPECT as a regexp match:
     if ! diff "$DIR/expect/error.msg"  "$ACTUAL/error.msg" >/dev/null 2>&1 ; then
       if ! grep -P "$(cat $DIR/expect/error.msg )" "$ACTUAL/error.msg" >/dev/null 2>&1; then
-        mksh_setup RED "=== {{FAILED}}: BOLD{{error messages do not match}}:"
-        mksh_setup RED "{{"$(cat "$ACTUAL/error.msg" || echo "[no error msg]")"}}"
-        mksh_setup RED "   !=="
-        mksh_setup RED "BOLD{{$(cat "$DIR/expect/error.msg")}}"
+        sh_color RED "=== {{FAILED}}: BOLD{{error messages do not match}}:"
+        sh_color RED "{{"$(cat "$ACTUAL/error.msg" || echo "[no error msg]")"}}"
+        sh_color RED "   !=="
+        sh_color RED "BOLD{{$(cat "$DIR/expect/error.msg")}}"
         exit 1
       fi
     fi
   else
     if ! mksh_setup dirs-are-equal ignore-whitespace "$ACTUAL" "$DIR/expect" >"$DIFF_OUTPUT" ; then
-      mksh_setup RED "=== {{Failed}}: spec failed "
+      sh_color RED "=== {{Failed}}: spec failed "
       cat "$DIFF_OUTPUT"
       rm "$DIFF_OUTPUT"
       test -f "$OUTPUT" && cat "$OUTPUT"
@@ -100,7 +100,7 @@ test-html () {
 
   rm -f "$TEMP/last_failed"
   tput cuu1; tput el
-  mksh_setup GREEN "=== {{Passed}}: $DIR"
+  sh_color GREEN "=== {{Passed}}: $DIR"
 
 } # end function test-html
 

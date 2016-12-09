@@ -19,7 +19,7 @@ prepend-exports () {
 
     echo -e "$funcs_line_nums" | while IFS=':' read LINE NAME; do
       new_content="exports.${NAME} = ${NAME};"
-      mksh_setup BOLD "=== {{ADDING}}: $new_content -> $FILE"
+      sh_color BOLD "=== {{ADDING}}: $new_content -> $FILE"
       sed -i "${LINE}i $new_content" "$FILE"
     done
   done

@@ -12,7 +12,7 @@ build-node () {
   rm -f "$OUTPUT"
   rm -f "$OUTPUT".*
 
-  mksh_setup BOLD "=== Building: {{$OUTPUT}}"
+  sh_color BOLD "=== Building: {{$OUTPUT}}"
 
   cat \
     $(find-build-files top    $names) \
@@ -20,10 +20,10 @@ build-node () {
     $(find-build-files bottom $names) \
     > "$OUTPUT"
 
-  mksh_setup BOLD "=== Testing: {{node.js}}"
+  sh_color BOLD "=== Testing: {{node.js}}"
   node lib/node/spec.js test 2>&1 | js_setup map-errors-to-files $names
   # || {
-  #   stat=$?; mksh_setup RED "=== {{Spec run failed}}"; exit $stat;
+  #   stat=$?; sh_color RED "=== {{Spec run failed}}"; exit $stat;
   # }
-  mksh_setup GREEN "=== Done building and testing: {{$OUTPUT}}"
+  sh_color GREEN "=== Done building and testing: {{$OUTPUT}}"
 } # === end function

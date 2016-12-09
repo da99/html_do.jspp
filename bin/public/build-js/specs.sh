@@ -13,11 +13,11 @@ specs () {
     local +x EXPECT="$1"; shift
     local +x DIFF_OUTPUT="$TEMP/diff"
     if ! mksh_setup dirs-are-equal ignore-whitespace "$ACTUAL" "$EXPECT" >"$DIFF_OUTPUT" ; then
-      mksh_setup RED "=== {{Failed}}: {{$ACTUAL}} != BOLD{{$EXPECT}}"
+      sh_color RED "=== {{Failed}}: {{$ACTUAL}} != BOLD{{$EXPECT}}"
       cat "$DIFF_OUTPUT"
       exit 1
     fi
-    mksh_setup GREEN "=== {{PASSED}}: $ACTUAL == $EXPECT"
+    sh_color GREEN "=== {{PASSED}}: $ACTUAL == $EXPECT"
   }
 
 

@@ -19,7 +19,7 @@ copy-files () {
   local +x FILES="$(find "$FROM" -type f -regextype posix-extended  -regex $PATTERN -print)"
 
   if [[ -z "$FILES" ]]; then
-    mksh_setup ORANGE "=== {{No files}} to copy: $FROM -> $TO" >&2
+    sh_color ORANGE "=== {{No files}} to copy: $FROM -> $TO" >&2
     return 0
   fi
 

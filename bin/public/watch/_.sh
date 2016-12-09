@@ -7,7 +7,7 @@ watch () {
   local +x CMD="$@"
   local +x FILES="$PWD -r lib/ bin/"
 
-  mksh_setup BOLD "=== Watching: {{$FILES}} CMD: {{$CMD}}"
+  sh_color BOLD "=== Watching: {{$FILES}} CMD: {{$CMD}}"
   $CMD || :
 
   inotifywait --quiet --monitor --exclude .git/ --event close_write $FILES | while read -r CHANGE; do
@@ -18,20 +18,20 @@ watch () {
 
     # === NOTE: We exclude 'build/' files to prevent an endless loop.
     if [[ "$path" == */build/* ]]; then
-      mksh_setup ORANGE  "=== Skipping: {{$CHANGE}}"
+      sh_color ORANGE  "=== Skipping: {{$CHANGE}}"
     fi
 
     if [[ ! -f "$path" ]]; then
-      mksh_setup BOLD "=== Skipping {{non-file}}: $CHANGE"
+      sh_color BOLD "=== Skipping {{non-file}}: $CHANGE"
       continue
     fi
 
     if [[ "$path" == *"/bin/public/watch/_.sh" ]]; then
-      mksh_setup ORANGE "=== watch.sh changed. {{Reloading}}..."
+      sh_color ORANGE "=== watch.sh changed. {{Reloading}}..."
       exec $0 watch "$CMD"
     fi
 
-    mksh_setup ORANGE "=== Changed: {{$path}} ($CHANGE)"
+    sh_color ORANGE "=== Changed: {{$path}} ($CHANGE)"
 
     if [[ "$path" == "*.js" ]]; then
       js_setup jshint "$path" && "$CMD" || :
@@ -52,7 +52,7 @@ watch () {
 
   cmd="$@"
   run_cmd () {
-    $cmd && mksh_setup GREEN "=== {{$cmd}}" || mksh_setup RED "=== {{Failed}}"
+    $cmd && sh_color GREEN "=== {{$cmd}}" || sh_color RED "=== {{Failed}}"
   }
 
   server restart

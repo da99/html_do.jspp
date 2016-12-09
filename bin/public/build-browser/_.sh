@@ -18,7 +18,7 @@ build-browser () {
 
   # === BROWSER: ==============================================================
 
-  mksh_setup BOLD "=== Building: {{$OUTPUT}}"
+  sh_color BOLD "=== Building: {{$OUTPUT}}"
 
   paste --delimiter=\\n --serial \
     bower_components/jquery/dist/jquery.min.js   \
@@ -77,13 +77,13 @@ build-browser () {
   local +x IFS=' '
   js_setup jshint "$OUTPUT".no.vendor.js $(find lib/browser/specs/ -type f -name "*.js" -and -not -name "browser.js" -print | tr '\n' ' ') || {
     stat=$?;
-    mksh_setup RED "{{Failed}} jshint";
+    sh_color RED "{{Failed}} jshint";
     exit $stat;
   }
 
   server restart $THIS_DIR/lib/browser/specs /browser.with.specs.js
 
-  mksh_setup BOLD "-n" "=== Refreshing {{http://localhost:$(server port)/specs}} to re-run specs"
+  sh_color BOLD "-n" "=== Refreshing {{http://localhost:$(server port)/specs}} to re-run specs"
 
   local waiting=0
   while [[ $waiting -lt 30 ]] && ! gui_setup reload-browser google-chrome "Dum" 2>/dev/null && ! gui_setup reload-browser google-chrome "specs" 2>/dev/null; do
@@ -93,7 +93,7 @@ build-browser () {
   done
   echo ""
   if [[ $waiting -gt 29 ]]; then
-    mksh_setup RED "=== {{Failed}} opening: BOLD{{$(server index)}}"
+    sh_color RED "=== {{Failed}} opening: BOLD{{$(server index)}}"
     exit 1
   fi
 
@@ -104,14 +104,14 @@ build-browser () {
   done
 
   if [[ -s "$browser_results" ]]; then
-    mksh_setup GREEN "=== Browser specs: {{$(cat "$browser_results")}}"
+    sh_color GREEN "=== Browser specs: {{$(cat "$browser_results")}}"
   else
-    mksh_setup RED "!!! Browser specs: {{Failed}}"
+    sh_color RED "!!! Browser specs: {{Failed}}"
     exit 1
   fi
 
-  mksh_setup GREEN "=== Done building: {{$OUTPUT}}.js            $(($(stat --printf="%s" "$OUTPUT".js)            / 1024)) Kb"
-  mksh_setup GREEN "=== Done building: {{$OUTPUT}}.with.specs.js $(($(stat --printf="%s" "$OUTPUT".with.specs.js) / 1024)) Kb"
+  sh_color GREEN "=== Done building: {{$OUTPUT}}.js            $(($(stat --printf="%s" "$OUTPUT".js)            / 1024)) Kb"
+  sh_color GREEN "=== Done building: {{$OUTPUT}}.with.specs.js $(($(stat --printf="%s" "$OUTPUT".with.specs.js) / 1024)) Kb"
 
 } # === end function
 

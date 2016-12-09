@@ -6,20 +6,20 @@ bump-commit () {
   local +x NEW_VERSION="$(git_setup bump $@)"
   local +x NEW_NUM=${NEW_VERSION/v/}
 
-  mksh_setup BOLD "=== {{Bumping}} to $NEW_VERSION"
+  sh_color BOLD "=== {{Bumping}} to $NEW_VERSION"
 
-  mksh_setup BOLD "=== Upgrading..."
+  sh_color BOLD "=== Upgrading..."
   js_setup js_clean
   js_setup upgrade
   git_setup should-be-clean
 
-  mksh_setup BOLD "=== Building and testing..."
+  sh_color BOLD "=== Building and testing..."
   $0 build
 
-  mksh_setup BOLD "=== Updating {{package.json}}..."
+  sh_color BOLD "=== Updating {{package.json}}..."
   js_setup update-key "package.json" "version" "$NEW_NUM"
 
-  mksh_setup BOLD "=== Bumping and pushing..."
+  sh_color BOLD "=== Bumping and pushing..."
   git add package.json
   git commit -m "Bump: $NEW_VERSION"
   git tag "$NEW_VERSION"

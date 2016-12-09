@@ -64,7 +64,7 @@ build-js () {
     append_comment "START" "$FILE"
 
     grep -Pzo '(?s)function\ +'${NAME//'$'/'\$'}'\(.+'  "$FILE"  >> "$OUTPUT".js || {
-      mksh_setup RED "!!! Function BOLD{{$NAME}} RED{{not}} found in: BOLD{{$FILE}}"
+      sh_color RED "!!! Function BOLD{{$NAME}} RED{{not}} found in: BOLD{{$FILE}}"
       exit 1
     }
 
@@ -84,7 +84,7 @@ build-js () {
     append_comment "STOP" "$BOTTOM_FILE"
   done
 
-  mksh_setup GREEN "=== {{wrote}}: $OUTPUT.js"
-  mksh_setup GREEN "=== {{wrote}}: $OUTPUT.specs.js"
+  sh_color GREEN "=== {{wrote}}: $OUTPUT.js"
+  sh_color GREEN "=== {{wrote}}: $OUTPUT.specs.js"
 } # === end function
 

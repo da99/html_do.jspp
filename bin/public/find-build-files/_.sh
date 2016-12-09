@@ -26,7 +26,7 @@ find-build-files () {
     *)
       local +x FILES="$($CMD -name "$NAME" -print)"
       if [[ -z "$FILES" ]]; then
-        mksh_setup RED "!!! Build files not found: {{$NAME}}"
+        sh_color RED "!!! Build files not found: {{$NAME}}"
         exit 1
       fi
       echo "$FILES"

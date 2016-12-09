@@ -15,7 +15,7 @@ server () {
 
     port)
       if ! server is-running ; then
-        mksh_setup RED "!!! Server is {{not running}}."
+        sh_color RED "!!! Server is {{not running}}."
         exit 1
       fi
 
@@ -35,7 +35,7 @@ server () {
     start)
       shift
       if $0 server is-running ; then
-        mksh_setup BOLD "=== Server {{already}} running."
+        sh_color BOLD "=== Server {{already}} running."
         return 0
       fi
 

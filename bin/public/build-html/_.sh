@@ -2,7 +2,7 @@
 # === {{CMD}} dum-dum.file.html  my/output/dir/  public/dir/
 # === {{CMD}} input/dir          my/output/dir/  public/dir
 build-html () {
-  node $THIS_DIR/lib/html/build-html.js "$@" | xargs -I NEW_FILE mksh_setup GREEN "=== {{wrote}}: NEW_FILE"
+  node $THIS_DIR/lib/html/build-html.js "$@" | xargs -I NEW_FILE sh_color GREEN "=== {{wrote}}: NEW_FILE"
 
   # vnu="$(echo tmp/validator/*/dist/vnu.jar)"
   # final="$(node $THIS_DIR/lib/html/html.js $THE_ARGS)"
