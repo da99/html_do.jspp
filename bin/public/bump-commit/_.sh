@@ -3,7 +3,7 @@
 # === runs `js_setup upgrade`, then `{{BIN}} build`, then runs `js_setup bump-commit $@`
 bump-commit () {
 
-  local +x NEW_VERSION="$(git_setup bump $@)"
+  local +x NEW_VERSION="$(my_git bump $@)"
   local +x NEW_NUM=${NEW_VERSION/v/}
 
   sh_color BOLD "=== {{Bumping}} to $NEW_VERSION"
@@ -11,7 +11,7 @@ bump-commit () {
   sh_color BOLD "=== Upgrading..."
   js_setup js_clean
   js_setup upgrade
-  git_setup should-be-clean
+  my_git should-be-clean
 
   sh_color BOLD "=== Building and testing..."
   $0 build
@@ -23,5 +23,5 @@ bump-commit () {
   git add package.json
   git commit -m "Bump: $NEW_VERSION"
   git tag "$NEW_VERSION"
-  git_setup push-latest-version
+  my_git push-latest-version
 } # === end function
