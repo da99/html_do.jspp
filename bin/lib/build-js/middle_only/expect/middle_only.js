@@ -1,7 +1,0 @@
-
-function a() {
-}
-
-function b() {
-}
-

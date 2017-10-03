@@ -1,13 +1,13 @@
 {
-  "name": "dum_dum_boom_boom",
+  "name": "html_do",
   "authors": [
     "da99 <i-hate-spam-1234567@mailinator.com>"
   ],
   "description": "[don't use this]",
-  "main": "lib/browser/build/browser.js",
+  "main": "lib/html_do.js",
   "moduleType": "globals",
   "license": "MIT",
-  "homepage": "https://github.com/da99/dum_dum_boom_boom",
+  "homepage": "https://github.com/da99/html_do.jspp",
   "private": true,
   "ignore": [
     "/bin",
@@ -22,10 +22,5 @@
     "/tmp"
   ],
   "dependencies": {
-    "form-to-obj": "chrisdavies/form-to-obj#latest",
-    "alite": "chrisdavies/alite#latest",
-    "lodash": "latest",
-    "jquery": "latest",
-    "mustache.js": "mustache#latest"
   }
 }
