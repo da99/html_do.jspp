@@ -1,0 +1,33 @@
+
+div {
+  background: #E3E0CF;
+  margin: 10px;
+  padding: 10px;
+}
+
+div span {
+ padding: 10px;
+}
+
+body {
+  background: #908E8E;
+}
+
+
+#number {
+  width: 25%;
+  float: left;
+}
+
+#words {
+  width: 25%;
+  float: left;
+  background: #E85669;
+}
+
+#quotation {
+  width: 25%;
+  float: left;
+  background: #4AB1A8;
+}
+div { background: #E3E0CF; } div span { padding: 10px; } body { background: #908E8E; } #number { width: 25%;  float: left;  }
